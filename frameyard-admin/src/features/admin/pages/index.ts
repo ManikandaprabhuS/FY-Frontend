@@ -1,0 +1,12 @@
+export { default as LoginPage } from '../../../pages/auth/LoginPage';
+export { default as OverviewPage } from '../../../pages/overview/OverviewPage';
+export { default as ProductsPage } from '../../../pages/products/ProductsPage';
+export { default as ProductDetailsPage } from '../../../pages/products/ProductDetailsPage';
+export { default as OrdersPage } from '../../../pages/orders/OrdersPage';
+export { default as CustomersPage } from '../../../pages/customers/CustomersPage';
+export { default as CustomerDetailsPage } from '../../../pages/customers/CustomerDetailsPage';
+export { default as WishlistAnalyticsPage } from '../../../pages/wishlist/WishlistAnalyticsPage';
+export { default as NotificationsPage } from '../../../pages/notifications/NotificationsPage';
+export { default as ProfilePage } from '../../../pages/profile/ProfilePage';
+export { default as SettingsPage } from '../../../pages/settings/SettingsPage';
+export { default as EmployeesPage } from '../../../pages/employees/EmployeesPage';
