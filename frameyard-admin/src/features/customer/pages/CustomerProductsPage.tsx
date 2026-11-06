@@ -43,10 +43,8 @@ const CustomerProductsPage: React.FC = () => {
   const { customerLoggedIn, wishlist, toggleWishlist, addToCart } = useCustomerCommerce();
 
   useEffect(() => {
-    if (products.length === 0) {
-      fetchProducts({ page: 1, limit: 50, isActive: true, publicCatalog: true });
-    }
-  }, [fetchProducts, products.length]);
+    void fetchProducts({ page: 1, limit: 50, isActive: true, publicCatalog: true });
+  }, [fetchProducts]);
 
   const activeProducts = useMemo(() => products.filter((product) => product.isActive), [products]);
   const catalogEntries = useMemo<CatalogEntry[]>(

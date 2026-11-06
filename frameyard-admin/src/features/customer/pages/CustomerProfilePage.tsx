@@ -19,7 +19,7 @@ import { showError, showSuccess } from '../../../utils/toast';
 import femaleCustomerAvatar from '../../../assets/customer-avatar-female.svg';
 import maleCustomerAvatar from '../../../assets/customer-avatar-male.svg';
 import CustomerAccountDashboard from '../components/CustomerAccountDashboard';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 type AuthMode = 'login' | 'register';
 
@@ -208,6 +208,7 @@ const LoginForm: React.FC<{
         <AuthInput label="Password" type="password" autoComplete="current-password" icon={<LockKeyhole />} error={errors.password?.message} registration={register('password', { required: 'Password is required' })} />
       </div>
       <AuthError message={error} />
+      <div className="mt-3 text-right"><Link to="/forgot-password" className="inline-flex min-h-11 items-center text-xs font-bold underline underline-offset-4 focus-visible:outline focus-visible:outline-2">Forgot password?</Link></div>
       <SubmitButton loading={loading} label="Login" />
       <p className="mt-5 text-center text-xs text-black/50">New to FrameYaad? <button type="button" onClick={onRegister} className="font-black text-black underline underline-offset-4">Create an account</button></p>
     </form>

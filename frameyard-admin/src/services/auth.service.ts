@@ -29,6 +29,11 @@ export type CustomerRegistrationData = {
   authentication: 'httpOnlyCookie' | 'emailConfirmationRequired';
 };
 
+export interface RecoverySession {
+  resetToken: string;
+}
+export type RecoveryPortal = 'customer' | 'admin';
+
 const normalizeUser = (user: BackendUser): User => ({
   ...user,
   cityName: user.city ?? user.cityName ?? null,
@@ -37,6 +42,18 @@ const normalizeUser = (user: BackendUser): User => ({
 });
 
 export const authService = {
+  requestPasswordReset: async (portal: RecoveryPortal, email: string): Promise<void> => {
+    await api.post(`/auth/${portal}/forgot-password`, { email });
+  },
+
+  verifyResetOtp: async (portal: RecoveryPortal, email: string, otp: string): Promise<RecoverySession> => {
+    const response = await api.post<ApiEnvelope<RecoverySession>>(`/auth/${portal}/verify-reset-otp`, { email, otp });
+    return response.data.data;
+  },
+
+  resetPassword: async (portal: RecoveryPortal, session: RecoverySession, newPassword: string): Promise<void> => {
+    await api.post(`/auth/${portal}/reset-password`, { ...session, newPassword });
+  },
   login: async (email: string, password: string) => {
   const response = await api.post<ApiEnvelope<AuthData>>('/auth/staff/login', {
     email,   

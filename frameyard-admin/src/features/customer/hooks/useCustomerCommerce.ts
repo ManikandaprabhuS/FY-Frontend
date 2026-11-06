@@ -24,7 +24,7 @@ export const useCustomerCommerce = () => {
 
   const toggleWishlist = useCallback(async (product: Product) => {
     if (!customerLoggedIn) {
-      requestLogin('Please login to add product to wishlist');
+      requestLogin('Please login / create an account to add products to wishlist');
       return;
     }
     if (!product.productIdentifier) {

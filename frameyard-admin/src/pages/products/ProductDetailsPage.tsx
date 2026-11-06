@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
 import Modal from '../../components/ui/Modal';
+import OptionalImageUpload from '../../components/ui/OptionalImageUpload';
 import Badge from '../../components/ui/Badge';
 import { ArrowLeft, Plus, Edit2, Trash2, Image as ImageIcon, Upload, Info, CheckCircle2 } from 'lucide-react';
 import { ProductImage, ProductStatus } from '../../types';
 import { uploadProductImages } from '../../services/product.service';
 
 type VariantForm = {
+  imageUrl?: string | null;
   id: string;
   productId?: string;
   frameSize: string;
@@ -58,6 +60,7 @@ export const ProductDetailsPage: React.FC = () => {
   const [brand, setBrand] = useState('');
   const [material, setMaterial] = useState('Solid Oak');
   const [colors, setColors] = useState<string[]>([]);
+  const [colorImages, setColorImages] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<ProductStatus>('active');
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [images, setImages] = useState<ProductImageDraft[]>([]);
@@ -80,6 +83,7 @@ export const ProductDetailsPage: React.FC = () => {
   const [varPrice, setVarPrice] = useState('');
   const [varOfferPrice, setVarOfferPrice] = useState('');
   const [varStock, setVarStock] = useState('');
+  const [varImage, setVarImage] = useState<string | null>(null);
 
   const mapCurrentProductImages = (productImages: ProductImage[] = []) =>
     normalizeImageOrder(
@@ -104,6 +108,7 @@ export const ProductDetailsPage: React.FC = () => {
     setStatus('active');
     setVariants([]);
     setImages([]);
+    setColorImages({});
     setImageError(null);
     setWizardError(null);
   }, [id, isNew, fetchProductById, clearCurrentProduct]);
@@ -117,7 +122,8 @@ export const ProductDetailsPage: React.FC = () => {
       setColors(currentProduct.availableColors || []);
       setStatus(currentProduct.isActive ? 'active' : 'draft');
       setVariants(currentProduct.variants);
-      setImages(mapCurrentProductImages(currentProduct.images || []));
+      setImages(mapCurrentProductImages((currentProduct.images || []).filter(image => !image.color)));
+      setColorImages(Object.fromEntries((currentProduct.images || []).filter(image => image.color).map(image => [image.color!, image.imageUrl])));
     }
   }, [currentProduct, isNew]);
 
@@ -235,11 +241,12 @@ export const ProductDetailsPage: React.FC = () => {
       material,
       availableColors: colors,
       isActive: status === 'active',
-      images: images.map((image, index) => ({
+      images: [...images.map((image, index) => ({
         imageUrl: image.imageUrl,
         displayOrder: index + 1,
-      })),
+      })), ...colors.filter(color => colorImages[color]).map((color, index) => ({ imageUrl: colorImages[color], color, displayOrder: images.length + index + 1 }))],
       variants: variants.map((variant) => ({
+        imageUrl: variant.imageUrl ?? null,
         frameSize: variant.frameSize,
         mountType: variant.mountType,
         glassType: variant.glassType,
@@ -288,6 +295,7 @@ export const ProductDetailsPage: React.FC = () => {
     setVarPrice('');
     setVarOfferPrice('');
     setVarStock('');
+    setVarImage(null);
     setVariantModalOpen(true);
   };
 
@@ -299,13 +307,15 @@ export const ProductDetailsPage: React.FC = () => {
     setVarPrice(variant.price.toString());
     setVarOfferPrice(variant.offerPrice?.toString() || '');
     setVarStock(variant.stockQuantity.toString());
+    setVarImage(variant.imageUrl ?? null);
     setVariantModalOpen(true);
   };
 
   const handleSaveVariant = async () => {
-    if (!varSize || !varPrice || !varStock) return;
+    if (!varSize || !varPrice || !varStock || isUploadingImages) return;
 
     const newVariant: VariantForm = {
+      imageUrl: varImage,
       id: editingVariant?.id || `v-${Math.random().toString(36).slice(2, 7)}`,
       productId: editingVariant?.productId || id,
       frameSize: varSize,
@@ -319,6 +329,7 @@ export const ProductDetailsPage: React.FC = () => {
 
     if (!isNew && id) {
       const payload = {
+        imageUrl: newVariant.imageUrl ?? null,
         frameSize: newVariant.frameSize,
         mountType: newVariant.mountType,
         glassType: newVariant.glassType,
@@ -329,9 +340,7 @@ export const ProductDetailsPage: React.FC = () => {
       const saved = editingVariant
         ? await editVariant(editingVariant.id, payload)
         : await addVariant(id, payload);
-      if (saved) {
-        await fetchProductById(id);
-      }
+      if (!saved) return;
       setVariantModalOpen(false);
       return;
     }
@@ -374,8 +383,11 @@ export const ProductDetailsPage: React.FC = () => {
   ];
 
   const wizardSteps = ['Basic Info', 'Materials', 'Variants', 'Images', 'Review'];
+  const colorImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{colors.map(color => <OptionalImageUpload key={color} label={`${presetColors.find(preset => preset.code === color)?.name ?? color} frame image`} value={colorImages[color]} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={url => setColorImages(previous => { const next = { ...previous }; if (url) next[color] = url; else delete next[color]; return next; })} />)}</div>;
+  const variantImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{variants.map(variant => <OptionalImageUpload key={variant.id} label={`${variant.frameSize} · ${variant.mountType} · ${variant.glassType} image`} value={variant.imageUrl} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={url => setVariants(previous => previous.map(item => item.id === variant.id ? { ...item, imageUrl: url } : item))} />)}</div>;
 
   const startAnotherProduct = () => {
+    setColorImages({});
     setName('');
     setDescription('');
     setBrand('');
@@ -412,6 +424,7 @@ export const ProductDetailsPage: React.FC = () => {
   // same save/upload handlers as the existing product form.
   if (isNew) {
     const goNext = () => {
+      if (isUploadingImages) return;
       let message: string | null = null;
       if (wizardStep === 1 && (!name.trim() || !description.trim() || !brand.trim())) {
         message = 'Please complete Product Name, Description, and Brand Name before continuing.';
@@ -480,6 +493,9 @@ export const ProductDetailsPage: React.FC = () => {
           {wizardStep === 5 && <div className="mx-auto max-w-3xl"><h3 className="text-base font-bold text-on-surface">Review Product</h3><p className="mt-1 text-xs text-on-surface-variant">Review the product before creating it.</p><div className="mt-6 divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant text-sm"><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Basic Information</span><span><strong>{name}</strong><br /><span className="text-on-surface-variant">{description}</span><br /><span className="text-on-surface-variant">Brand: {brand} · {status === 'active' ? 'Active' : 'Draft'}</span></span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Materials</span><span>{material} · {colors.length} colour{colors.length === 1 ? '' : 's'} selected</span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Variants</span><span>{variants.length} variant{variants.length === 1 ? '' : 's'} added</span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Images</span><span>{images.length} image{images.length === 1 ? '' : 's'} added</span></div></div></div>}
         </section>
 
+        {wizardStep === 2 && colorImageFields}
+        {wizardStep === 3 && variantImageFields}
+        {isUploadingImages && <p role="status" className="text-xs text-on-surface-variant">Uploading image. Please wait before saving.</p>}
         {wizardError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600" role="alert">{wizardError}</p>}
         <footer className="flex items-center justify-between"><button type="button" onClick={() => { setWizardError(null); setWizardStep((step) => Math.max(1, step - 1)); }} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:invisible hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <button type="button" onClick={goNext} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next</button> : <button type="button" onClick={() => { if (images.length === 0) { setWizardError('Please upload at least one product image before creating the product.'); return; } if (variants.length === 0) { setWizardError('Please add at least one product variant before creating the product.'); return; } handleSave(); }} disabled={isSaving || isUploadingImages} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary disabled:opacity-60">{isSaving ? 'Creating...' : 'Create Product'}</button>}</footer>
 
@@ -611,6 +627,7 @@ export const ProductDetailsPage: React.FC = () => {
               </div>
 
               <div>
+                {colorImageFields}
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Publishing Status</label>
                 <div className="flex items-center gap-6 py-2">
                   <label className="flex items-center gap-2 cursor-pointer text-sm text-on-surface">
@@ -859,6 +876,7 @@ export const ProductDetailsPage: React.FC = () => {
         }
       >
         <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2"><OptionalImageUpload label="Variant image" value={varImage} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={setVarImage} /></div>
           <div className="col-span-2">
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Frame Size (e.g. 11" x 14", A3)</label>
             <input

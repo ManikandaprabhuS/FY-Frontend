@@ -33,6 +33,11 @@ const clearStoredAuthToken = () => {
 
 const getAuthErrorMessage = (error: unknown, fallback: string): string => {
   if (!axios.isAxiosError<{ message?: string; error?: { code?: string; message?: string } }>(error)) return fallback;
+  if (!error.response) {
+    return error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'
+      ? 'The login request timed out. Please try again.'
+      : 'Unable to connect to the server. Please check your connection and try again.';
+  }
   if (error.response?.data?.error?.code === 'EMAIL_NOT_VERIFIED') {
     return 'Please verify your email to continue';
   }
@@ -148,7 +153,7 @@ if (token) {
         isAuthenticated: false,
         loading: false,
         authChecked: true,
-        error: getAuthErrorMessage(err, 'Email or password is incorrect'),
+        error: getAuthErrorMessage(err, 'Unable to log in right now. Please try again.'),
       });
       return false;
     }

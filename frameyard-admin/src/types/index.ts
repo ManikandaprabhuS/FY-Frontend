@@ -34,6 +34,7 @@ export interface UserAddress {
 export type ProductStatus = 'active' | 'draft';
 
 export interface ProductVariant {
+  imageUrl?: string | null;
   id: string;
   productId: string;
   color?: string | null;
@@ -51,6 +52,7 @@ export interface ProductVariant {
   updatedAt?: string;
 }
 export interface ProductImage {
+  color?: string | null;
   id: string;
   productId: string;
   productIdentifier?: string | null;

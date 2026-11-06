@@ -1,8 +1,14 @@
 import api from './api';
 import { Product, ProductImage, ProductVariant } from '../types';
 import type { Pagination } from './contracts';
+import { createSingleFlight } from '../utils/singleFlight';
+
+const listRequests = createSingleFlight<{ products: Product[]; pagination: Pagination }>();
+const detailRequests = createSingleFlight<Product>();
+const requestScope = (publicCatalog: boolean) => publicCatalog ? 'public' : `staff:${sessionStorage.getItem('fy_auth_token') || localStorage.getItem('fy_auth_token') || ''}`;
 
 export type ProductImagePayload = {
+  color?: string | null;
   imageUrl: string;
   displayOrder: number;
 };
@@ -24,6 +30,7 @@ export type ProductPayload = {
 };
 
 export type VariantPayload = {
+  imageUrl?: string | null;
   color?: string | null;
   frameSize: string;
   mountType: string;
@@ -80,6 +87,7 @@ type ProductApi = {
   updatedAt?: string;
   variants?: ProductVariantApi[];
   images?: Array<{
+    color?: string | null;
     id: string;
     productId?: string;
     productIdentifier?: string | null;
@@ -140,6 +148,7 @@ const normalizeProduct = (product: ProductApi): Product => {
       productId: image.productId ?? product.id ?? '',
       productIdentifier: image.productIdentifier ?? null,
       imageUrl: image.imageUrl,
+      color: image.color ?? null,
       isPrimary: image.isPrimary ?? false,
       displayOrder: Number(image.displayOrder ?? 1),
     }))
@@ -164,16 +173,21 @@ export const uploadProductImages = async (
 export const productService = {
   getProducts: async (params: ProductListParams = {}): Promise<{ products: Product[]; pagination: Pagination }> => {
     const { publicCatalog = false, ...queryParams } = params;
+    const key = JSON.stringify([requestScope(publicCatalog), Object.entries(queryParams).filter(([, value]) => value !== undefined).sort(([a], [b]) => a.localeCompare(b))]);
+    return listRequests(key, async () => {
     const response = await api.get(publicCatalog ? '/products/public' : '/products', { params: queryParams });
     return {
       products: (response.data.data?.products || response.data.products || []).map(normalizeProduct),
       pagination: response.data.data?.pagination || { page: queryParams.page || 1, limit: queryParams.limit || 10, total: 0, totalPages: 1 },
     };
+    });
   },
 
   getProductById: async (id: string, publicCatalog = false): Promise<Product> => {
+    return detailRequests(JSON.stringify([requestScope(publicCatalog), id]), async () => {
     const response = await api.get(publicCatalog ? `/products/public/${id}` : `/products/${id}`);
     return normalizeProduct(response.data.data?.product || response.data.product);
+    });
   },
 
   createProduct: async (

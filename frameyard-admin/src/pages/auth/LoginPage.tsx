@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { LoaderCircle, LogIn } from 'lucide-react';
 import fyLogoIcon from '../../assets/fy-logo-icon.jpeg';
@@ -74,6 +74,8 @@ export const LoginPage: React.FC = () => {
               required
             />
           </div>
+
+          <Link to="/fyadminlogin/forgot-password" className="self-end text-sm font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2">Forgot password?</Link>
 
           <button
             type="submit"

@@ -1,15 +1,14 @@
 import React, { useEffect } from 'react';
 import useProducts from '../../../hooks/useProducts';
-import { HeroSplit, HowItWorksSection } from '../components';
+import HeroSplit from '../components/HeroSplit';
+import HowItWorksSection from '../components/HowItWorksSection';
 
 const CustomerHomePage: React.FC = () => {
   const { products, loading, error, fetchProducts } = useProducts(false);
 
   useEffect(() => {
-    if (products.length === 0) {
-      fetchProducts({ page: 1, limit: 50, isActive: true, publicCatalog: true });
-    }
-  }, [fetchProducts, products.length]);
+    void fetchProducts({ page: 1, limit: 50, isActive: true, publicCatalog: true });
+  }, [fetchProducts]);
 
   return (
     <div className="bg-white text-black">

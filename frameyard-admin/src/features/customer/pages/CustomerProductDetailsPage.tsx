@@ -17,6 +17,9 @@ import {
 
 import ImageCropModal from '../components/ImageCropModal';
 import ColorSwatch from '../components/ColorSwatch';
+import ProductFramePreview from '../components/ProductFramePreview';
+import { getFrameOpening } from '../components/framePreviewConfig';
+import { productOptionImage, type ImageSelection } from '../utils/productOptionImage';
 import { useProductStore } from '../../../store/productStore';
 import type { ProductVariant } from '../../../types';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -47,6 +50,7 @@ const CustomerProductDetailsPage: React.FC = () => {
   const [selectedVariantId, setSelectedVariantId] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedGalleryImage, setSelectedGalleryImage] = useState('');
+  const [imageSelection, setImageSelection] = useState<ImageSelection>('default');
   const [quantity, setQuantity] = useState(1);
   const [cropSource, setCropSource] = useState('');
   const [croppedImages, setCroppedImages] = useState<Record<string, string>>({});
@@ -92,8 +96,9 @@ const CustomerProductDetailsPage: React.FC = () => {
   const cropKey = selectedVariant?.frameSize || 'default';
   const croppedImage = croppedImages[cropKey];
   const galleryImages = currentProduct?.images ?? [];
-  const primaryProductImage = galleryImages.find((image) => image.isPrimary)?.imageUrl ?? galleryImages[0]?.imageUrl ?? '';
-  const mainImage = selectedGalleryImage || croppedImage || primaryProductImage;
+  const primaryProductImage = productOptionImage(currentProduct, selectedVariant, effectiveColor, imageSelection);
+  const showingPhoto = Boolean(croppedImage);
+  const mainImage = selectedGalleryImage && selectedGalleryImage !== croppedImage ? selectedGalleryImage : primaryProductImage;
   const currentPrice = Number(selectedVariant?.offerPrice ?? selectedVariant?.price ?? 0);
   const originalPrice = Number(selectedVariant?.mrp ?? selectedVariant?.price ?? currentPrice);
   const discount = originalPrice > currentPrice && originalPrice > 0
@@ -114,6 +119,7 @@ const CustomerProductDetailsPage: React.FC = () => {
       return rightScore - leftScore;
     })[0];
     setSelectedVariantId(preferred.id);
+    setImageSelection('variant');
     setSelectedGalleryImage('');
   };
 
@@ -195,12 +201,12 @@ const CustomerProductDetailsPage: React.FC = () => {
             <div className="order-1 grid gap-3 sm:grid-cols-[72px_minmax(0,1fr)]">
               <div className="order-2 flex gap-2 overflow-x-auto pb-1 sm:order-1 sm:flex-col sm:overflow-visible sm:pb-0">
                 {galleryImages.map((image) => (
-                  <button key={image.id} type="button" onClick={() => setSelectedGalleryImage(image.imageUrl)} className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-white ${mainImage === image.imageUrl ? 'border-black' : 'border-transparent hover:border-black/25'}`}>
+                  <button key={image.id} type="button" onClick={() => setSelectedGalleryImage(image.imageUrl)} className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-white ${!showingPhoto && mainImage === image.imageUrl ? 'border-black' : 'border-transparent hover:border-black/25'}`}>
                     <img src={image.imageUrl} alt={`${currentProduct.name} view`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   </button>
                 ))}
                 {croppedImage && (
-                  <button type="button" onClick={() => setSelectedGalleryImage(croppedImage)} className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-white ${mainImage === croppedImage ? 'border-black' : 'border-transparent'}`}>
+                  <button type="button" onClick={() => setSelectedGalleryImage(croppedImage)} className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-white ${showingPhoto ? 'border-black' : 'border-transparent'}`}>
                     <img src={croppedImage} alt="Your cropped photo" decoding="async" className="h-full w-full object-cover" />
                     <span className="absolute bottom-0 inset-x-0 bg-black/75 py-0.5 text-[8px] font-bold text-white">YOUR PHOTO</span>
                   </button>
@@ -210,14 +216,8 @@ const CustomerProductDetailsPage: React.FC = () => {
               <div className="order-1 relative aspect-[4/5] min-h-0 overflow-hidden rounded-xl border border-black/10 bg-[#eeeae4] sm:order-2 sm:aspect-auto sm:min-h-[460px] lg:min-h-[560px]">
                 {discount > 0 && <span className="absolute left-3 top-3 z-10 rounded bg-black px-2.5 py-1.5 text-[10px] font-black uppercase text-white">{discount}% off</span>}
                 <button type="button" onClick={() => void toggleWishlist(currentProduct)} aria-label={`${wished ? 'Remove' : 'Add'} product ${wished ? 'from' : 'to'} wishlist`} aria-pressed={wished} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white shadow"><Heart className={`h-4 w-4 ${wished ? 'fill-black' : ''}`} /></button>
-                {mainImage ? <img src={mainImage} alt={currentProduct.name} fetchPriority="high" decoding="async" className="h-full w-full object-cover object-center" /> : <div className="grid h-full min-h-[360px] place-items-center text-sm text-black/40">No product image</div>}
-                {croppedImage && mainImage === croppedImage && (
-                  <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <div className="border-[12px] border-black/75 shadow-[0_20px_50px_rgba(0,0,0,0.3)]" style={{ width: '62%', aspectRatio: `${frameRatio.width}/${frameRatio.height}` }}>
-                      <img src={croppedImage} alt="Cropped preview inside selected frame" decoding="async" className="h-full w-full object-cover" />
-                    </div>
-                  </div>
-                )}
+                {mainImage ? <ProductFramePreview productImage={mainImage} photo={showingPhoto ? croppedImage : undefined} name={currentProduct.name} /> : <div className="grid h-full min-h-[360px] place-items-center text-sm text-black/40">No product image</div>}
+                {showingPhoto && !getFrameOpening(mainImage) && <p role="status" className="absolute inset-x-3 bottom-3 rounded-lg bg-white/95 p-2 text-xs text-black">Photo saved. In-frame preview is not configured for this product image yet.</p>}
               </div>
             </div>
 
@@ -283,7 +283,7 @@ const CustomerProductDetailsPage: React.FC = () => {
             <OptionGroup number="3" title="Select Color / Finish">
               <div className="flex flex-wrap gap-3">
                 {colors.length === 0 ? <span className="text-xs text-black/45">Standard finish</span> : colors.map((color) => (
-                  <button key={color} type="button" onClick={() => setSelectedColor(color)} aria-label={`Select color ${color}`} aria-pressed={effectiveColor === color} title={color} className="group flex items-center justify-center">
+                  <button key={color} type="button" onClick={() => { setSelectedColor(color); setImageSelection('color'); setSelectedGalleryImage(''); }} aria-label={`Select color ${color}`} aria-pressed={effectiveColor === color} title={color} className="group flex items-center justify-center">
                     <span className={`grid h-9 w-9 place-items-center rounded-full border-2 transition ${effectiveColor === color ? 'border-black' : 'border-transparent group-hover:border-black/25'}`}><ColorSwatch color={color} className="h-7 w-7" /></span>
                   </button>
                 ))}
