@@ -9,6 +9,7 @@ type CustomerApi = Partial<Customer> & {
   country?: string | null;
   createdById?: string | null;
   orderSummaries?: OrderSummaryApi[];
+  orderStats?: { count: number; totalSpent: number; lastOrderAt: string | null };
 };
 
 export interface CustomerResponse {
@@ -25,7 +26,7 @@ export interface CustomerLookupResponse {
   phoneNumber: string;
 }
 
-export type CustomerDetailsResponse = Omit<Customer, 'orders'> & { orders: Order[] };
+export type CustomerDetailsResponse = Omit<Customer, 'orders'> & { orders: Order[]; orderPagination: Pagination; orderStats?: CustomerApi['orderStats'] };
 
 const normalizeCustomer = (
   customer: CustomerApi,
@@ -63,46 +64,24 @@ type OrderSummaryApi = {
 };
 
 export const customerService = {
-  getCustomerById: async (id: string): Promise<CustomerDetailsResponse> => {
+  getCustomerById: async (id: string, page = 1): Promise<CustomerDetailsResponse> => {
     const [userResponse, orderResponse] = await Promise.all([
       api.get<ApiEnvelope<{ user: CustomerApi }>>(`/users/${id}`),
-      orderService.getOrders({ userId: id, page: 1, limit: 100 }),
+      orderService.getOrders({ userId: id, page, limit: 10 }),
     ]);
     return {
       ...normalizeCustomer(userResponse.data.data.user, orderResponse.orders),
       orders: orderResponse.orders,
+      orderPagination: orderResponse.pagination,
+      orderStats: userResponse.data.data.user.orderStats,
     };
   },
 
   lookupCustomerByPhoneNumber: async (phoneNumber: string): Promise<CustomerLookupResponse> => {
-    const normalizedInput = phoneNumber.replace(/\D/g, '');
-    const first = await api.get<ApiEnvelope<{ users: CustomerApi[]; pagination: Pagination }>>('/users', {
-      params: { search: normalizedInput || phoneNumber, page: 1, limit: 100 },
+    const response = await api.get<ApiEnvelope<{ customer: CustomerLookupResponse }>>('/users/lookup/phone', {
+      params: { phone: phoneNumber },
     });
-    let users = first.data.data.users;
-    // Search can miss numbers formatted with a country code. Walk remaining
-    // pages only when the indexed search returned no candidate.
-    if (!users.some((user) => String(user.phoneNumber ?? '').replace(/\D/g, '').endsWith(normalizedInput))) {
-      const totalPages = first.data.data.pagination.totalPages;
-      if (totalPages > 1) {
-        const responses = await Promise.all(
-          Array.from({ length: totalPages - 1 }, (_, index) => api.get<ApiEnvelope<{ users: CustomerApi[] }>>('/users', {
-            params: { page: index + 2, limit: 100 },
-          }))
-        );
-        users = users.concat(responses.flatMap((response) => response.data.data.users));
-      }
-    }
-    const customer = users.find((user) => {
-      const normalizedUserPhone = String(user.phoneNumber ?? '').replace(/\D/g, '');
-      return normalizedUserPhone === normalizedInput || normalizedUserPhone.endsWith(normalizedInput) || String(user.phoneNumber ?? '') === phoneNumber;
-    });
-    if (!customer?.id) throw new Error('Customer not found');
-    return {
-      id: customer.id,
-      name: String(customer.name ?? ''),
-      phoneNumber: String(customer.phoneNumber ?? ''),
-    };
+    return response.data.data.customer;
   },
 
   getCustomers: async (page = 1, limit = 10, search?: string): Promise<CustomerResponse> => {

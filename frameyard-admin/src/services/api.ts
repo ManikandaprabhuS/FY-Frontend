@@ -1,5 +1,18 @@
 import axios from "axios";
 
+type ApiFailure = { message?: string; error?: { message?: string; code?: string; details?: { fieldErrors?: Record<string, string[]> } } };
+export const getApiErrorMessage = (failure: unknown, fallback = 'Unable to complete the request. Please try again.'): string => {
+  if (!axios.isAxiosError<ApiFailure>(failure)) return fallback;
+  if (!failure.response) return failure.code === 'ECONNABORTED'
+    ? 'The request timed out. Please try again.' : 'Unable to reach the server. Check your connection and try again.';
+  const data = failure.response.data;
+  if (data?.error?.code === 'VALIDATION_ERROR') {
+    const fields = Object.entries(data.error.details?.fieldErrors ?? {}).slice(0, 3);
+    if (fields.length) return fields.map(([field, messages]) => `${field}: ${messages.join(', ')}`).join('; ');
+  }
+  return data?.error?.message || data?.message || fallback;
+};
+
 const configuredApiUrl = (import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1").replace(/\/+$/, "");
 const apiBaseUrl = configuredApiUrl.endsWith("/api/v1")
   ? configuredApiUrl
@@ -33,10 +46,14 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const backendMessage = error?.response?.data?.error?.message;
-    if (backendMessage && error.response?.data) {
-      error.response.data.message = backendMessage;
+  (error: unknown) => {
+    if (axios.isAxiosError<ApiFailure>(error)) {
+      const message = getApiErrorMessage(error);
+      error.message = message;
+      if (error.response?.data && typeof error.response.data === 'object') {
+        error.response.data.message = message;
+        if (error.response.data.error) error.response.data.error.message = message;
+      }
     }
     return Promise.reject(error);
   }

@@ -32,6 +32,8 @@ const CustomerProductsPage: React.FC = () => {
   const loading = useProductStore((state) => state.loading);
   const error = useProductStore((state) => state.error);
   const fetchProducts = useProductStore((state) => state.fetchProducts);
+  const pagination = useProductStore(state => state.pagination);
+  const facets = useProductStore(state => state.facets);
   const [materials, setMaterials] = useState<string[]>([]);
   const [sizes, setSizes] = useState<string[]>([]);
   const [availability, setAvailability] = useState<AvailabilityFilter[]>([]);
@@ -42,9 +44,14 @@ const CustomerProductsPage: React.FC = () => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { customerLoggedIn, wishlist, toggleWishlist, addToCart } = useCustomerCommerce();
 
+  const catalogQuery = useMemo(() => ({ page, limit: PRODUCTS_PER_PAGE, publicCatalog: true,
+    materials, frameSizes: sizes, availability: availability.length === 1 ? availability[0] : 'all' as const,
+    maxPrice: maximumPrice ?? undefined, saleOnly, sort,
+  }), [page, materials, sizes, availability, maximumPrice, saleOnly, sort]);
   useEffect(() => {
-    void fetchProducts({ page: 1, limit: 50, isActive: true, publicCatalog: true });
-  }, [fetchProducts]);
+    const timer = window.setTimeout(() => { void fetchProducts(catalogQuery); }, 150);
+    return () => window.clearTimeout(timer);
+  }, [fetchProducts, catalogQuery]);
 
   const activeProducts = useMemo(() => products.filter((product) => product.isActive), [products]);
   const catalogEntries = useMemo<CatalogEntry[]>(
@@ -56,69 +63,29 @@ const CustomerProductsPage: React.FC = () => {
     [activeProducts],
   );
   const materialOptions = useMemo(
-    () => [...new Set(activeProducts.map((product) => product.material).filter(Boolean))].sort(),
-    [activeProducts],
+    () => facets?.materials.map(item => item.value) ?? [],
+    [facets],
   );
   const sizeOptions = useMemo(
-    () => [...new Set(activeProducts.flatMap((product) => product.variants?.map((variant) => variant.frameSize) ?? []).filter(Boolean))].sort(),
-    [activeProducts],
+    () => facets?.sizes.map(item => item.value) ?? [],
+    [facets],
   );
   const filterCounts = useMemo(() => {
-    const material = new Map<string, number>();
-    const size = new Map<string, number>();
-    let onSale = 0;
-    let inStock = 0;
-    let outOfStock = 0;
-
-    catalogEntries.forEach(({ product, pricing, totalStock }) => {
-      if (product.material) material.set(product.material, (material.get(product.material) ?? 0) + 1);
-      new Set(product.variants?.map((variant) => variant.frameSize).filter(Boolean) ?? []).forEach((frameSize) => {
-        size.set(frameSize, (size.get(frameSize) ?? 0) + 1);
-      });
-      if (pricing.discount > 0) onSale += 1;
-      if (totalStock > 0) inStock += 1;
-      else outOfStock += 1;
-    });
-
-    return { material, size, onSale, inStock, outOfStock };
-  }, [catalogEntries]);
+    return { material: new Map(facets?.materials.map(item => [item.value, item.count]) ?? []),
+      size: new Map(facets?.sizes.map(item => [item.value, item.count]) ?? []),
+      onSale: facets?.onSale ?? 0, inStock: facets?.inStock ?? 0, outOfStock: facets?.outOfStock ?? 0 };
+  }, [facets]);
   const priceCeiling = useMemo(() => {
-    const highestPrice = Math.max(0, ...catalogEntries.map(({ pricing }) => pricing.currentPrice));
+    const highestPrice = facets?.maximumPrice ?? 0;
     return Math.max(500, Math.ceil(highestPrice / 500) * 500);
-  }, [catalogEntries]);
+  }, [facets]);
   const effectiveMaximumPrice = maximumPrice ?? priceCeiling;
 
-  const filteredProducts = useMemo(() => {
-    const filtered = catalogEntries.filter(({ product, pricing, totalStock }) => {
-      const materialMatches = materials.length === 0 || materials.includes(product.material);
-      const stockMatches = availability.length === 0
-        || (availability.includes('in-stock') && totalStock > 0)
-        || (availability.includes('out-of-stock') && totalStock <= 0);
-
-      return materialMatches
-        && (sizes.length === 0 || product.variants?.some((variant) => sizes.includes(variant.frameSize)))
-        && pricing.currentPrice <= effectiveMaximumPrice
-        && (!saleOnly || pricing.discount > 0)
-        && stockMatches;
-    });
-
-    return [...filtered].sort((left, right) => {
-      if (sort === 'price-low') return left.pricing.currentPrice - right.pricing.currentPrice;
-      if (sort === 'price-high') return right.pricing.currentPrice - left.pricing.currentPrice;
-      if (sort === 'newest') return new Date(right.product.createdAt).getTime() - new Date(left.product.createdAt).getTime();
-      if (sort === 'name') return left.product.name.localeCompare(right.product.name);
-      return 0;
-    });
-  }, [availability, catalogEntries, effectiveMaximumPrice, materials, saleOnly, sizes, sort]);
-
-  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+  const pageCount = Math.max(1, pagination.totalPages);
   const currentPage = Math.min(page, pageCount);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * PRODUCTS_PER_PAGE,
-    currentPage * PRODUCTS_PER_PAGE,
-  );
-  const startItem = filteredProducts.length === 0 ? 0 : (currentPage - 1) * PRODUCTS_PER_PAGE + 1;
-  const endItem = Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length);
+  const paginatedProducts = catalogEntries;
+  const startItem = pagination.total === 0 ? 0 : (currentPage - 1) * PRODUCTS_PER_PAGE + 1;
+  const endItem = Math.min(currentPage * PRODUCTS_PER_PAGE, pagination.total);
   const activeFilterCount = materials.length + sizes.length + availability.length + Number(saleOnly) + Number(maximumPrice !== null);
 
   const updateFilter = (callback: () => void) => {
@@ -243,7 +210,7 @@ const CustomerProductsPage: React.FC = () => {
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">FrameYaad collection</p>
               <h1 className="mt-1 text-2xl font-black text-black sm:text-3xl">All Frames</h1>
               <p className="mt-1 text-xs text-black/50">
-                Showing {startItem}–{endItem} of {filteredProducts.length} products
+                Showing {startItem}–{endItem} of {pagination.total} products
               </p>
             </div>
 
@@ -290,7 +257,7 @@ const CustomerProductsPage: React.FC = () => {
             <div className="my-8 rounded-xl border border-red-200 bg-red-50 p-6 text-center">
               <p className="text-sm font-bold text-red-700">Unable to load products</p>
               <p className="mt-1 text-xs text-red-600">{error}</p>
-              <button type="button" onClick={() => fetchProducts({ page: 1, limit: 50, isActive: true, publicCatalog: true })} className="mt-4 rounded-md bg-black px-4 py-2 text-xs font-bold text-white">Retry</button>
+              <button type="button" onClick={() => fetchProducts(catalogQuery)} className="mt-4 rounded-md bg-black px-4 py-2 text-xs font-bold text-white">Retry</button>
             </div>
           ) : loading ? (
             <div className="grid grid-cols-1 gap-3 py-6 min-[360px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
@@ -320,12 +287,12 @@ const CustomerProductsPage: React.FC = () => {
             </div>
           )}
 
-          {!loading && filteredProducts.length > 0 && (
+          {!loading && pagination.total > 0 && (
             <div className="flex flex-col gap-3 border-t border-black/10 py-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-black/50">Showing {startItem}–{endItem} of {filteredProducts.length}</p>
+              <p className="text-xs text-black/50">Showing {startItem}–{endItem} of {pagination.total}</p>
               <div className="flex max-w-full items-center gap-1.5 overflow-x-auto pb-1">
                 <PageButton label="Previous page" disabled={currentPage === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}><ChevronLeft className="h-4 w-4" /></PageButton>
-                {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+                {Array.from({ length: Math.min(pageCount, 7) }, (_, index) => Math.max(1, Math.min(currentPage - 3, pageCount - 6)) + index).map((pageNumber) => (
                   <button
                     key={pageNumber}
                     type="button"

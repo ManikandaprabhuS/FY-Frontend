@@ -3,7 +3,8 @@ import { Product, ProductImage, ProductVariant } from '../types';
 import type { Pagination } from './contracts';
 import { createSingleFlight } from '../utils/singleFlight';
 
-const listRequests = createSingleFlight<{ products: Product[]; pagination: Pagination }>();
+export interface CatalogFacets { materials: Array<{ value: string; count: number }>; sizes: Array<{ value: string; count: number }>; onSale: number; inStock: number; outOfStock: number; maximumPrice: number }
+const listRequests = createSingleFlight<{ products: Product[]; pagination: Pagination; facets?: CatalogFacets }>();
 const detailRequests = createSingleFlight<Product>();
 const requestScope = (publicCatalog: boolean) => publicCatalog ? 'public' : `staff:${sessionStorage.getItem('fy_auth_token') || localStorage.getItem('fy_auth_token') || ''}`;
 
@@ -46,6 +47,12 @@ export type VariantPayload = {
 };
 
 export type ProductListParams = {
+  materials?: string[];
+  frameSizes?: string[];
+  availability?: 'all' | 'in-stock' | 'out-of-stock';
+  maxPrice?: number;
+  saleOnly?: boolean;
+  sort?: 'featured' | 'newest' | 'price-low' | 'price-high' | 'name';
   page?: number;
   limit?: number;
   search?: string;
@@ -171,14 +178,15 @@ export const uploadProductImages = async (
 };
 
 export const productService = {
-  getProducts: async (params: ProductListParams = {}): Promise<{ products: Product[]; pagination: Pagination }> => {
+  getProducts: async (params: ProductListParams = {}): Promise<{ products: Product[]; pagination: Pagination; facets?: CatalogFacets }> => {
     const { publicCatalog = false, ...queryParams } = params;
     const key = JSON.stringify([requestScope(publicCatalog), Object.entries(queryParams).filter(([, value]) => value !== undefined).sort(([a], [b]) => a.localeCompare(b))]);
     return listRequests(key, async () => {
-    const response = await api.get(publicCatalog ? '/products/public' : '/products', { params: queryParams });
+    const response = await api.get(publicCatalog ? '/products/public' : '/products', { params: { ...queryParams, materials: params.materials ? JSON.stringify(params.materials) : undefined, frameSizes: params.frameSizes ? JSON.stringify(params.frameSizes) : undefined } });
     return {
       products: (response.data.data?.products || response.data.products || []).map(normalizeProduct),
       pagination: response.data.data?.pagination || { page: queryParams.page || 1, limit: queryParams.limit || 10, total: 0, totalPages: 1 },
+      facets: response.data.data?.facets,
     };
     });
   },

@@ -77,6 +77,11 @@ type CommerceState = {
   wishlistItems: CustomerWishlistItem[];
   wishlistLoadedForUserId: string | null;
   wishlistLoading: boolean;
+  wishlistTotal: number;
+  wishlistPage: number;
+  wishlistHasMore: boolean;
+  loadMoreWishlist: () => Promise<void>;
+  hydrateWishlist: (userId: string, identifiers: string[]) => Promise<void>;
   addCartItem: (item: Omit<CustomerCartItem, 'key'>) => void;
   updateCartQuantity: (key: string, quantity: number) => void;
   removeCartItem: (key: string) => void;
@@ -95,6 +100,9 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
   wishlistItems: [],
   wishlistLoadedForUserId: null,
   wishlistLoading: false,
+  wishlistTotal: 0,
+  wishlistPage: 1,
+  wishlistHasMore: false,
 
   addCartItem: (item) => set((state) => {
     const key = `${item.productId}:${item.variantId}`;
@@ -143,23 +151,57 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
       }
     }
 
-    set({ cartOwnerId: userId, cartItems });
+    set({ cartOwnerId: userId, cartItems, wishlistByProductIdentifier: {}, wishlistItems: [], wishlistLoadedForUserId: null, wishlistLoading: false, wishlistTotal: 0, wishlistPage: 1, wishlistHasMore: false });
   },
 
   loadWishlist: async (userId) => {
     if (get().wishlistLoadedForUserId === userId || get().wishlistLoading) return;
     set({ wishlistLoading: true, wishlistLoadedForUserId: userId });
     try {
-      const items = await enqueueWishlistOperation(() => customerWishlistService.list());
+      const data = await enqueueWishlistOperation(() => customerWishlistService.listPage());
+      const items = data.wishlist;
       if (get().wishlistLoadedForUserId !== userId) return;
       set({
-        wishlistByProductIdentifier: Object.fromEntries(items.map((item) => [item.productIdentifier, item.id])),
+        wishlistByProductIdentifier: { ...get().wishlistByProductIdentifier, ...Object.fromEntries(items.map((item) => [item.productIdentifier, item.id])) },
         wishlistItems: items,
         wishlistLoading: false,
+        wishlistTotal: data.pagination.total,
+        wishlistPage: data.pagination.page,
+        wishlistHasMore: data.pagination.page < data.pagination.totalPages,
       });
     } catch {
       if (get().wishlistLoadedForUserId === userId) set({ wishlistLoading: false, wishlistLoadedForUserId: null });
     }
+  },
+
+  loadMoreWishlist: async () => {
+    const current = get();
+    if (current.wishlistLoading || !current.wishlistHasMore || !current.wishlistLoadedForUserId) return;
+    const userId = current.wishlistLoadedForUserId;
+    set({ wishlistLoading: true });
+    try {
+      // Mutations shift offset pages; overlap the last partial page and deduplicate
+      // instead of skipping an item after a removal.
+      const data = await enqueueWishlistOperation(() => customerWishlistService.listPage(Math.floor(current.wishlistItems.length / 20) + 1));
+      if (get().wishlistLoadedForUserId !== userId) return;
+      set(state => ({ wishlistItems: [...new Map([...state.wishlistItems, ...data.wishlist].map(item => [item.id, item])).values()],
+        wishlistByProductIdentifier: { ...state.wishlistByProductIdentifier, ...Object.fromEntries(data.wishlist.map(item => [item.productIdentifier, item.id])) },
+        wishlistPage: data.pagination.page, wishlistTotal: data.pagination.total, wishlistHasMore: data.pagination.page < data.pagination.totalPages }));
+    } finally { if (get().wishlistLoadedForUserId === userId) set({ wishlistLoading: false }); }
+  },
+
+  hydrateWishlist: async (userId, identifiers) => {
+    if (get().cartOwnerId !== userId || identifiers.length === 0) return;
+    await enqueueWishlistOperation(async () => {
+      const items = await customerWishlistService.lookup(identifiers.slice(0, 100));
+      if (get().cartOwnerId !== userId) return;
+      set(state => {
+        const next = { ...state.wishlistByProductIdentifier };
+        identifiers.forEach(id => { delete next[id]; });
+        items.forEach(item => { next[item.productIdentifier] = item.id; });
+        return { wishlistByProductIdentifier: next };
+      });
+    });
   },
 
   toggleWishlist: async (productIdentifier) => {
@@ -168,7 +210,8 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
 
     try {
       return await enqueueWishlistOperation(async () => {
-        const existingId = get().wishlistByProductIdentifier[productIdentifier];
+        const existingId = get().wishlistByProductIdentifier[productIdentifier]
+          ?? (await customerWishlistService.lookup([productIdentifier]))[0]?.id;
         if (existingId) {
           await customerWishlistService.remove(existingId);
           set((state) => {
@@ -177,6 +220,7 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
             return {
               wishlistByProductIdentifier: next,
               wishlistItems: state.wishlistItems.filter((item) => item.id !== existingId),
+              wishlistTotal: Math.max(0, state.wishlistTotal - 1),
             };
           });
           return false;
@@ -186,6 +230,7 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
         set((state) => ({
           wishlistByProductIdentifier: { ...state.wishlistByProductIdentifier, [productIdentifier]: created.id },
           wishlistItems: [created, ...state.wishlistItems.filter((item) => item.id !== created.id)],
+          wishlistTotal: state.wishlistTotal + 1,
         }));
         return true;
       });
@@ -200,6 +245,7 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
 
     try {
       await enqueueWishlistOperation(async () => {
+        const wasSaved = Boolean(get().wishlistByProductIdentifier[productIdentifier]) || (await customerWishlistService.lookup([productIdentifier])).length > 0;
         const wishlistItem = await customerWishlistService.moveFromCart(productIdentifier);
         set((state) => {
           const cartItems = state.cartItems.filter((item) => item.key !== key);
@@ -214,6 +260,7 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
               wishlistItem,
               ...state.wishlistItems.filter((item) => item.id !== wishlistItem.id),
             ],
+            wishlistTotal: state.wishlistTotal + (wasSaved ? 0 : 1),
           };
         });
       });
@@ -223,5 +270,5 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
     }
   },
 
-  clearWishlist: () => set({ wishlistByProductIdentifier: {}, wishlistItems: [], wishlistLoadedForUserId: null, wishlistLoading: false }),
+  clearWishlist: () => set({ wishlistByProductIdentifier: {}, wishlistItems: [], wishlistLoadedForUserId: null, wishlistLoading: false, wishlistTotal: 0, wishlistPage: 1, wishlistHasMore: false }),
 }));

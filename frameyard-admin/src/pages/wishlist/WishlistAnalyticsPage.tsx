@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { wishlistAnalyticsService, type WishlistProductAnalytics } from '../../services/wishlist-analytics.service';
+import PaginationControls from '../../components/ui/PaginationControls';
+import type { Pagination } from '../../services/contracts';
 
 export const WishlistAnalyticsPage: React.FC = () => {
   const [products, setProducts] = useState<WishlistProductAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
 
   useEffect(() => {
-    wishlistAnalyticsService.list()
-      .then(setProducts)
+    let active = true;
+    wishlistAnalyticsService.listPage(page)
+      .then(data => { if (active) { setProducts(data.products); setPagination(data.pagination); setError(''); } })
       .catch((requestError) => {
-        setError(requestError?.response?.data?.message || 'Failed to load wishlist data');
+        if (active) setError(requestError?.response?.data?.message || 'Failed to load wishlist data');
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page]);
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full animate-fade-in">
@@ -48,6 +54,7 @@ export const WishlistAnalyticsPage: React.FC = () => {
           </table>
         </div>
       </div>
+      <PaginationControls pagination={pagination} busy={loading} onPageChange={next => { setLoading(true); setPage(next); }} />
     </div>
   );
 };

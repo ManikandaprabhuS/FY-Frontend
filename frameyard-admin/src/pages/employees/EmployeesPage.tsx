@@ -6,6 +6,7 @@ import useAuth from '../../hooks/useAuth';
 import { employeeService } from '../../services/employee.service';
 import { Employee } from '../../types/employee.types';
 import { showError, showSuccess } from '../../utils/toast';
+import { validatePerson } from '../../utils/form-validation';
 
 type FormState = {
   name: string;
@@ -89,6 +90,8 @@ const EmployeesPage: React.FC = () => {
   };
 
   const validateForm = () => {
+    const formatError = validatePerson({ ...form, password: editingEmployee ? undefined : form.password });
+    if (formatError) return formatError;
     if (!form.name.trim()) return 'Employee name is required';
     if (!form.email.trim()) return 'Email address is required';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address';

@@ -23,9 +23,9 @@ const CustomerNavbar: React.FC = () => {
   const customerLoggedIn = useAuthStore((state) => state.isAuthenticated) && user?.role === 'CUSTOMER';
   const accountLabel = customerLoggedIn ? user.name.split(' ')[0] || 'Account' : 'Login';
   const cartCount = useCustomerCommerceStore((state) => state.cartItems.reduce((total, item) => total + item.quantity, 0));
-  const wishlistItems = useCustomerCommerceStore((state) => state.wishlistItems);
+  const wishlistTotal = useCustomerCommerceStore((state) => state.wishlistTotal);
   const wishlistLoadedForUserId = useCustomerCommerceStore((state) => state.wishlistLoadedForUserId);
-  const wishlistCount = customerLoggedIn && wishlistLoadedForUserId === user.id ? wishlistItems.length : 0;
+  const wishlistCount = customerLoggedIn && wishlistLoadedForUserId === user.id ? wishlistTotal : 0;
 
 
   const openWishlist = () => {

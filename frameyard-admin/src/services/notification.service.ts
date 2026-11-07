@@ -24,6 +24,13 @@ const normalizeNotification = (notification: BackendNotification): Notification 
 });
 
 export const notificationService = {
+  listPage: async (page = 1, read?: boolean) => {
+    const response = await api.get<ApiEnvelope<{ notifications: BackendNotification[]; pagination: Pagination; summary: { totalCount: number; unreadCount: number; readCount: number } }>>('/notifications', { params: { page, limit: 20, read } });
+    return { ...response.data.data, notifications: response.data.data.notifications.map(normalizeNotification) };
+  },
+  markAllReadCount: async () => {
+    await api.patch('/notifications/read-all');
+  },
   getNotifications: async (): Promise<Notification[]> => {
     const response = await api.get<ApiEnvelope<{ notifications: BackendNotification[]; pagination: Pagination }>>('/notifications', {
       params: { page: 1, limit: 100 },

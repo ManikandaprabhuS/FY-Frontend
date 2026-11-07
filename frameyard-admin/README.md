@@ -1,5 +1,62 @@
 # FrameYaad Admin
 
+## Audit Log — 6 November 2026
+
+### Task 1 — Pagination
+
+Checked customer/admin lists and their API integrations. Found a customer catalog cap of 50, an unbounded wishlist and wishlist analytics, notifications restricted to the first 100 in the UI, and customer detail history restricted to the first 100 orders.
+
+Fixed the catalog to use the server's 12-item pages and collection-wide filtering/sorting/facet counts without redesigning cards or filters. Added wishlist Load more (20/page), bounded heart-state lookups, wishlist analytics and notification page controls (20/page), and customer detail order-history pages (10/page). Complete-history KPI cards use backend aggregates rather than counts/sums from one page. Wishlist state clears on account changes; existing guest-cart merging is unchanged.
+
+Results: production builds passed; targeted frontend lint passed; backend pagination/ownership regression suite passed (152 tests overall). Actual database read checks returned two distinct catalog pages at limit=2, total=4; unit fixtures cover a 55-product collection. Browser/mobile interaction and production latency are not claimed from these build/unit checks. No records were deleted.
+
+### Task 2 — Database indexes
+
+Checked backend filter/join/ordering paths against the live database. Missing query indexes and normalized uniqueness were added using additive compatibility SQL, with conflict prechecks. Across Tasks 2 and 9, 25 new indexes were verified valid. No application records were changed or deleted. The authoritative SQL/reasons are in the backend README and `prisma/compatibility` files.
+
+### Task 3 — Query optimization
+
+Checked customer search/detail integrations and list payloads. Replaced the customer-phone search's potential all-page request fan-out with one staff-only, parameterized lookup returning at most one minimal customer match. Independent customer detail reads run concurrently on the backend. Frontend builds and backend regression checks pass. Existing expanded customer order summaries remain compatible and are a documented scalability risk.
+
+### Task 4 — N+1 queries
+
+Found per-order requests in the customer report and per-variant inserts on product creation. Customer reports now read bounded batches of 100 order IDs without changing CSV columns/content; variant inserts are one atomic batch. Structural result: N order requests becomes ceil(N/100); N variant inserts becomes 1. Permissions, batch size and primary variant ordering are regression tested.
+
+### Task 5 — Query timings
+
+Read-only measurements used warm-up plus five samples per path; complete before/after table and methodology are in the backend README. Removing unnecessary read-only transactions reduced employee median 239.67 -> 68.22 ms, coupon 238.90 -> 76.02 ms, notification 239.62 -> 67.52 ms and customer-list 310.22 -> 140.80 ms. Catalog/products/orders still exceed 200 ms over the remote connection; no universal speed claim is made. No permanent per-query logging or private-data logging was added.
+
+### Task 6 — Error handling
+
+Checked shared Axios handling and admin error states. Backend validation details are displayed as safe field messages; network/timeout failures are distinct. Customer-detail and coupon-assignment failures no longer disappear silently. Coupon/discount stores always contain renderable message strings, clear stale details, and show failed detail loads instead of endless loading. Backend stacks are never returned; malformed JSON/upload/database failures use accurate statuses. Existing toasts/layouts/routes are retained.
+
+### Task 7 — Invalid inputs
+
+Baseline backend probes found alphabetic phones, zero prices, missing default images, null/numeric coupon dates and empty coupon updates accepted. These now reject invalid values; negative stock and >100% discounts were already rejected and remain tested. Backend README contains the full before/after input matrix. New frontend `tests/form-validation.test.mjs` covers basic names/email/phone, prices/stock/enums, colors, coupon formats/ranges/dates, and upload types/sizes. Five test suites pass without real account creation or emails.
+
+### Task 8 — Empty fields
+
+Product/variant forms now report missing/whitespace-only fields and required images before saving; coupons recheck validity fields at final submission; employee/profile fields use trimmed required-name/format checks. Backend tests reject missing/null/blank required fields and empty updates. A significant fix removes create-time defaults from coupon PATCH: omitted flags/status/minimum are no longer reset. Optional null clears and zero stock are retained.
+
+### Task 9 — Duplicates
+
+Live read-only scans found zero conflicting groups for normalized emails/coupon codes/SKUs, employee identifiers/names, product names, phones, material brand/name, color images, variants and repeated color labels. Zero rows were removed/merged, so no destructive-cleanup backup was needed. Normalized database uniqueness and duplicate color validation prevent future conflicts. Display names intentionally remain non-unique.
+
+### Task 10 — Admin field validation
+
+Added reusable basic validation in `src/utils/form-validation.ts` and integrated it into existing product/variant/upload, employee, profile and coupon forms. Field lengths, types, format, allowed enums and numeric bounds are checked; fractional stock is rejected rather than truncated. Backend remains authoritative for price/discount calculations, usage/eligibility, references, order transitions and permissions. No new business logic, payment workflow or UI redesign was added. The user explicitly approved requiring default images on the legacy backend POST /products API as well; its Postman example is updated. Existing callers must now send that images array.
+
+### Final validation and remaining risks
+
+- Backend `npm run verify` passes: Prisma schema, TypeScript, ESLint, 244 tests and production build.
+- Frontend production build, targeted shared-code lint and five validation suites pass. Run the latter with Node 24: `node --experimental-strip-types --test tests/form-validation.test.mjs`.
+- Full frontend lint is not clean: 38 errors and 6 warnings remain in legacy code. This is not presented as a passing full lint run.
+- Local backend/frontend return HTTP 200; catalog pages report correct totals and invalid limit/extreme pages return 400.
+- No browser/mobile visual or production-volume/concurrency verification is claimed. Product/order remote latency, customer nested order payloads and first-100 reference dropdowns remain documented scalability limitations.
+- No customer/account/order records were changed/deleted, no emails were sent, and no credentials were added. Only additive database indexes were applied; no Prisma migration was generated/run.
+
+Changed-file inventory: [audit file inventory](docs/audit-file-inventory.md). Detailed query timing and invalid-input tables are in the backend project's README Audit Log.
+
 This is the admin dashboard for the FrameYaad backend. It is a React + TypeScript + Vite application that talks directly to the backend APIs and keeps the admin workflow focused on store operations.
 
 ## Backend/API Notes

@@ -44,7 +44,7 @@ export const CustomersPage: React.FC = () => {
   const exportCustomerReport = async () => {
   try {
   const orderIds = [...new Set(customers.flatMap((customer) => customer.orders.map((order) => order.id)))];
-  const detailedOrders = await Promise.all(orderIds.map((orderId) => orderService.getOrderById(orderId)));
+  const detailedOrders = await orderService.getOrdersByIds(orderIds);
   const detailsById = new Map(detailedOrders.map((order) => [order.id, order]));
   const rows = customers.flatMap((customer) => {
 

@@ -1,23 +1,46 @@
-import React, { useMemo, useState } from 'react';
-import { useNotifications } from '../../hooks/useNotifications';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { notificationService } from '../../services/notification.service';
+import { useNotificationStore } from '../../store/notificationStore';
+import type { Notification } from '../../types';
+import type { Pagination } from '../../services/contracts';
+import PaginationControls from '../../components/ui/PaginationControls';
+import { showError, showSuccess } from '../../utils/toast';
 import { Bell, CheckCircle2, Info, Check } from 'lucide-react';
 
 export const NotificationsPage: React.FC = () => {
-  const { notifications, loading, markAllAsRead, toggleNotificationRead, removeNotification } = useNotifications(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [revision, setRevision] = useState(0);
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [summary, setSummary] = useState({ totalCount: 0, unreadCount: 0, readCount: 0 });
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
 
-  const { totalCount, unreadCount, readCount } = useMemo(() => ({
-    totalCount: notifications.length,
-    unreadCount: notifications.filter((n) => !n.read).length,
-    readCount: notifications.filter((n) => n.read).length,
-  }), [notifications]);
-
-  const filteredNotifications = useMemo(() => notifications.filter((n) => {
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !n.read;
-    if (filter === 'read') return n.read;
-    return true;
-  }), [notifications, filter]);
+  const { totalCount, unreadCount, readCount } = summary;
+  const filteredNotifications = notifications;
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await notificationService.listPage(page, filter === 'all' ? undefined : filter === 'read');
+        if (active) { setNotifications(data.notifications); setPagination(data.pagination); setSummary(data.summary); setError(''); }
+      } catch (failure) {
+        if (active) setError(axios.isAxiosError(failure) ? failure.response?.data?.error?.message ?? 'Could not load notifications.' : 'Could not load notifications.');
+      } finally { if (active) setLoading(false); }
+    };
+    void load();
+    return () => { active = false; };
+  }, [page, filter, revision]);
+  const mutate = async (action: () => Promise<unknown>, message: string) => {
+    try { await action(); showSuccess(message); setRevision(value => value + 1); void useNotificationStore.getState().fetchNotifications(true); }
+    catch (failure) { showError(axios.isAxiosError(failure) ? failure.response?.data?.error?.message ?? 'Notification could not be updated.' : 'Notification could not be updated.'); }
+  };
+  const markAllAsRead = () => { void mutate(() => notificationService.markAllReadCount(), 'All notifications marked as read'); };
+  const toggleNotificationRead = (id: string) => { void mutate(() => notificationService.toggleRead(id), 'Notification marked as read'); };
+  const removeNotification = (id: string) => { void mutate(async () => { await notificationService.deleteNotification(id); if (notifications.length === 1 && page > 1) setPage(page - 1); }, 'Notification removed'); };
 
   const getIconForType = (type: string) => {
     switch (type) {
@@ -39,7 +62,7 @@ export const NotificationsPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant">
             <button
-              onClick={() => setFilter('all')}
+              onClick={() => { setFilter('all'); setPage(1); }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 filter === 'all' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
@@ -47,7 +70,7 @@ export const NotificationsPage: React.FC = () => {
               All ({totalCount})
             </button>
             <button
-              onClick={() => setFilter('unread')}
+              onClick={() => { setFilter('unread'); setPage(1); }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 filter === 'unread' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
@@ -55,7 +78,7 @@ export const NotificationsPage: React.FC = () => {
               Unread ({unreadCount})
             </button>
             <button
-              onClick={() => setFilter('read')}
+              onClick={() => { setFilter('read'); setPage(1); }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 filter === 'read' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'
               }`}
@@ -74,6 +97,7 @@ export const NotificationsPage: React.FC = () => {
       </div>
 
       <div className="flex flex-col gap-3">
+        {error && <p role="alert" className="rounded-lg border border-error/20 p-3 text-sm text-error">{error}</p>}
         {loading ? (
           <div className="animate-pulse space-y-4">
             {[1, 2, 3].map((i) => (
@@ -144,6 +168,7 @@ export const NotificationsPage: React.FC = () => {
           ))
         )}
       </div>
+      <PaginationControls pagination={pagination} busy={loading} onPageChange={setPage} />
     </div>
   );
 };

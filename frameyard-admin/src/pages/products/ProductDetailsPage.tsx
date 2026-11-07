@@ -7,6 +7,8 @@ import Badge from '../../components/ui/Badge';
 import { ArrowLeft, Plus, Edit2, Trash2, Image as ImageIcon, Upload, Info, CheckCircle2 } from 'lucide-react';
 import { ProductImage, ProductStatus } from '../../types';
 import { uploadProductImages } from '../../services/product.service';
+import { showError } from '../../utils/toast';
+import { validateProductBasics, validateProductFiles, validateVariant } from '../../utils/form-validation';
 
 type VariantForm = {
   imageUrl?: string | null;
@@ -134,6 +136,8 @@ export const ProductDetailsPage: React.FC = () => {
     if (selectedFiles.length === 0) {
       return;
     }
+    const fileError = validateProductFiles(selectedFiles);
+    if (fileError) { setImageError(fileError); return; }
 
     if (isUploadingImages) {
       setImageError('Please wait for the current upload to finish.');
@@ -230,7 +234,15 @@ export const ProductDetailsPage: React.FC = () => {
 
   const handleSave = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!name || !material || isUploadingImages || isSaving) return;
+    if (isUploadingImages || isSaving) return;
+    const requiredError = !name.trim() ? 'Product name is required.'
+      : !brand.trim() ? 'Brand name is required.' : !material.trim() ? 'Material is required.'
+      : colors.length === 0 ? 'Select at least one frame color.'
+      : variants.length === 0 ? 'Add at least one variant.'
+      : images.length === 0 ? 'Upload at least one default product image.' : null;
+    if (requiredError) { setWizardError(requiredError); showError(requiredError); return; }
+    const formatError = validateProductBasics({ name, brandName: brand, material, description, availableColors: colors }) || variants.map(validateVariant).find(Boolean);
+    if (formatError) { setWizardError(formatError); showError(formatError); return; }
 
     setIsSaving(true);
 
@@ -312,7 +324,10 @@ export const ProductDetailsPage: React.FC = () => {
   };
 
   const handleSaveVariant = async () => {
-    if (!varSize || !varPrice || !varStock || isUploadingImages) return;
+    if (isUploadingImages) return;
+    if (!varSize.trim() || !varMountType.trim() || !varPrice.trim() || !varStock.trim()) {
+      showError('Variant size, mount type, price and stock are required.'); return;
+    }
 
     const newVariant: VariantForm = {
       imageUrl: varImage,
@@ -321,11 +336,14 @@ export const ProductDetailsPage: React.FC = () => {
       frameSize: varSize,
       mountType: varMountType,
       glassType: varGlassType,
-      price: parseFloat(varPrice),
-      offerPrice: varOfferPrice ? parseFloat(varOfferPrice) : null,
-      stockQuantity: parseInt(varStock, 10),
+      price: Number(varPrice),
+      offerPrice: varOfferPrice ? Number(varOfferPrice) : null,
+      stockQuantity: Number(varStock),
       priceValidUntil: editingVariant?.priceValidUntil || null,
     };
+
+    const variantError = validateVariant(newVariant);
+    if (variantError) { showError(variantError); return; }
 
     if (!isNew && id) {
       const payload = {

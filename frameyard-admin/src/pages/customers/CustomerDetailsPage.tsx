@@ -4,10 +4,16 @@ import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Mail, MapPin, Phone, S
 import Badge from '../../components/ui/Badge';
 import { Customer, Order } from '../../types';
 import { customerService } from '../../services/customer.service';
+import PaginationControls from '../../components/ui/PaginationControls';
+import type { Pagination } from '../../services/contracts';
+import { getApiErrorMessage } from '../../services/api';
+import { showError } from '../../utils/toast';
 
 type CustomerDetails = Omit<Customer, 'orders'> & {
   role: 'CUSTOMER' | 'ADMIN';
   orders: Order[];
+  orderPagination?: Pagination;
+  orderStats?: { count: number; totalSpent: number; lastOrderAt: string | null };
 };
 
 const normalizeCustomerDetails = (value: CustomerDetails): CustomerDetails => ({
@@ -29,14 +35,15 @@ const CustomerDetailsPage: React.FC = () => {
   const [customer, setCustomer] = useState<CustomerDetails | null>(initialCustomer ? normalizeCustomerDetails(initialCustomer) : null);
   const [loading, setLoading] = useState(!initialCustomer);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [orderPage, setOrderPage] = useState(1);
 
   useEffect(() => {
     const loadCustomer = async () => {
       try {
-        const data = await customerService.getCustomerById(id as string);
+        const data = await customerService.getCustomerById(id as string, orderPage);
         setCustomer(normalizeCustomerDetails(data as CustomerDetails));
       } catch (error) {
-        console.error(error);
+        showError(getApiErrorMessage(error, 'Unable to load customer details.'));
       } finally {
         setLoading(false);
       }
@@ -45,14 +52,15 @@ const CustomerDetailsPage: React.FC = () => {
     // The customer list passes a lightweight order summary in route state.
     // Always hydrate the detail view so expanded orders include their items.
     if (id) loadCustomer();
-  }, [id]);
+  }, [id, orderPage]);
 
   const totalSpent = useMemo(
-    () => customer?.orders.reduce((sum, order) => sum + Number(order.totalAmount), 0) || 0,
+    () => customer?.orderStats?.totalSpent ?? (customer?.orders.reduce((sum, order) => sum + Number(order.totalAmount), 0) || 0),
     [customer]
   );
 
   const lastOrderDate = useMemo(() => {
+    if (customer?.orderStats) return customer.orderStats.lastOrderAt;
     if (!customer?.orders.length) return null;
     return [...customer.orders]
       .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())[0]
@@ -191,7 +199,7 @@ const CustomerDetailsPage: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Total Orders</span>
               <ShoppingCart className="h-4 w-4 text-primary" />
             </div>
-            <div className="mt-3 text-3xl font-bold text-on-surface">{customer.orders.length}</div>
+            <div className="mt-3 text-3xl font-bold text-on-surface">{customer.orderStats?.count ?? customer.orders.length}</div>
             <p className="mt-1 text-xs text-on-surface-variant">Completed and active orders</p>
           </div>
 
@@ -224,7 +232,7 @@ const CustomerDetailsPage: React.FC = () => {
             <p className="mt-1 text-xs text-on-surface-variant">Expandable rows with purchased items and order summary.</p>
           </div>
           <div className="text-xs font-medium text-on-surface-variant">
-            {customer.orders.length} order{customer.orders.length === 1 ? '' : 's'}
+            {customer.orderStats?.count ?? customer.orders.length} orders
           </div>
         </div>
 
@@ -333,6 +341,7 @@ const CustomerDetailsPage: React.FC = () => {
           </div>
         )}
       </section>
+      {customer.orderPagination && <PaginationControls pagination={customer.orderPagination} onPageChange={next => { setExpandedOrder(null); setOrderPage(next); }} />}
     </div>
   );
 };

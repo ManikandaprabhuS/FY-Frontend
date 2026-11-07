@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useCoupons } from '../../../hooks/useCoupons';
 import { showError, showSuccess } from '../../../utils/toast';
 import { productDiscountService, type DiscountAssignment } from '../../../services/product-discount.service';
+import { getApiErrorMessage } from '../../../services/api';
 
 const title = (value: string) => value.replaceAll('_', ' ');
 const Status = ({ active }: { active: boolean }) => <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{active ? 'Active' : 'Inactive'}</span>;
@@ -17,7 +18,7 @@ const CouponAssignments = ({ couponId }: { couponId: string }) => {
     setLoading(true);
     productDiscountService.list({ couponId, page: 1, limit: 100 })
       .then((data) => { if (mounted) setAssignments(data.assignments); })
-      .catch(() => { if (mounted) setAssignments([]); })
+      .catch((error: unknown) => { if (mounted) { setAssignments([]); showError(getApiErrorMessage(error, 'Unable to load coupon assignments.')); } })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [couponId]);
@@ -34,8 +35,9 @@ export const CouponReferenceList = () => {
 };
 
 export const CouponReferenceDetails = () => {
-  const { id } = useParams(); const navigate = useNavigate(); const { current, get, status, remove } = useCoupons(); const [busy, setBusy] = useState(false);
+  const { id } = useParams(); const navigate = useNavigate(); const { current, get, status, remove, error } = useCoupons(); const [busy, setBusy] = useState(false);
   useEffect(() => { if (id) get(id); }, [id, get]);
+  if (error && !current) return <div role="alert" className="p-8 text-sm text-error">{error}</div>;
   if (!current) return <div className="p-8 text-sm text-secondary">Loading coupon details...</div>;
   const expiry = new Date(current.expiresAt).toLocaleString(); const used = current.usageCount || 0; const limit = current.usageLimit || 0; const remaining = limit ? Math.max(limit - used, 0) : 0; const percent = limit ? Math.min((used / limit) * 100, 100) : 0;
   const toggle = async () => { setBusy(true); const ok = await status(current.id, !current.isActive); setBusy(false); if (ok) showSuccess(current.isActive ? 'Coupon deactivated' : 'Coupon activated'); else showError('Unable to update coupon status'); };

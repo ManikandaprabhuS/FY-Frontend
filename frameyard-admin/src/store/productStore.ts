@@ -3,8 +3,10 @@ import axios from 'axios';
 import { Product } from '../types';
 import type { Pagination } from '../services/contracts';
 import { ProductListParams, ProductPayload, productService, VariantPayload } from '../services/product.service';
+import type { CatalogFacets } from '../services/product.service';
 
 interface ProductState {
+  facets: CatalogFacets | null;
   products: Product[];
   currentProduct: Product | null;
   loading: boolean;
@@ -29,6 +31,7 @@ const getProductErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 export const useProductStore = create<ProductState>((set) => ({
+  facets: null,
   products: [],
   currentProduct: null,
   loading: false,
@@ -41,7 +44,7 @@ export const useProductStore = create<ProductState>((set) => ({
     try {
       const data = await productService.getProducts(params);
       if (requestId !== productsRequestId) return;
-      set({ products: data.products, pagination: data.pagination, loading: false });
+      set({ products: data.products, pagination: data.pagination, facets: data.facets ?? null, loading: false });
     } catch (err: unknown) {
       if (requestId !== productsRequestId) return;
       set({ error: getProductErrorMessage(err, 'Failed to fetch products'), loading: false });

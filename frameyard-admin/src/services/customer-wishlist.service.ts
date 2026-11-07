@@ -1,5 +1,5 @@
 import api from './api';
-import type { ApiEnvelope } from './contracts';
+import type { ApiEnvelope, Pagination } from './contracts';
 
 export type CustomerWishlistItem = {
   id: string;
@@ -36,9 +36,16 @@ export type CustomerWishlistItem = {
 };
 
 export const customerWishlistService = {
+  listPage: async (page = 1, limit = 20) => {
+    const response = await api.get<ApiEnvelope<{ wishlist: CustomerWishlistItem[]; pagination: Pagination }>>('/wishlist', { params: { page, limit } });
+    return response.data.data;
+  },
+  lookup: async (productIdentifiers: string[]): Promise<Array<{ id: string; productIdentifier: string }>> => {
+    const response = await api.post<ApiEnvelope<{ items: Array<{ id: string; productIdentifier: string }> }>>('/wishlist/lookup', { productIdentifiers });
+    return response.data.data.items;
+  },
   list: async (): Promise<CustomerWishlistItem[]> => {
-    const response = await api.get<ApiEnvelope<{ wishlist: CustomerWishlistItem[] }>>('/wishlist');
-    return response.data.data.wishlist;
+    return (await customerWishlistService.listPage()).wishlist;
   },
 
   add: async (productIdentifier: string): Promise<CustomerWishlistItem> => {

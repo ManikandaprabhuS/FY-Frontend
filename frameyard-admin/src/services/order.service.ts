@@ -132,6 +132,16 @@ const summaryFor = (orders: Order[]): OrdersResponse['summary'] => ({
 });
 
 export const orderService = {
+  getOrdersByIds: async (ids: string[]): Promise<Order[]> => {
+    const uniqueIds = [...new Set(ids)];
+    const orders: Order[] = [];
+    // Bound both request size and concurrency; exports retain every requested order.
+    for (let offset = 0; offset < uniqueIds.length; offset += 100) {
+      const response = await api.post<ApiEnvelope<{ orders: BackendOrder[] }>>('/orders/batch', { ids: uniqueIds.slice(offset, offset + 100) });
+      orders.push(...response.data.data.orders.map(normalizeOrder));
+    }
+    return orders;
+  },
   getOrders: async (params: OrderQueryParams = {}): Promise<OrdersResponse> => {
     const response = await api.get<ApiEnvelope<{ orders: BackendOrder[]; pagination: Pagination; summary?: OrdersResponse['summary'] }>>('/orders', {
       params: {

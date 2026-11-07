@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/authStore';
+import { useProductStore } from '../../../store/productStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import type { Product, ProductVariant } from '../../../types';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -15,6 +16,13 @@ export const useCustomerCommerce = () => {
   const toggleStoredWishlist = useCustomerCommerceStore((state) => state.toggleWishlist);
   const addCartItem = useCustomerCommerceStore((state) => state.addCartItem);
   const customerLoggedIn = isAuthenticated && user?.role === 'CUSTOMER';
+  const products = useProductStore(state => state.products);
+  const currentProduct = useProductStore(state => state.currentProduct);
+  const hydrateWishlist = useCustomerCommerceStore(state => state.hydrateWishlist);
+  const visibleIdentifiers = useMemo(() => [...new Set([currentProduct, ...products].flatMap(product => product?.productIdentifier ? [product.productIdentifier] : []))].slice(0, 100), [products, currentProduct]);
+  useEffect(() => {
+    if (customerLoggedIn && user) void hydrateWishlist(user.id, visibleIdentifiers).catch(() => { /* Existing loaded heart states remain usable on a transient lookup failure. */ });
+  }, [customerLoggedIn, user, visibleIdentifiers, hydrateWishlist]);
 
 
   const requestLogin = useCallback((message: string, returnTo = location.pathname) => {

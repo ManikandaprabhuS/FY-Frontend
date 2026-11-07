@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { User, Mail, Shield, Save, Phone } from 'lucide-react';
 import { showError, showSuccess } from '../../utils/toast';
+import { validatePerson, validateText } from '../../utils/form-validation';
 
 const emptyProfileForm = {
   name: '',
@@ -37,6 +38,12 @@ export const ProfilePage: React.FC = () => {
   }, [user]);
 
   const handleUpdate = async () => {
+    const message = validatePerson(formData)
+      || (formData.addressLine.trim().length > 255 ? 'Address must be 255 characters or fewer.' : null)
+      || (formData.cityName.trim() ? validateText('City', formData.cityName, 1, 100) : null)
+      || (formData.stateName.trim() ? validateText('State', formData.stateName, 1, 100) : null)
+      || (formData.postalCode.trim().length > 20 ? 'Postal code must be 20 characters or fewer.' : null);
+    if (message) { showError(message); return; }
     const success = await updateProfile(formData);
     if (success) {
       showSuccess('Profile updated successfully');
@@ -46,8 +53,8 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handlePasswordUpdate = async () => {
-    if (passwordData.password.length < 8) {
-      showError('Password must be at least 8 characters');
+    if (passwordData.password.length < 8 || passwordData.password.length > 72) {
+      showError('Password must contain 8–72 characters');
       return;
     }
 
