@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isEmptyResourceResponse, reportMissingResource, resourceResponseKey } from '../utils/resource-not-found';
 
 type ApiFailure = { message?: string; error?: { message?: string; code?: string; details?: { fieldErrors?: Record<string, string[]> } } };
 export const getApiErrorMessage = (failure: unknown, fallback = 'Unable to complete the request. Please try again.'): string => {
@@ -45,9 +46,13 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config.method?.toLowerCase() === 'get' && response.config.url && isEmptyResourceResponse(response.config.url, response.data)) reportMissingResource(response.config.url);
+    return response;
+  },
   (error: unknown) => {
     if (axios.isAxiosError<ApiFailure>(error)) {
+      if (error.response?.status === 404 && error.config?.method?.toLowerCase() === 'get' && error.config.url && resourceResponseKey(error.config.url)) reportMissingResource(error.config.url);
       const message = getApiErrorMessage(error);
       error.message = message;
       if (error.response?.data && typeof error.response.data === 'object') {

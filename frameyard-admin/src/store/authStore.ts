@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { showApiError, showError } from '../utils/toast';
 import axios from 'axios';
 import { User } from '../types';
 import { authService, type CustomerRegistrationInput } from '../services/auth.service';
@@ -92,6 +93,7 @@ const user = response.user;
 const token = response.accessToken;
 
 if (user?.role === 'CUSTOMER') {
+  showError('Access Denied: customers cannot access the admin dashboard.');
   clearStoredAuthToken();
   set({
     user: null,
@@ -117,6 +119,7 @@ if (token) {
     return true;
   } catch (err: unknown) {
     const errMsg = getAuthErrorMessage(err, 'Login failed');
+    showApiError(err, errMsg);
     set({
       error: errMsg,
       loading: false,
@@ -130,6 +133,7 @@ if (token) {
     try {
       const response = await authService.customerLogin(email, password);
       if (response.user.role !== 'CUSTOMER') {
+        showError('This account is not a customer account.');
         clearStoredAuthToken();
         set({ user: null, token: null, isAuthenticated: false, loading: false, error: 'This account is not a customer account.' });
         return false;
@@ -155,6 +159,7 @@ if (token) {
         authChecked: true,
         error: getAuthErrorMessage(err, 'Unable to log in right now. Please try again.'),
       });
+      showApiError(err, getAuthErrorMessage(err, 'Unable to log in right now. Please try again.'));
       return false;
     }
   },
@@ -189,6 +194,7 @@ if (token) {
         loading: false,
         error: getAuthErrorMessage(err, 'Registration failed'),
       });
+      showApiError(err, getAuthErrorMessage(err, 'Registration failed'));
       return { success: false, confirmationRequired: false };
     }
   },

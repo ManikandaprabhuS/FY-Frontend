@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import axios from 'axios';
 import { CheckCircle2, LoaderCircle, Upload } from 'lucide-react';
 import { uploadProductImages } from '../../services/product.service';
+import { showSuccess, showWarning, showApiError } from '../../utils/toast';
 
 interface OptionalImageUploadProps {
   label: string;
@@ -31,6 +32,7 @@ export default function OptionalImageUpload({ label, value, onChange, busy, onBu
         setError('');
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
           setError('Choose a JPG, PNG or WebP image up to 10 MB.');
+          showWarning('Choose a JPG, PNG or WebP image up to 10 MB.');
           return;
         }
         onBusyChange(true);
@@ -39,7 +41,9 @@ export default function OptionalImageUpload({ label, value, onChange, busy, onBu
           const urls = await uploadProductImages([file]) as string[];
           if (!urls[0]) throw new Error('The upload did not return an image.');
           onChange(urls[0]);
+          showSuccess(`${label} uploaded`);
         } catch (failure) {
+          showApiError(failure, axios.isAxiosError<{ error?: { message?: string } }>(failure) ? failure.response?.data?.error?.message ?? 'Image upload failed. Please try again.' : 'Image upload failed. Please try again.');
           setError(axios.isAxiosError<{ error?: { message?: string } }>(failure)
             ? failure.response?.data?.error?.message ?? 'Image upload failed. Please try again.'
             : 'Image upload failed. Please try again.');

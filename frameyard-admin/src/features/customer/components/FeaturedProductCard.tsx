@@ -81,9 +81,9 @@ const FeaturedProductCard: React.FC<FeaturedProductCardProps> = ({
               {pricing.currentPrice > 0 ? `₹${pricing.currentPrice.toLocaleString('en-IN')}` : '₹0'}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-bold text-black/45 line-through">
+              {pricing.discount > 0 && <span className="text-xs font-bold text-black/45 line-through">
                 ₹{pricing.originalPrice.toLocaleString('en-IN')}
-              </span>
+              </span>}
               {pricing.discount > 0 && (
                 <span className="rounded-md bg-[#f7dfc8] px-2 py-1 text-[10px] font-black text-[#c55f12]">
                   {pricing.discount}% OFF

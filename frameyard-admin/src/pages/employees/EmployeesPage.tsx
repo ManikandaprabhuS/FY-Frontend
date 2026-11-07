@@ -5,7 +5,7 @@ import Badge from '../../components/ui/Badge';
 import useAuth from '../../hooks/useAuth';
 import { employeeService } from '../../services/employee.service';
 import { Employee } from '../../types/employee.types';
-import { showError, showSuccess } from '../../utils/toast';
+import { showError, showSuccess, showWarning, showApiError } from '../../utils/toast';
 import { validatePerson } from '../../utils/form-validation';
 
 type FormState = {
@@ -103,6 +103,7 @@ const EmployeesPage: React.FC = () => {
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
+      showWarning(validationError);
       return;
     }
 
@@ -117,10 +118,12 @@ const EmployeesPage: React.FC = () => {
       } else {
         await employeeService.createEmployee(form);
       }
+      showSuccess(editingEmployee ? 'Employee updated successfully' : 'Employee created successfully');
       setModalOpen(false);
       await fetchEmployees();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save employee');
+      showApiError(err, err.response?.data?.message || 'Failed to save employee');
     } finally {
       setSaving(false);
     }

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../../types';
-import FeaturedProductCard, { FeaturedProductPricing } from './FeaturedProductCard';
+import FeaturedProductCard from './FeaturedProductCard';
+import { getCatalogPricing as getProductPricing } from '../utils/catalog-product';
 import { useCustomerCommerce } from '../hooks/useCustomerCommerce';
 
 interface FeaturedProductsCarouselProps {
@@ -20,19 +21,6 @@ const readCachedProducts = (): Product[] => {
   } catch {
     return [];
   }
-};
-
-const getProductPricing = (product: Product): FeaturedProductPricing => {
-  const variant = product.variants?.[0];
-  const currentPrice = Number(variant?.offerPrice || variant?.price || 0);
-  const originalPrice =
-    variant?.offerPrice && Number(variant.offerPrice) < Number(variant.price)
-      ? Number(variant.price)
-      : Math.round(currentPrice * 1.35);
-  const discount =
-    originalPrice > currentPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-
-  return { currentPrice, originalPrice, discount };
 };
 
 const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({ products }) => {
@@ -240,7 +228,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({ pro
                   wished={customerLoggedIn && Boolean(product.productIdentifier && wishlist[product.productIdentifier])}
                   onToggleWishlist={() => void toggleWishlist(product)}
                   onAddToCart={() => {
-                    const variant = product.variants?.find((item) => item.isActive !== false && Number(item.stockQuantity) > 0);
+                    const variant = getProductPricing(product).variant;
                     if (variant) addToCart(product, variant);
                   }}
                   className="h-[300px] w-[216px]"
@@ -293,7 +281,7 @@ const FeaturedProductsCarousel: React.FC<FeaturedProductsCarouselProps> = ({ pro
                     wished={customerLoggedIn && Boolean(product.productIdentifier && wishlist[product.productIdentifier])}
                     onToggleWishlist={() => void toggleWishlist(product)}
                     onAddToCart={() => {
-                      const variant = product.variants?.find((item) => item.isActive !== false && Number(item.stockQuantity) > 0);
+                      const variant = getProductPricing(product).variant;
                       if (variant) addToCart(product, variant);
                     }}
                     className="h-full w-full"

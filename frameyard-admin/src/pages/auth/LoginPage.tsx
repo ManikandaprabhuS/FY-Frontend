@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { LoaderCircle, LogIn } from 'lucide-react';
 import fyLogoIcon from '../../assets/fy-logo-icon.jpeg';
+import { showSuccess, showWarning } from '../../utils/toast';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -24,9 +25,10 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password) { showWarning('Email address and password are required'); return; }
     const success = await login(email, password);
     if (success) {
+      showSuccess('Login successful');
       navigate('/admin/overview', { replace: true });
     }
   };

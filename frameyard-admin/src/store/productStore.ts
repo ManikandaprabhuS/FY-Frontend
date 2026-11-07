@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { showApiError } from '../utils/toast';
 import axios from 'axios';
 import { Product } from '../types';
 import type { Pagination } from '../services/contracts';
@@ -75,6 +76,7 @@ export const useProductStore = create<ProductState>((set) => ({
       return newProd;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to add product'), loading: false });
+      showApiError(err, getProductErrorMessage(err, 'Failed to add product'));
       return null;
     }
   },
@@ -110,6 +112,7 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to update product'), loading: false });
+      showApiError(err, getProductErrorMessage(err, 'Failed to update product'));
       return false;
     }
   },
@@ -127,6 +130,7 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to add variant'), loading: false });
+      showApiError(err, getProductErrorMessage(err, 'Failed to add variant'));
       return false;
     }
   },
@@ -153,6 +157,7 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to update variant'), loading: false });
+      showApiError(err, getProductErrorMessage(err, 'Failed to update variant'));
       return false;
     }
   },
@@ -177,6 +182,7 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to delete variant'), loading: false });
+      showApiError(err, getProductErrorMessage(err, 'Failed to delete variant'));
       return false;
     }
   },

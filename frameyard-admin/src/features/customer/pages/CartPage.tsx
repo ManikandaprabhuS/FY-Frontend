@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/authStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
-import { showError, showSuccess } from '../../../utils/toast';
+import { showError, showSuccess, showWarning, showApiError } from '../../../utils/toast';
 import { couponService, type CouponValidationResult } from '../../../services/coupon.service';
 import ColorSwatch from '../components/ColorSwatch';
 
@@ -34,6 +34,7 @@ const CartPage: React.FC = () => {
     const code = promoCode.trim().toUpperCase();
     if (!code) {
       setPromoError('Enter a promo code');
+      showWarning('Enter a promo code');
       return;
     }
     setApplyingPromo(true);
@@ -47,7 +48,9 @@ const CartPage: React.FC = () => {
       setAppliedPromo({ signature: cartSignature, result });
     } catch (error: unknown) {
       setAppliedPromo(null);
-      setPromoError(axios.isAxiosError(error) ? error.response?.data?.error?.message ?? error.response?.data?.message ?? 'Promo code could not be applied' : 'Promo code could not be applied');
+      const message = axios.isAxiosError(error) ? error.response?.data?.error?.message ?? error.response?.data?.message ?? 'Promo code could not be applied' : 'Promo code could not be applied';
+      setPromoError(message);
+      showApiError(error, message);
     } finally {
       setApplyingPromo(false);
     }
@@ -55,13 +58,13 @@ const CartPage: React.FC = () => {
 
   const checkout = () => {
     if (isAuthenticated && user?.role === 'CUSTOMER') return navigate('/checkout');
-    showError('Please login to continue to checkout');
+    showWarning('Please login to continue to checkout');
     navigate('/profile', { state: { returnTo: '/checkout' } });
   };
 
   const moveToWishlist = async (item: (typeof items)[number]) => {
     if (!isAuthenticated || user?.role !== 'CUSTOMER') {
-      showError('Please login to move this product to your wishlist');
+      showWarning('Please login to move this product to your wishlist');
       navigate('/profile', { state: { returnTo: '/cart' } });
       return;
     }

@@ -52,9 +52,9 @@ const CurvedProductCard: React.FC<CurvedProductCardProps> = ({ product, pricing,
               {pricing.currentPrice > 0 ? `₹${pricing.currentPrice.toLocaleString('en-IN')}` : '₹0'}
             </p>
             <div className="mt-4 flex items-center gap-3">
-              <span className="text-lg font-bold text-black/45 line-through">
+              {pricing.discount > 0 && <span className="text-lg font-bold text-black/45 line-through">
                 ₹{pricing.originalPrice.toLocaleString('en-IN')}
-              </span>
+              </span>}
               {pricing.discount > 0 && (
                 <span className="rounded-lg bg-[#f7dfc8] px-3 py-1.5 text-sm font-black text-[#c55f12]">
                   {pricing.discount}% OFF

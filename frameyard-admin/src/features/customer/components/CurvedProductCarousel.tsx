@@ -1,23 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Product } from '../../../types';
-import CurvedProductCard, { ProductPricing } from './CurvedProductCard';
+import CurvedProductCard from './CurvedProductCard';
+import { getCatalogPricing as getProductPricing } from '../utils/catalog-product';
 
 interface CurvedProductCarouselProps {
   products: Product[];
 }
-
-const getProductPricing = (product: Product): ProductPricing => {
-  const variant = product.variants?.[0];
-  const currentPrice = Number(variant?.offerPrice || variant?.price || 0);
-  const originalPrice =
-    variant?.offerPrice && Number(variant.offerPrice) < Number(variant.price)
-      ? Number(variant.price)
-      : Math.round(currentPrice * 1.35);
-  const discount =
-    originalPrice > currentPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
-
-  return { currentPrice, originalPrice, discount };
-};
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 

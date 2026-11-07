@@ -15,7 +15,7 @@ import {
 
 import { useAuthStore } from '../../../store/authStore';
 import type { User } from '../../../types';
-import { showError, showSuccess } from '../../../utils/toast';
+import { showError, showSuccess, showValidationWarning } from '../../../utils/toast';
 import femaleCustomerAvatar from '../../../assets/customer-avatar-female.svg';
 import maleCustomerAvatar from '../../../assets/customer-avatar-male.svg';
 import CustomerAccountDashboard from '../components/CustomerAccountDashboard';
@@ -99,6 +99,7 @@ const CustomerProfilePage: React.FC = () => {
           if (!result.success) return;
           if (result.confirmationRequired) {
             setConfirmationEmail(values.email.trim().toLowerCase());
+            showSuccess('Account created. Please confirm your email.');
             return;
           }
           showSuccess('Your FrameYaad account is ready');
@@ -199,7 +200,7 @@ const LoginForm: React.FC<{
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit, showValidationWarning)} noValidate>
       <p className="text-xs font-black uppercase tracking-[0.2em] text-black/40">Welcome back</p>
       <h2 className="mt-2 text-3xl font-black">Login to FrameYaad</h2>
       <p className="mt-2 text-sm text-black/50">Access your customer profile and saved details.</p>
@@ -226,7 +227,7 @@ const RegistrationForm: React.FC<{
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit, showValidationWarning)} noValidate>
       <p className="text-xs font-black uppercase tracking-[0.2em] text-black/40">Join FrameYaad</p>
       <h2 className="mt-2 text-3xl font-black">Create your account</h2>
       <p className="mt-2 text-sm text-black/50">Enter your details to start personalizing frames.</p>

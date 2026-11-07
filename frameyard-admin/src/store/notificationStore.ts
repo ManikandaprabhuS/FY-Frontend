@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Notification } from '../types';
 import { notificationService } from '../services/notification.service';
-import { toast } from 'react-hot-toast';
+import { showSuccess, showError } from '../utils/toast';
 
 const playNotificationSound = () => {
   try {
@@ -79,7 +79,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, read: true })),
     }));
-    const toastId = toast.success("All notifications marked as read");
+    const toastId = showSuccess("All notifications marked as read");
 
     try {
       const updated = await notificationService.markAllRead();
@@ -87,7 +87,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     } catch (err: any) {
       // Revert on error
       set({ notifications: originalNotifications });
-      toast.error(err.response?.data?.message || 'Failed to mark notifications as read', { id: toastId });
+      showError(err.response?.data?.message || 'Failed to mark notifications as read', { id: toastId });
     }
   },
 
@@ -104,7 +104,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     }));
     
     const message = "Marked as read";
-    const toastId = toast.success(message);
+    const toastId = showSuccess(message);
 
     try {
       const updated = await notificationService.toggleRead(id);
@@ -114,7 +114,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     } catch (err: any) {
       // Revert on error
       set({ notifications: originalNotifications });
-      toast.error(err.response?.data?.message || 'Failed to update notification read status', { id: toastId });
+      showError(err.response?.data?.message || 'Failed to update notification read status', { id: toastId });
     }
   },
 
@@ -125,14 +125,14 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     }));
-    const toastId = toast.success("Notification removed");
+    const toastId = showSuccess("Notification removed");
 
     try {
       await notificationService.deleteNotification(id);
     } catch (err: any) {
       // Revert on error
       set({ notifications: originalNotifications });
-      toast.error(err.response?.data?.message || 'Failed to delete notification', { id: toastId });
+      showError(err.response?.data?.message || 'Failed to delete notification', { id: toastId });
     }
   },
 }));

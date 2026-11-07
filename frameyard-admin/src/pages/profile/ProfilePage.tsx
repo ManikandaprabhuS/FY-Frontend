@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { User, Mail, Shield, Save, Phone } from 'lucide-react';
-import { showError, showSuccess } from '../../utils/toast';
+import { showError, showSuccess, showWarning } from '../../utils/toast';
 import { validatePerson, validateText } from '../../utils/form-validation';
 
 const emptyProfileForm = {
@@ -43,7 +43,7 @@ export const ProfilePage: React.FC = () => {
       || (formData.cityName.trim() ? validateText('City', formData.cityName, 1, 100) : null)
       || (formData.stateName.trim() ? validateText('State', formData.stateName, 1, 100) : null)
       || (formData.postalCode.trim().length > 20 ? 'Postal code must be 20 characters or fewer.' : null);
-    if (message) { showError(message); return; }
+    if (message) { showWarning(message); return; }
     const success = await updateProfile(formData);
     if (success) {
       showSuccess('Profile updated successfully');
@@ -54,17 +54,17 @@ export const ProfilePage: React.FC = () => {
 
   const handlePasswordUpdate = async () => {
     if (passwordData.password.length < 8 || passwordData.password.length > 72) {
-      showError('Password must contain 8–72 characters');
+      showWarning('Password must contain 8–72 characters');
       return;
     }
 
     if (passwordData.password !== passwordData.confirmPassword) {
-      showError('Passwords do not match');
+      showWarning('Passwords do not match');
       return;
     }
 
     if (!passwordData.currentPassword) {
-      showError('Current password is required');
+      showWarning('Current password is required');
       return;
     }
 

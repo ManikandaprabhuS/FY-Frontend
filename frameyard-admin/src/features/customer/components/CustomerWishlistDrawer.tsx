@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import { showError, showSuccess } from '../../../utils/toast';
+import { getLowestVariantPricing } from '../utils/product-pricing';
 
 type Props = {
   open: boolean;
@@ -73,7 +74,7 @@ const CustomerWishlistDrawer: React.FC<Props> = ({ open, onClose }) => {
               {items.map((item) => {
                 const image = item.product.images?.find((entry) => entry.isPrimary)?.imageUrl ?? item.product.images?.[0]?.imageUrl;
                 const activeVariants = item.product.variants?.filter((variant) => variant.isActive !== false) ?? [];
-                const price = activeVariants.length > 0 ? Math.min(...activeVariants.map((variant) => Number(variant.price))) : 0;
+                const price = getLowestVariantPricing(activeVariants).currentPrice;
                 return (
                   <article key={item.id} className="flex gap-3 rounded-xl border border-black/10 bg-white p-3 shadow-[0_6px_22px_rgba(0,0,0,0.04)]">
                     <Link to={`/product/${item.product.id}`} onClick={onClose} className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-[#f4f1ed]">

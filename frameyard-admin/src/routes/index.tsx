@@ -4,6 +4,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../layouts/ProtectedRoute';
 import AdminOnlyRoute from '../layouts/AdminOnlyRoute';
 import RouteErrorPage from '../pages/errors/RouteErrorPage';
+import RouterErrorBoundary from '../pages/errors/RouterErrorBoundary';
+import ResourceRoute, { NotFoundRoute } from '../pages/errors/ResourceRoute';
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const AdminLayout = lazy(() => import('../layouts/AdminLayout'));
 const CustomerLayout = lazy(() => import('../layouts/CustomerLayout'));
@@ -41,13 +43,14 @@ const LazyFallback = <div className="min-h-[240px] animate-pulse p-8 text-sm tex
 const lazyElement = (element: React.ReactNode) => <Suspense fallback={LazyFallback}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
+  { errorElement: <RouterErrorBoundary />, children: [
   {
     element: <Suspense fallback={LazyFallback}><CustomerLayout /></Suspense>,
-    errorElement: <RouteErrorPage />,
+    errorElement: <RouterErrorBoundary />,
     children: [
       { path: '/', element: <CustomerHomePage /> },
       { path: '/products', element: <CustomerProductsPage /> },
-      { path: '/product/:slug', element: <CustomerProductDetailsPage /> },
+      { path: '/product/:slug', element: <ResourceRoute parameter="slug" apiRoot="/products/public"><CustomerProductDetailsPage /></ResourceRoute> },
       { path: '/cart', element: <CartPage /> },
       { path: '/checkout', element: <CheckoutPage /> },
       { path: '/profile', element: <CustomerProfilePage /> },
@@ -79,7 +82,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'products/:id',
-            element: <ProductDetailsPage />,
+            element: <ResourceRoute apiRoot="/products"><ProductDetailsPage /></ResourceRoute>,
           },
           {
             path: 'products/new',
@@ -107,7 +110,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'appointments/:id',
-            element: <AppointmentDetailsPage />,
+            element: <ResourceRoute apiRoot="/appointments"><AppointmentDetailsPage /></ResourceRoute>,
           },
           {
             path: 'customers',
@@ -115,7 +118,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'customers/:id',
-            element: <CustomerDetailsPage />,
+            element: <ResourceRoute apiRoot="/users"><CustomerDetailsPage /></ResourceRoute>,
           },
           {
             element: <AdminOnlyRoute />,
@@ -126,12 +129,12 @@ export const router = createBrowserRouter([
               },
               { path: 'marketing/coupons', element: <CouponsPage /> },
               { path: 'marketing/coupons/new', element: <CouponDynamicWizard /> },
-              { path: 'marketing/coupons/:id', element: <CouponDetails /> },
-              { path: 'marketing/coupons/:id/edit', element: <CouponDynamicWizard /> },
+              { path: 'marketing/coupons/:id', element: <ResourceRoute apiRoot="/coupons"><CouponDetails /></ResourceRoute> },
+              { path: 'marketing/coupons/:id/edit', element: <ResourceRoute apiRoot="/coupons"><CouponDynamicWizard /></ResourceRoute> },
               { path: 'marketing/product-discounts', element: <ProductDiscountsPage /> },
               { path: 'marketing/product-discounts/new', element: <ProductDiscountWizard /> },
-              { path: 'marketing/product-discounts/:id', element: <ProductDiscountDetails /> },
-              { path: 'marketing/product-discounts/:id/edit', element: <ProductDiscountWizard /> },
+              { path: 'marketing/product-discounts/:id', element: <ResourceRoute apiRoot="/product-discounts"><ProductDiscountDetails /></ResourceRoute> },
+              { path: 'marketing/product-discounts/:id/edit', element: <ResourceRoute apiRoot="/product-discounts"><ProductDiscountWizard /></ResourceRoute> },
             ],
           },
           {
@@ -144,13 +147,14 @@ export const router = createBrowserRouter([
           },
           {
             path: '*',
-            element: <RouteErrorPage homePath="/admin/overview" />,
+            element: <NotFoundRoute />,
           },
         ],
       },
     ],
   },
   {path: '*', element: <RouteErrorPage />,},
+  ] },
 ]);
 
 export default router;

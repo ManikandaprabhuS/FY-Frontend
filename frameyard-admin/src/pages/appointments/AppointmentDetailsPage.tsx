@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, CalendarClock, Check, MapPin, XCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import Modal from '../../components/ui/Modal';
-import { showError, showSuccess } from '../../utils/toast';
+import { showError, showSuccess, showWarning } from '../../utils/toast';
 import { appointmentFrameTypeLabels, appointmentLocationLabels, appointmentService, type Appointment } from '../../services/appointment.service';
 
 const formatDate = (value: string) => new Date(value).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' });
@@ -20,7 +20,7 @@ const AppointmentDetailsPage = () => {
 
   const save = async () => {
     if (!appointment || !action || saving) return;
-    if (action === 'RESCHEDULE' && (!bookingDate || new Date(bookingDate).getTime() <= Date.now() || new Date(bookingDate).getTime() === new Date(appointment.bookingDate).getTime())) { showError('Select a different future booking date.'); return; }
+    if (action === 'RESCHEDULE' && (!bookingDate || new Date(bookingDate).getTime() <= Date.now() || new Date(bookingDate).getTime() === new Date(appointment.bookingDate).getTime())) { showWarning('Select a different future booking date.'); return; }
     setSaving(true);
     try {
       const updated = await appointmentService.updateStatus(appointment.id, action === 'CONFIRM' ? { status: 'CONFIRMED' } : action === 'COMPLETE' ? { status: 'COMPLETED' } : action === 'CANCEL' ? { status: 'CANCELLED', ...(reason.trim() ? { cancellationReason: reason.trim() } : {}) } : { status: 'RESCHEDULED', bookingDate: new Date(bookingDate).toISOString(), ...(reason.trim() ? { rescheduleReason: reason.trim() } : {}) });

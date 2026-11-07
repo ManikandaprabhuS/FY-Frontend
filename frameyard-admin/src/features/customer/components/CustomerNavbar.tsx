@@ -4,7 +4,7 @@ import { Heart, Menu, ShoppingCart, User, X } from 'lucide-react';
 import fyLogoIcon from '../../../assets/fy-logo-icon.jpeg';
 import { useAuthStore } from '../../../store/authStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
-import { showError } from '../../../utils/toast';
+import { showWarning } from '../../../utils/toast';
 import CustomerWishlistDrawer from './CustomerWishlistDrawer';
 
 const customerNavLinks = [
@@ -30,7 +30,7 @@ const CustomerNavbar: React.FC = () => {
 
   const openWishlist = () => {
     if (!customerLoggedIn) {
-      showError('Please login to add product to wishlist');
+      showWarning('Please login to add product to wishlist');
       navigate('/profile', { state: { returnTo: location.pathname } });
       return;
     }

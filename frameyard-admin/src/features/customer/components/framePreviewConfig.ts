@@ -16,6 +16,8 @@ const region = (width: number, height: number, points: Array<[number, number]>):
 // Measured against the original catalog assets, independent of display size.
 // Polygons keep angled frame edges and surrounding scenes outside the photo.
 const openings: Record<string, FrameOpening[]> = {
+  // Modern Family Frame - Test: inside the angled silver frame, not its metal surround.
+  'be1cdb03-b694-4d16-b593-c592ad3417f6.jpg': [region(1343, 1500, [[496, 299], [984, 264], [1074, 1121], [589, 1184]])],
   'd10644f1-e40e-4544-acf6-f2f764bd1d04.png': [{ x: 0.216, y: 0.154, width: 0.484, height: 0.64 }],
   'ff3e0365-f21c-4953-8b53-4023e1fd2cc2.jpeg': [region(832, 846, [[185, 89], [628, 91], [628, 700], [178, 700]])],
   '87576780-7b6f-4217-be7a-08a74ddbc510.jpeg': [region(846, 846, [[308, 281], [539, 283], [531, 612], [298, 610]])],

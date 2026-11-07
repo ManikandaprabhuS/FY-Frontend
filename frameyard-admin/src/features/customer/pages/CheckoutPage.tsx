@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/authStore';
-import { showError } from '../../../utils/toast';
+import { showWarning } from '../../../utils/toast';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const CheckoutPage: React.FC = () => {
       if (!active) return;
       const verified = useAuthStore.getState();
       if (!verified.isAuthenticated || verified.user?.role !== 'CUSTOMER') {
-        showError('Please login to continue to checkout');
+        showWarning('Please login to continue to checkout');
         navigate('/profile', { replace: true, state: { returnTo: '/checkout' } });
         return;
       }

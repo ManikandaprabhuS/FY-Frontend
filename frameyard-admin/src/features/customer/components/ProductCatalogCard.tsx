@@ -82,12 +82,6 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
           >
             <Heart className={`h-4 w-4 ${wished ? 'fill-black' : ''}`} />
           </button>
-          <span
-            className="grid h-8 w-8 place-items-center rounded-full border border-black/10 bg-white/95 text-black shadow-sm"
-            title={inStock ? `${totalStock} in stock` : 'Out of stock'}
-          >
-            <ShoppingBag className="h-4 w-4" />
-          </span>
         </div>
       </div>
 

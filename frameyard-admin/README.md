@@ -1,5 +1,29 @@
 # FrameYaad Admin
 
+## Shared toast notifications
+
+Customer and admin notifications use `src/utils/toast.ts`: `showSuccess` (green/check), `showError` (red/cross), and `showWarning` (amber/triangle). All use 700-weight text, dark readable text on explicit light tinted backgrounds, and matching colored icons. Existing top-right position, gutter, toast entrance/exit animations, radius and shadow are retained; success stays 3.5 seconds and errors/warnings use 4.5 seconds. Repeated type/message pairs reuse one ID; callers can pass an existing ID to replace an optimistic toast with its failure instead of stacking it.
+
+Missing fields/selections, login requirements, invalid OTP/coupon and upload validation use warnings. Success events stay green; server/network failures, wrong credentials and authorization failures stay red. `showApiError` uses HTTP status/error codes rather than message-text guesses; inline form errors and all auth/cart/save behavior remain unchanged. Direct library calls outside the helper were removed (the shared Toaster remains in App). Tests exercise the shared store/render configuration, deduplication, original text, status mapping and AA text/background contrast without creating real accounts, sending OTPs or changing records. Live browser/mobile visual verification is not claimed by these unit tests.
+
+## Product-card discount and action-icon fix
+
+Verified the Shop All examples: 500→449=10%, 550→450=18%, 790→690=13%, 1149→999=13%, 1400→1200=14%, rounded to the nearest integer. The Shop All formula was correct; two older carousel paths instead manufactured an original price as selling price ×1.35. All existing customer discount badges now use `discountPercent` in `product-pricing.ts`, with shared variant-price resolution for catalog/cards, details, hero, wishlist and local-cart additions. Raw backend `mrp/price` and normalized frontend `price/offerPrice` resolve consistently. No original price is invented. Missing/zero/non-finite/non-discounted originals and rounded 100% discounts hide badges/strikethroughs.
+
+Color changes now select a matching actual variant when available, so badge/current/original prices update together; color images with no separate variant retain the selected variant's price. Featured Add to Bag uses the same variant as its displayed price. Removed only the small decorative bag icon underneath the heart in the shared Shop All card (desktop/mobile/reused cards); heart and main Add to Bag controls are unchanged. No stored prices/offers, backend/API/schema, or checkout business logic was changed. Nine pricing tests, including all five requested examples and edge/color cases, pass; frontend build and targeted lint pass.
+
+Checkout limitation found during verification: the customer Checkout page is a placeholder and does not submit these local variant cart lines to the backend order endpoint. The backend cart/order flow prices the product's primary variant and stores no selected variant ID. It does not compute product-card discount percentages. Therefore selected-variant charging parity cannot be certified by a display-only patch. Fixing that requires a separately scoped cart/order API/data-contract change, which was deliberately not made under the request's no-unrelated-API/schema-change constraint. Existing cart/checkout screens that have no product discount badge were not redesigned or given new badges.
+
+## Customer preview crop-switching fix
+
+Follow-up: visually inspected the 1343×1500 main image for “Modern Family Frame - Test” and added its measured angled photo-opening polygon to the existing asset calibration map. This fixes that product's missing-opening warning and enables its uploaded-photo layer; unknown color/variant previews fall back to this calibrated default. Crop ratios still come from the shared variant-size helper, not this image calibration. Admin forms/backend/database are unchanged. Future unrelated image assets still need their own opening metadata/calibration; this is a targeted fix for the supplied product, not automatic frame detection.
+
+Compared an older catalog product with the new “Modern Family Frame - Test”: both API records have images/variants but no saved frame-opening metadata. The old preview works because `framePreviewConfig.ts` contains filename-specific calibrated openings; new upload/color/variant filenames are absent. Separately, selecting another size previously looked up only that size's saved crop, hiding an already uploaded photo.
+
+Per the requested follow-up scope, admin forms, backend, schema and stored product records are unchanged. A shared size/geometry helper now keeps the uploaded source (or an existing saved crop) available across variant switches, applies the selected fixed ratio immediately, preserves explicit per-size clears, and remounts the crop editor when the size changes. Known frame openings use a masked frame-over-photo composition with no photo spill; unknown optional color/variant images fall back to a calibrated default when one exists. Without an upload, normal product/color/variant gallery behavior is retained. Existing crop storage stays compatible; large original uploads are kept in-session rather than filling localStorage.
+
+Validation: production build and targeted preview ESLint pass; 12 focused tests cover 5x5, both catalog 8x10/12x10 spellings, landscape/portrait sizes, safe defaults, saved crops, clear behavior and optional image selection. These are geometry/data-selection tests, not a claim of full browser visual coverage. Exact in-frame placement for entirely new, uncalibrated images remains unresolved: the user chose to keep admin unchanged and fix crop switching first, so no guessed frame openings or extra per-product hardcoding were added.
+
 ## Audit Log — 6 November 2026
 
 ### Task 1 — Pagination
@@ -274,3 +298,11 @@ npm run build
 - `src/pages/appointments/AppointmentsPage.tsx` — staff list and filters.
 - `src/pages/appointments/AppointmentDetailsPage.tsx` — details and lifecycle actions.
 - `src/layouts/AdminLayout.tsx` and `src/routes/index.tsx` — staff navigation and route registration.
+
+## 404 handling
+
+Negative top margins caused the heading to overlap the artwork. Normal flow, positive spacing, natural-height responsive artwork, and viewport centering fix this without changing the existing copy/design.
+
+Customer/admin catch-all routes and detail-resource guards show 404 for unknown, malformed, or missing resources. Logged-out admin visitors still go to login. Router/application boundaries handle crashes safely without displaying URLs or stacks. Network/server failures remain distinct from missing resources.
+
+The existing Netlify fallback supports deep-link refresh. Static hosting serves the HTML shell with HTTP 200 while React displays 404; APIs return actual HTTP 404. Build and 59 focused regression tests pass. Responsive source assertions pass; interactive desktop/tablet/mobile visual checks remain manual.

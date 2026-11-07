@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import heroImage from '../../../assets/hero.png';
 import { Product } from '../../../types';
 import { heroCopy } from '../data/heroData';
+import { getVariantPricing } from '../utils/product-pricing';
 import './HeroSplit.css';
 
 interface HeroSplitProps {
@@ -22,10 +23,8 @@ const formatCurrency = (value?: number | null) => {
 
 const getProductPrice = (product?: Product) => {
   const variant = product?.variants?.find((item) => item.isActive !== false) || product?.variants?.[0];
-  const currentPrice = variant?.offerPrice || variant?.price || 0;
-  const originalPrice = variant?.mrp && variant.mrp > currentPrice ? variant.mrp : null;
-
-  return { currentPrice, originalPrice };
+  const pricing = getVariantPricing(variant);
+  return { currentPrice: pricing.currentPrice, originalPrice: pricing.discount > 0 ? pricing.originalPrice : null };
 };
 
 const HeroSplit: React.FC<HeroSplitProps> = ({ products, loading = false, error = null }) => {

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, LoaderCircle } from 'lucide-react';
 import { authService, type RecoveryPortal, type RecoverySession } from '../../services/auth.service';
+import { showSuccess, showWarning, showApiError } from '../../utils/toast';
 
 type RecoveryStep = 'email' | 'otp' | 'password' | 'done';
 
@@ -35,6 +36,7 @@ export default function ForgotPasswordPage({ portal }: { portal: RecoveryPortal 
 
   const sendCode = async () => {
     await authService.requestPasswordReset(portal, email);
+    showSuccess('A verification code has been sent.');
     setOtp('');
     setStep('otp');
     setResendSeconds(60);
@@ -45,6 +47,7 @@ export default function ForgotPasswordPage({ portal }: { portal: RecoveryPortal 
     setError('');
     if (step === 'password' && password !== confirmPassword) {
       setError('Passwords do not match.');
+      showWarning('Passwords do not match.');
       return;
     }
     setLoading(true);
@@ -52,12 +55,14 @@ export default function ForgotPasswordPage({ portal }: { portal: RecoveryPortal 
       if (step === 'email') await sendCode();
       else if (step === 'otp') {
         const recovery = await authService.verifyResetOtp(portal, email, otp.trim());
+        showSuccess('OTP verified successfully');
         // Recovery credentials stay in component memory, never in URLs or browser storage.
         setSession(recovery);
         setOtp('');
         setStep('password');
       } else if (step === 'password' && session) {
         await authService.resetPassword(portal, session, password);
+        showSuccess('Your password has been reset. Sign in with your new password.');
         setSession(null);
         setPassword('');
         setConfirmPassword('');
@@ -65,6 +70,7 @@ export default function ForgotPasswordPage({ portal }: { portal: RecoveryPortal 
       }
     } catch (requestError) {
       setError(errorMessage(requestError));
+      showApiError(requestError, errorMessage(requestError));
     } finally { setLoading(false); }
   };
 
@@ -111,7 +117,7 @@ export default function ForgotPasswordPage({ portal }: { portal: RecoveryPortal 
               </button>
             </form>
             {step === 'otp' && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <button type="button" disabled={loading || resendSeconds > 0} onClick={async () => { setLoading(true); setError(''); try { await sendCode(); } catch (requestError) { setError(errorMessage(requestError)); } finally { setLoading(false); } }} className="min-h-11 underline underline-offset-4 disabled:opacity-50">{resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}</button>
+              <button type="button" disabled={loading || resendSeconds > 0} onClick={async () => { setLoading(true); setError(''); try { await sendCode(); } catch (requestError) { setError(errorMessage(requestError)); showApiError(requestError, errorMessage(requestError)); } finally { setLoading(false); } }} className="min-h-11 underline underline-offset-4 disabled:opacity-50">{resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}</button>
               <button type="button" disabled={loading} onClick={() => { setStep('email'); setOtp(''); setError(''); }} className="min-h-11 underline underline-offset-4">Change email</button>
             </div>}
             {step === 'password' && <button type="button" disabled={loading} onClick={() => { setSession(null); setPassword(''); setConfirmPassword(''); setError(''); setStep('email'); }} className="mt-3 block min-h-11 text-sm font-semibold underline underline-offset-4">Request a new code</button>}

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { getVariantPricing } from '../utils/product-pricing';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/authStore';
 import { useProductStore } from '../../../store/productStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import type { Product, ProductVariant } from '../../../types';
-import { showError, showSuccess } from '../../../utils/toast';
+import { showError, showSuccess, showWarning } from '../../../utils/toast';
 
 export const useCustomerCommerce = () => {
   const location = useLocation();
@@ -26,7 +27,7 @@ export const useCustomerCommerce = () => {
 
 
   const requestLogin = useCallback((message: string, returnTo = location.pathname) => {
-    showError(message);
+    showWarning(message);
     navigate('/profile', { state: { returnTo } });
   }, [location.pathname, navigate]);
 
@@ -51,10 +52,10 @@ export const useCustomerCommerce = () => {
   const addToCart = useCallback((product: Product, variant: ProductVariant, quantity = 1, selectedColor?: string) => {
     const stockQuantity = Number(variant.stockQuantity ?? 0);
     if (stockQuantity <= 0) {
-      showError('This product variant is out of stock.');
+      showWarning('This product variant is out of stock.');
       return;
     }
-    const unitPrice = Number(variant.offerPrice ?? variant.price ?? 0);
+    const unitPrice = getVariantPricing(variant).currentPrice;
     addCartItem({
       productId: product.id,
       productIdentifier: product.productIdentifier,

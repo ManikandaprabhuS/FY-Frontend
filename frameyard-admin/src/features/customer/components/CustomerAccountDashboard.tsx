@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getLowestVariantPricing, getVariantPricing } from '../utils/product-pricing';
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -25,7 +26,7 @@ import { orderService } from '../../../services/order.service';
 import type { CustomerWishlistItem } from '../../../services/customer-wishlist.service';
 import type { Order, User } from '../../../types';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
-import { showError, showSuccess } from '../../../utils/toast';
+import { showError, showSuccess, showWarning } from '../../../utils/toast';
 
 type ProfileValues = {
   name: string;
@@ -133,7 +134,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
   const moveWishlistItemToCart = async (item: CustomerWishlistItem) => {
     const variant = item.product.variants?.find((entry) => entry.isActive !== false && Number(entry.stockQuantity ?? 0) > 0);
     if (!variant) {
-      showError('This product is currently out of stock.');
+      showWarning('This product is currently out of stock.');
       return;
     }
 
@@ -151,7 +152,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
         color: variant.color,
         mountType: variant.mountType || 'NONE',
         glassType: variant.glassType || 'NONE',
-        unitPrice: Number(variant.offerPrice ?? variant.price ?? 0),
+        unitPrice: getVariantPricing(variant).currentPrice,
         quantity: 1,
         stockQuantity: Number(variant.stockQuantity ?? 0),
       });
@@ -235,7 +236,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
                 {(showAllWishlist ? wishlistItems : wishlistItems.slice(0, 3)).map((item) => {
                   const image = item.product.images?.find((entry) => entry.isPrimary)?.imageUrl ?? item.product.images?.[0]?.imageUrl;
                   const activeVariants = item.product.variants?.filter((variant) => variant.isActive !== false) ?? [];
-                  const price = activeVariants.length > 0 ? Math.min(...activeVariants.map((variant) => Number(variant.price))) : 0;
+                  const price = getLowestVariantPricing(activeVariants).currentPrice;
                   const canMoveToCart = activeVariants.some((variant) => Number(variant.stockQuantity ?? 0) > 0);
                   return (
                     <article key={item.id} className="group overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_8px_28px_rgba(0,0,0,0.03)]">

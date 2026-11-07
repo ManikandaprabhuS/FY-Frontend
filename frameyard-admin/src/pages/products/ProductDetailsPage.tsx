@@ -7,7 +7,7 @@ import Badge from '../../components/ui/Badge';
 import { ArrowLeft, Plus, Edit2, Trash2, Image as ImageIcon, Upload, Info, CheckCircle2 } from 'lucide-react';
 import { ProductImage, ProductStatus } from '../../types';
 import { uploadProductImages } from '../../services/product.service';
-import { showError } from '../../utils/toast';
+import { showSuccess, showWarning, showApiError } from '../../utils/toast';
 import { validateProductBasics, validateProductFiles, validateVariant } from '../../utils/form-validation';
 
 type VariantForm = {
@@ -137,7 +137,7 @@ export const ProductDetailsPage: React.FC = () => {
       return;
     }
     const fileError = validateProductFiles(selectedFiles);
-    if (fileError) { setImageError(fileError); return; }
+    if (fileError) { setImageError(fileError); showWarning(fileError); return; }
 
     if (isUploadingImages) {
       setImageError('Please wait for the current upload to finish.');
@@ -216,6 +216,7 @@ export const ProductDetailsPage: React.FC = () => {
         uploadError?.message ||
         'Failed to upload images.'
       );
+      showApiError(error, uploadError?.response?.data?.message || uploadError?.message || 'Failed to upload images.');
     } finally {
       setIsUploadingImages(false);
     }
@@ -240,9 +241,9 @@ export const ProductDetailsPage: React.FC = () => {
       : colors.length === 0 ? 'Select at least one frame color.'
       : variants.length === 0 ? 'Add at least one variant.'
       : images.length === 0 ? 'Upload at least one default product image.' : null;
-    if (requiredError) { setWizardError(requiredError); showError(requiredError); return; }
+    if (requiredError) { setWizardError(requiredError); showWarning(requiredError); return; }
     const formatError = validateProductBasics({ name, brandName: brand, material, description, availableColors: colors }) || variants.map(validateVariant).find(Boolean);
-    if (formatError) { setWizardError(formatError); showError(formatError); return; }
+    if (formatError) { setWizardError(formatError); showWarning(formatError); return; }
 
     setIsSaving(true);
 
@@ -280,6 +281,7 @@ export const ProductDetailsPage: React.FC = () => {
     }
 
     setIsSaving(false);
+    if (success) showSuccess(isNew ? 'Product Created Successfully!' : 'Product updated successfully');
 
     if (success && isNew) {
       setCreationComplete(true);
@@ -326,7 +328,7 @@ export const ProductDetailsPage: React.FC = () => {
   const handleSaveVariant = async () => {
     if (isUploadingImages) return;
     if (!varSize.trim() || !varMountType.trim() || !varPrice.trim() || !varStock.trim()) {
-      showError('Variant size, mount type, price and stock are required.'); return;
+      showWarning('Variant size, mount type, price and stock are required.'); return;
     }
 
     const newVariant: VariantForm = {
@@ -343,7 +345,7 @@ export const ProductDetailsPage: React.FC = () => {
     };
 
     const variantError = validateVariant(newVariant);
-    if (variantError) { showError(variantError); return; }
+    if (variantError) { showWarning(variantError); return; }
 
     if (!isNew && id) {
       const payload = {
@@ -359,6 +361,7 @@ export const ProductDetailsPage: React.FC = () => {
         ? await editVariant(editingVariant.id, payload)
         : await addVariant(id, payload);
       if (!saved) return;
+      showSuccess(editingVariant ? 'Variant updated successfully' : 'Variant added successfully');
       setVariantModalOpen(false);
       return;
     }
@@ -455,6 +458,7 @@ export const ProductDetailsPage: React.FC = () => {
       }
       if (message) {
         setWizardError(message);
+        showWarning(message);
         return;
       }
       setWizardError(null);

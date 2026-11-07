@@ -116,9 +116,6 @@ const CustomerProductsPage: React.FC = () => {
     <div className="flex h-full flex-col bg-white">
       <div className="flex items-center justify-between border-b border-black/10 px-4 py-4">
         <h2 className="text-xs font-black uppercase tracking-[0.15em]">Filters</h2>
-        <button type="button" onClick={clearFilters} className="text-[10px] font-semibold text-black/50 underline underline-offset-2 hover:text-black">
-          Clear all
-        </button>
       </div>
 
       <div className="divide-y divide-black/10 overflow-y-auto">

@@ -19,21 +19,13 @@ import ImageCropModal from '../components/ImageCropModal';
 import ColorSwatch from '../components/ColorSwatch';
 import ProductFramePreview from '../components/ProductFramePreview';
 import { getFrameOpening } from '../components/framePreviewConfig';
+import { parseStoredCrops, ratioFromFrameSize, resolvePreviewFrameImage, selectVariantPhoto } from '../components/framePreviewGeometry';
 import { productOptionImage, type ImageSelection } from '../utils/productOptionImage';
+import { getVariantPricing, variantForColor } from '../utils/product-pricing';
 import { useProductStore } from '../../../store/productStore';
 import type { ProductVariant } from '../../../types';
-import { showError, showSuccess } from '../../../utils/toast';
+import { showError, showSuccess, showWarning } from '../../../utils/toast';
 import { useCustomerCommerce } from '../hooks/useCustomerCommerce';
-
-type FrameRatio = { width: number; height: number; label: string };
-
-const ratioFromFrameSize = (frameSize?: string): FrameRatio => {
-  const values = frameSize?.match(/\d+(?:\.\d+)?/g)?.map(Number);
-  if (!values || values.length < 2 || values[0] <= 0 || values[1] <= 0) {
-    return { width: 4, height: 5, label: frameSize || 'selected' };
-  }
-  return { width: values[0], height: values[1], label: frameSize || `${values[0]} × ${values[1]}` };
-};
 
 const uniqueValues = (values: Array<string | null | undefined>) => [...new Set(values.filter((value): value is string => Boolean(value)))];
 
@@ -53,6 +45,8 @@ const CustomerProductDetailsPage: React.FC = () => {
   const [imageSelection, setImageSelection] = useState<ImageSelection>('default');
   const [quantity, setQuantity] = useState(1);
   const [cropSource, setCropSource] = useState('');
+  const [photoSource, setPhotoSource] = useState('');
+  const [photoOwner, setPhotoOwner] = useState<string>();
   const [croppedImages, setCroppedImages] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { customerLoggedIn, wishlist, toggleWishlist, addToCart } = useCustomerCommerce();
@@ -66,12 +60,16 @@ const CustomerProductDetailsPage: React.FC = () => {
     const timer = window.setTimeout(() => {
       if (!slug) {
         setCroppedImages({});
+        setPhotoSource('');
         return;
       }
       try {
-        setCroppedImages(JSON.parse(window.localStorage.getItem(`frameyaad-crops:${slug}`) || '{}') as Record<string, string>);
+        setCroppedImages(parseStoredCrops(window.localStorage.getItem(`frameyaad-crops:${slug}`)));
+        setPhotoSource(window.localStorage.getItem(`frameyaad-photo-source:${slug}`) || '');
+        setPhotoOwner(slug);
       } catch {
         setCroppedImages({});
+        setPhotoSource('');
       }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -94,16 +92,14 @@ const CustomerProductDetailsPage: React.FC = () => {
   const effectiveColor = selectedColor || selectedVariant?.color || colors[0] || '';
   const frameRatio = ratioFromFrameSize(selectedVariant?.frameSize);
   const cropKey = selectedVariant?.frameSize || 'default';
-  const croppedImage = croppedImages[cropKey];
+  const croppedImage = photoOwner === slug ? selectVariantPhoto(croppedImages, cropKey, photoSource) : '';
   const galleryImages = currentProduct?.images ?? [];
   const primaryProductImage = productOptionImage(currentProduct, selectedVariant, effectiveColor, imageSelection);
   const showingPhoto = Boolean(croppedImage);
-  const mainImage = selectedGalleryImage && selectedGalleryImage !== croppedImage ? selectedGalleryImage : primaryProductImage;
-  const currentPrice = Number(selectedVariant?.offerPrice ?? selectedVariant?.price ?? 0);
-  const originalPrice = Number(selectedVariant?.mrp ?? selectedVariant?.price ?? currentPrice);
-  const discount = originalPrice > currentPrice && originalPrice > 0
-    ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
-    : 0;
+  const displayImage = selectedGalleryImage && selectedGalleryImage !== croppedImage ? selectedGalleryImage : primaryProductImage;
+  const defaultProductImage = productOptionImage(currentProduct, selectedVariant, effectiveColor, 'default');
+  const mainImage = showingPhoto ? resolvePreviewFrameImage(displayImage, defaultProductImage, image => Boolean(getFrameOpening(image))) : displayImage;
+  const { currentPrice, originalPrice, discount } = getVariantPricing(selectedVariant);
   const wished = customerLoggedIn && Boolean(currentProduct?.productIdentifier && wishlist[currentProduct.productIdentifier]);
 
   const chooseVariantValue = (field: keyof Pick<ProductVariant, 'frameSize' | 'mountType' | 'glassType'>, value: string) => {
@@ -111,9 +107,11 @@ const CustomerProductDetailsPage: React.FC = () => {
     if (candidates.length === 0) return;
     const preferred = [...candidates].sort((left, right) => {
       const leftScore = Number(left.mountType === selectedVariant?.mountType)
+        + Number(left.color?.trim().toLowerCase() === effectiveColor.trim().toLowerCase()) * 4
         + Number(left.glassType === selectedVariant?.glassType)
         + Number(left.frameSize === selectedVariant?.frameSize);
       const rightScore = Number(right.mountType === selectedVariant?.mountType)
+        + Number(right.color?.trim().toLowerCase() === effectiveColor.trim().toLowerCase()) * 4
         + Number(right.glassType === selectedVariant?.glassType)
         + Number(right.frameSize === selectedVariant?.frameSize);
       return rightScore - leftScore;
@@ -126,11 +124,11 @@ const CustomerProductDetailsPage: React.FC = () => {
   const handleFile = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      showError('Please select a valid image file.');
+      showWarning('Please select a valid image file.');
       return;
     }
     if (file.size > 12 * 1024 * 1024) {
-      showError('Please select an image smaller than 12 MB.');
+      showWarning('Please select an image smaller than 12 MB.');
       return;
     }
     const reader = new FileReader();
@@ -142,21 +140,26 @@ const CustomerProductDetailsPage: React.FC = () => {
   const saveCrop = (image: string) => {
     const nextImages = { ...croppedImages, [cropKey]: image };
     setCroppedImages(nextImages);
+    setPhotoSource(cropSource);
+    setPhotoOwner(slug);
     setSelectedGalleryImage('');
     setCropSource('');
     try {
       window.localStorage.setItem(`frameyaad-crops:${slug}`, JSON.stringify(nextImages));
+      window.localStorage.removeItem(`frameyaad-photo-source:${slug}`);
+      // Avoid blocking/quota failures from persisting a full 12 MB upload.
+      // Large originals remain available in-session; saved crops still survive reloads.
+      if (cropSource.length <= 1_500_000) window.localStorage.setItem(`frameyaad-photo-source:${slug}`, cropSource);
       showSuccess(`Photo cropped and saved locally for ${frameRatio.label}.`);
     } catch {
-      showError('The crop is ready for this session, but browser storage is full.');
+      showWarning('The crop is ready for this session, but browser storage is full.');
     }
   };
 
   const clearCrop = () => {
     if (!croppedImage) return;
 
-    const nextImages = { ...croppedImages };
-    delete nextImages[cropKey];
+    const nextImages = { ...croppedImages, [cropKey]: '' };
 
     try {
       const storageKey = `frameyaad-crops:${slug}`;
@@ -216,7 +219,7 @@ const CustomerProductDetailsPage: React.FC = () => {
               <div className="order-1 relative aspect-[4/5] min-h-0 overflow-hidden rounded-xl border border-black/10 bg-[#eeeae4] sm:order-2 sm:aspect-auto sm:min-h-[460px] lg:min-h-[560px]">
                 {discount > 0 && <span className="absolute left-3 top-3 z-10 rounded bg-black px-2.5 py-1.5 text-[10px] font-black uppercase text-white">{discount}% off</span>}
                 <button type="button" onClick={() => void toggleWishlist(currentProduct)} aria-label={`${wished ? 'Remove' : 'Add'} product ${wished ? 'from' : 'to'} wishlist`} aria-pressed={wished} className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-black/10 bg-white shadow"><Heart className={`h-4 w-4 ${wished ? 'fill-black' : ''}`} /></button>
-                {mainImage ? <ProductFramePreview productImage={mainImage} photo={showingPhoto ? croppedImage : undefined} name={currentProduct.name} /> : <div className="grid h-full min-h-[360px] place-items-center text-sm text-black/40">No product image</div>}
+                {mainImage ? <ProductFramePreview productImage={mainImage} photo={showingPhoto ? croppedImage : undefined} aspectRatio={frameRatio.width / frameRatio.height} name={currentProduct.name} /> : <div className="grid h-full min-h-[360px] place-items-center text-sm text-black/40">No product image</div>}
                 {showingPhoto && !getFrameOpening(mainImage) && <p role="status" className="absolute inset-x-3 bottom-3 rounded-lg bg-white/95 p-2 text-xs text-black">Photo saved. In-frame preview is not configured for this product image yet.</p>}
               </div>
             </div>
@@ -245,8 +248,8 @@ const CustomerProductDetailsPage: React.FC = () => {
               <div className="rounded-xl border border-black/10 bg-white p-4">
                 <h2 className="text-sm font-black">Preview & Crop</h2>
                 <p className="mt-0.5 text-[10px] text-black/45">Adjust your photo for the selected frame size.</p>
-                <button type="button" onClick={() => croppedImage ? setCropSource(croppedImage) : fileInputRef.current?.click()} className="mt-3 flex h-28 w-full items-center justify-center overflow-hidden rounded-lg bg-[#eeeae4]">
-                  {croppedImage ? <img src={croppedImage} alt="Cropped photo preview" decoding="async" className="h-full w-full object-cover" /> : <span className="flex flex-col items-center gap-2 text-xs font-bold"><ImagePlus className="h-6 w-6" /> Upload to preview</span>}
+                <button type="button" onClick={() => croppedImage ? setCropSource(photoSource || croppedImage) : fileInputRef.current?.click()} className="mt-3 flex h-28 w-full items-center justify-center overflow-hidden rounded-lg bg-[#eeeae4]">
+                  {croppedImage ? <svg role="img" aria-label="Cropped photo preview" viewBox={`0 0 ${frameRatio.width} ${frameRatio.height}`} className="h-full w-full"><image href={croppedImage} width={frameRatio.width} height={frameRatio.height} preserveAspectRatio="xMidYMid slice" /></svg> : <span className="flex flex-col items-center gap-2 text-xs font-bold"><ImagePlus className="h-6 w-6" /> Upload to preview</span>}
                 </button>
               </div>
             </div>
@@ -283,7 +286,7 @@ const CustomerProductDetailsPage: React.FC = () => {
             <OptionGroup number="3" title="Select Color / Finish">
               <div className="flex flex-wrap gap-3">
                 {colors.length === 0 ? <span className="text-xs text-black/45">Standard finish</span> : colors.map((color) => (
-                  <button key={color} type="button" onClick={() => { setSelectedColor(color); setImageSelection('color'); setSelectedGalleryImage(''); }} aria-label={`Select color ${color}`} aria-pressed={effectiveColor === color} title={color} className="group flex items-center justify-center">
+                  <button key={color} type="button" onClick={() => { const variant = variantForColor(activeVariants, selectedVariant, color); if (variant) setSelectedVariantId(variant.id); setSelectedColor(color); setImageSelection('color'); setSelectedGalleryImage(''); }} aria-label={`Select color ${color}`} aria-pressed={effectiveColor === color} title={color} className="group flex items-center justify-center">
                     <span className={`grid h-9 w-9 place-items-center rounded-full border-2 transition ${effectiveColor === color ? 'border-black' : 'border-transparent group-hover:border-black/25'}`}><ColorSwatch color={color} className="h-7 w-7" /></span>
                   </button>
                 ))}
@@ -330,6 +333,7 @@ const CustomerProductDetailsPage: React.FC = () => {
 
       {cropSource && (
         <ImageCropModal
+          key={`${slug}:${cropKey}:${cropSource}`}
           imageSource={cropSource}
           aspectWidth={frameRatio.width}
           aspectHeight={frameRatio.height}

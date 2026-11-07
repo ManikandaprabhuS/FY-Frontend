@@ -9,15 +9,15 @@ interface RouteErrorPageProps {
 
 const RouteErrorPage: React.FC<RouteErrorPageProps> = ({ homePath = '/' }) => (
   <main
-    className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-white px-5 py-10 text-black sm:px-8"
+    className="flex min-h-svh w-full items-center justify-center bg-white px-5 py-10 text-black sm:px-8"
     aria-labelledby="route-error-title"
   >
-    <section className="w-full max-w-md text-center">
-      <div className="relative mx-auto aspect-square w-full max-w-[330px] sm:max-w-[380px]">
+    <section className="mx-auto flex w-full max-w-md flex-col items-center text-center">
+      <div className="relative mx-auto w-full max-w-[330px] shrink-0 sm:max-w-[380px]">
         <img
           src={brokenFrameArtwork}
           alt="A broken black picture frame"
-          className="h-full w-full object-contain"
+          className="block h-auto max-w-full w-full object-contain"
         />
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-2">
           <span className="text-[clamp(4.75rem,21vw,7.5rem)] font-black leading-none tracking-[-0.08em]">
@@ -31,7 +31,7 @@ const RouteErrorPage: React.FC<RouteErrorPageProps> = ({ homePath = '/' }) => (
         </div>
       </div>
 
-      <div className="-mt-3 sm:-mt-5">
+      <div className="mt-6 w-full">
         <h1 id="route-error-title" className="text-2xl font-extrabold tracking-tight sm:text-3xl">
           Oops! This frame doesn&apos;t exist.
         </h1>
