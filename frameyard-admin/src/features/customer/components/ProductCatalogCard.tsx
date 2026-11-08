@@ -1,10 +1,11 @@
 import React from 'react';
-import { Heart, ShoppingBag } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Heart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import heroFallback from '../../../assets/hero.png';
 import type { Product } from '../../../types';
 import type { CatalogPricing } from '../utils/catalog-product';
+import '../styles/all-frames.css';
 
 type ProductCatalogCardProps = {
   product: Product;
@@ -31,6 +32,10 @@ const getColorName = (color?: string | null) => {
   return COLOR_NAMES[value.toLowerCase()] ?? (value.startsWith('#') ? 'Custom Color' : value);
 };
 
+const LOW_STOCK = 3;
+const formatPrice = (value: number) => `₹${value.toLocaleString('en-IN')}`;
+
+/** A product hung on a grey mat, with a gallery-style label underneath. */
 const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
   product,
   pricing,
@@ -45,66 +50,62 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
     ?? product.images?.[0]?.imageUrl
     ?? heroFallback;
   const inStock = totalStock > 0;
-
-  const openProduct = () => navigate(`/product/${product.id}`);
+  const lowStock = inStock && totalStock <= LOW_STOCK;
+  const details = [pricing.variant?.frameSize, product.material, getColorName(pricing.variant?.color)].filter(Boolean).join(', ');
+  const productPath = `/product/${product.id}`;
 
   return (
     <article
-      className="group relative flex min-w-0 cursor-pointer flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_8px_26px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:border-black/25 hover:shadow-[0_16px_38px_rgba(0,0,0,0.12)] focus-within:ring-2 focus-within:ring-black"
-      onClick={openProduct}
+      className="fy-card group flex min-w-0 cursor-pointer flex-col"
+      data-sold-out={!inStock}
+      onClick={() => navigate(productPath)}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#f2eee8]">
+      <div className="fy-mat">
         <img
           src={image}
           alt={product.name}
           loading={priority ? 'eager' : 'lazy'}
           fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
-          className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.035]"
+          className="fy-art"
         />
 
         {pricing.discount > 0 && (
-          <span className="absolute left-2 top-2 rounded bg-black px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">
+          <span className="absolute left-2.5 top-2.5 bg-ink px-2 py-1 text-[11px] font-medium leading-none text-white">
             {pricing.discount}% off
           </span>
         )}
 
-        <div className="absolute right-2 top-2 flex flex-col gap-2">
-          <button
-            type="button"
-            aria-label={`${wished ? 'Remove' : 'Add'} ${product.name} ${wished ? 'from' : 'to'} wishlist`}
-            aria-pressed={wished}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleWishlist(product);
-            }}
-            className="grid h-8 w-8 place-items-center rounded-full border border-black/10 bg-white/95 text-black shadow-sm transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-black"
-          >
-            <Heart className={`h-4 w-4 ${wished ? 'fill-black' : ''}`} />
-          </button>
-        </div>
+        <button
+          type="button"
+          aria-label={`${wished ? 'Remove' : 'Add'} ${product.name} ${wished ? 'from' : 'to'} wishlist`}
+          aria-pressed={wished}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleWishlist(product);
+          }}
+          className="group/wish absolute right-0 top-0 z-[1] grid h-11 w-11 place-items-start justify-items-end p-1.5 text-ink outline-none"
+        >
+          {/* 44px tap area; the visible chip sits in the mat corner, clear of the photo's edge. */}
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-white shadow-[0_1px_4px_rgba(17,17,17,0.18)] transition-transform duration-300 group-active/wish:scale-90 group-focus-visible/wish:outline-2 group-focus-visible/wish:outline-offset-2 group-focus-visible/wish:outline-ink">
+            <Heart className={`h-4 w-4 ${wished ? 'fill-ink' : ''}`} strokeWidth={1.7} />
+          </span>
+        </button>
       </div>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-3.5">
-        <h2 className="line-clamp-2 min-h-10 text-[13px] font-extrabold leading-5 text-black sm:min-h-0 sm:truncate sm:text-sm" title={product.name}>{product.name}</h2>
-        <p className="mt-1 truncate text-[11px] font-medium text-black/55">
-          {[pricing.variant?.frameSize, product.material, getColorName(pricing.variant?.color)].filter(Boolean).join(' · ') || 'Frame'}
-        </p>
+      <div className="pt-3">
+        <h2 className={`fy-display line-clamp-2 text-[17px] leading-tight sm:text-[19px] ${inStock ? '' : 'text-mute'}`} title={product.name}>
+          <Link to={productPath} onClick={(event) => event.stopPropagation()} className="outline-none focus-visible:underline">
+            {product.name}
+          </Link>
+        </h2>
+        <p className="mt-1 truncate text-[13px] text-mute">{details || 'Frame'}</p>
 
-        <div className="mt-2 flex min-h-5 items-center gap-2">
-          <span className={`h-1.5 w-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-black/30'}`} />
-          <span className="text-[10px] font-semibold text-black/55">{inStock ? 'In stock' : 'Out of stock'}</span>
-        </div>
-
-        <div className="mt-auto flex flex-col gap-2 pt-2 min-[420px]:flex-row min-[420px]:items-end min-[420px]:justify-between">
-          <div className="min-w-0">
-            <p className="text-base font-black text-black">₹{pricing.currentPrice.toLocaleString('en-IN')}</p>
-            {pricing.discount > 0 && (
-              <p className="text-[10px] font-semibold text-black/40 line-through">
-                ₹{pricing.originalPrice.toLocaleString('en-IN')}
-              </p>
-            )}
-          </div>
+        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <p className={`text-[15px] font-medium ${inStock ? '' : 'text-mute'}`}>
+            {formatPrice(pricing.currentPrice)}
+            {pricing.discount > 0 && <s className="ml-2 text-[13px] font-normal text-mute">{formatPrice(pricing.originalPrice)}</s>}
+          </p>
           <button
             type="button"
             disabled={!inStock}
@@ -112,12 +113,12 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
               event.stopPropagation();
               if (pricing.variant) onAddToCart(product, pricing.variant);
             }}
-            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-black px-2 text-[10px] font-bold text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:bg-black/25 min-[420px]:h-8 min-[420px]:w-auto min-[420px]:px-3"
+            className="fy-card__add min-h-8 text-[13px] font-medium underline decoration-1 underline-offset-4 disabled:cursor-not-allowed disabled:no-underline disabled:text-mute"
           >
-            <ShoppingBag className="h-3.5 w-3.5" />
-            {inStock ? 'Add to Bag' : 'Sold out'}
+            {inStock ? 'Add to bag' : 'Sold out'}
           </button>
         </div>
+        {lowStock && <p className="mt-1 text-[12px] text-mute">Only {totalStock} left</p>}
       </div>
     </article>
   );

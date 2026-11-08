@@ -1,35 +1,47 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Heart, Menu, ShoppingCart, User, X } from 'lucide-react';
+import { Heart, Menu, Search, ShoppingBag, UserRound } from 'lucide-react';
+
 import fyLogoIcon from '../../../assets/fy-logo-icon.jpeg';
 import { useAuthStore } from '../../../store/authStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import { showWarning } from '../../../utils/toast';
+import { BRAND_NAME, primaryNavLinks } from '../navigation';
+import CustomerMenuDrawer from './CustomerMenuDrawer';
 import CustomerWishlistDrawer from './CustomerWishlistDrawer';
 
-const customerNavLinks = [
-  { name: 'Home', path: '/' },
-  { name: 'Shop All', path: '/products' },
-  { name: 'Book Appointment', path: '/book-appointment' },
-  { name: 'Contact us', path: '/contact-us' },
-];
+const iconButton =
+  'relative grid h-11 w-11 place-items-center rounded-full text-ink transition-[background-color,transform] duration-300 hover:bg-mat active:scale-90';
 
 const CustomerNavbar: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const customerLoggedIn = useAuthStore((state) => state.isAuthenticated) && user?.role === 'CUSTOMER';
   const authStatus = useAuthStore(state => state.status);
-  const accountLabel = authStatus === 'checking' ? 'Account' : customerLoggedIn ? user.name.split(' ')[0] || 'Account' : 'Login';
+  const firstName = customerLoggedIn ? user.name.split(' ')[0] || 'Account' : null;
+  // While the session is being checked, show a neutral label instead of flashing "Sign in".
+  const accountLabel = authStatus === 'checking' ? 'Account' : firstName ?? 'Sign in';
   const cartCount = useCustomerCommerceStore((state) => state.cartItems.reduce((total, item) => total + item.quantity, 0));
   const wishlistTotal = useCustomerCommerceStore((state) => state.wishlistTotal);
   const wishlistLoadedForUserId = useCustomerCommerceStore((state) => state.wishlistLoadedForUserId);
   const wishlistCount = customerLoggedIn && wishlistLoadedForUserId === user.id ? wishlistTotal : 0;
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-  const openWishlist = async () => {
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  // Waits for an in-progress session check before deciding whether to ask the customer to log in.
+  const openWishlist = useCallback(async () => {
     if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
     const verified = useAuthStore.getState();
     if (verified.status === 'checking') return;
@@ -38,99 +50,105 @@ const CustomerNavbar: React.FC = () => {
       navigate('/profile', { state: { returnTo: location.pathname + location.search + location.hash } });
       return;
     }
+    setMenuOpen(false);
     setWishlistOpen(true);
-  };
+  }, [location.hash, location.pathname, location.search, navigate]);
 
-  const navClassName = ({ isActive }: { isActive: boolean }) =>
-    `relative px-1 py-2 text-xs font-bold transition md:text-sm ${
-      isActive
-        ? 'text-black after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-black'
-        : 'text-black/70 hover:text-black'
-    }`;
-
-  const mobileNavClassName = ({ isActive }: { isActive: boolean }) =>
-    `block w-full rounded-lg px-4 py-3 text-sm font-bold transition ${
-      isActive ? 'bg-black text-white' : 'text-black/75 hover:bg-black/5 hover:text-black'
-    }`;
+  const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `group relative py-2 text-[14px] font-medium transition-colors duration-200 ${isActive ? 'text-ink' : 'text-ink/60 hover:text-ink'}`;
 
   return (
-    <header className="sticky top-0 z-[100] isolate border-b border-outline-variant bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={fyLogoIcon} alt="FrameYaad" className="h-7 w-7 object-contain" />
-          <span className="text-sm font-black text-black md:text-base">FrameYaad</span>
-        </Link>
+    <>
+      <header
+        className={`sticky top-0 z-[100] border-b bg-white/90 backdrop-blur-xl transition-[border-color] duration-300 ${scrolled ? 'border-rule' : 'border-transparent'}`}
+      >
+        <div className="mx-auto grid h-[60px] w-full max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 sm:px-6 lg:h-[76px] lg:grid-cols-[1fr_auto_1fr] lg:px-10">
+          <div className="flex items-center">
+            <button
+              ref={menuButton}
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              className={`${iconButton} lg:hidden`}
+            >
+              <Menu className="h-[22px] w-[22px]" strokeWidth={1.6} />
+            </button>
+            <Link to="/" aria-label={`${BRAND_NAME} home`} className="hidden items-center gap-3 lg:flex">
+              <img src={fyLogoIcon} alt="" className="h-9 w-9 rounded-full object-contain" />
+              <span className="fy-display text-[24px] leading-none">{BRAND_NAME}</span>
+            </Link>
+          </div>
 
-        <nav className="hidden items-center gap-9 md:flex">
-          {customerNavLinks.map((link) => (
-            <NavLink key={link.path} to={link.path} className={navClassName} end={link.path === '/'}>
-              {link.name}
-            </NavLink>
-          ))}
-        </nav>
+          <Link to="/" aria-label={`${BRAND_NAME} home`} className="flex items-center gap-2 lg:hidden">
+            <img src={fyLogoIcon} alt="" className="h-7 w-7 rounded-full object-contain" />
+            <span className="fy-display text-[21px] leading-none">{BRAND_NAME}</span>
+          </Link>
 
-        <div className="hidden items-center gap-4 md:flex">
-          <button type="button" onClick={openWishlist} className="relative inline-flex rounded-full p-2 text-black transition hover:bg-black/5" title="Wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} saved ${wishlistCount === 1 ? 'item' : 'items'}` : ''}`}>
-              <Heart className="h-5 w-5" />
-              {wishlistCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
-                  {wishlistCount > 99 ? '99+' : wishlistCount}
+          <nav className="hidden items-center gap-9 lg:flex" aria-label="Primary navigation">
+            {primaryNavLinks.map((link) => (
+              <NavLink key={link.path} to={link.path} end={link.path === '/'} className={desktopLinkClass}>
+                {({ isActive }) => (
+                  <>
+                    {link.name}
+                    <span
+                      aria-hidden="true"
+                      className={`absolute inset-x-0 bottom-0 h-px origin-left bg-ink transition-transform duration-500 ease-[var(--fy-ease-out)] ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}
+                    />
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+            <Link to="/products" aria-label="Search frames" className={iconButton}>
+              <Search className="h-5 w-5" strokeWidth={1.6} />
+            </Link>
+
+            <button
+              type="button"
+              onClick={openWishlist}
+              aria-label={wishlistCount ? `Wishlist, ${wishlistCount} saved` : 'Wishlist'}
+              className={`${iconButton} hidden lg:grid`}
+            >
+              <Heart className={`h-5 w-5 ${wishlistCount ? 'fill-ink' : ''}`} strokeWidth={1.6} />
+            </button>
+
+            <Link
+              to="/profile"
+              aria-label={firstName ? 'Your account' : accountLabel}
+              className="hidden h-11 items-center gap-2 rounded-full px-3 text-[14px] font-medium text-ink transition-colors duration-300 hover:bg-mat lg:inline-flex"
+            >
+              <UserRound className="h-5 w-5" strokeWidth={1.6} />
+              <span>{accountLabel}</span>
+            </Link>
+
+            <Link to="/cart" aria-label={`Bag, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} className={iconButton}>
+              <ShoppingBag className="h-5 w-5" strokeWidth={1.6} />
+              {cartCount > 0 && (
+                <span
+                  key={cartCount}
+                  className="absolute right-1 top-1 grid h-[18px] min-w-[18px] animate-[fy-badge-pop_500ms_var(--fy-ease-spring)] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold leading-none text-white"
+                >
+                  {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
-          </button>
-          <Link to="/cart" className="relative rounded-full p-2 text-black transition hover:bg-black/5" title="Cart">
-            <ShoppingCart className="h-5 w-5" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
-              {cartCount}
-            </span>
-          </Link>
-          <Link to="/profile" className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2 text-xs font-bold text-black transition hover:bg-black hover:text-white">
-            <User className="h-4 w-4" />
-            {accountLabel}
-          </Link>
+            </Link>
+          </div>
         </div>
+      </header>
 
-        <div className="flex items-center gap-2 md:hidden">
-          <button type="button" onClick={openWishlist} className="relative inline-flex rounded-full p-2 text-black" title="Wishlist" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} saved ${wishlistCount === 1 ? 'item' : 'items'}` : ''}`}>
-              <Heart className="h-5 w-5" />
-              {wishlistCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
-                  {wishlistCount > 99 ? '99+' : wishlistCount}
-                </span>
-              )}
-          </button>
-          <Link to="/cart" className="relative rounded-full p-2 text-black" title="Cart" aria-label={`Cart, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}>
-            <ShoppingCart className="h-5 w-5" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
-              {cartCount > 99 ? '99+' : cartCount}
-            </span>
-          </Link>
-          <button
-            className="rounded-lg border border-outline-variant p-2"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </div>
-
-      {menuOpen && (
-        <div className="absolute inset-x-0 top-full z-[110] h-[calc(100dvh-4rem)] overflow-y-auto border-t border-black/10 bg-white shadow-xl md:hidden">
-          <aside className="w-full bg-white px-5 py-6">
-            <nav className="flex flex-col gap-2">
-              {[...customerNavLinks, { name: 'Cart', path: '/cart' }, { name: customerLoggedIn ? 'My Account' : 'Login', path: '/profile' }].map((link) => (
-                <NavLink key={link.path} to={link.path} className={mobileNavClassName} end={link.path === '/'} onClick={() => setMenuOpen(false)}>
-                  {link.name}
-                </NavLink>
-              ))}
-            </nav>
-          </aside>
-        </div>
-      )}
+      <CustomerMenuDrawer
+        open={menuOpen}
+        onClose={closeMenu}
+        onOpenWishlist={openWishlist}
+        wishlistCount={wishlistCount}
+        customerName={firstName}
+        returnFocusTo={menuButton}
+      />
       <CustomerWishlistDrawer open={wishlistOpen} onClose={() => setWishlistOpen(false)} />
-    </header>
+    </>
   );
 };
 

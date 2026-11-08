@@ -1,0 +1,155 @@
+/* Homepage hero: a framed photograph that swaps against a changing wall tone. */
+
+.fy-hero {
+  transition: background-color 800ms var(--fy-ease-out), color 500ms var(--fy-ease-out);
+}
+
+/* ---------- Stage and slide transitions ---------- */
+
+.fy-hero-stage {
+  position: relative;
+  width: min(66vw, 290px);
+  aspect-ratio: 4 / 5;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+@media (min-width: 640px) {
+  .fy-hero-stage { width: min(52vw, 360px); }
+}
+
+@media (min-width: 1024px) {
+  .fy-hero-stage { width: clamp(300px, 26vw, 400px); }
+}
+
+.fy-hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.fy-hero-slide.is-active {
+  visibility: visible;
+  opacity: 1;
+  animation: fy-frame-in-next 1000ms var(--fy-ease-spring) both;
+}
+
+.fy-hero-slide.is-leaving {
+  visibility: visible;
+  animation: fy-frame-out-next 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+}
+
+.fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-active { animation-name: fy-frame-in-prev; }
+.fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-leaving { animation-name: fy-frame-out-prev; }
+
+/* Next: the new frame swings in from the lower right, the old one leaves to the upper left. */
+@keyframes fy-frame-in-next {
+  0% { opacity: 0; transform: translate3d(22%, 16%, 0) rotate(8deg) scale(0.88); }
+  35% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes fy-frame-out-next {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(-20%, -14%, 0) rotate(-7deg) scale(0.9); }
+}
+
+@keyframes fy-frame-in-prev {
+  0% { opacity: 0; transform: translate3d(-22%, -14%, 0) rotate(-7deg) scale(0.88); }
+  35% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes fy-frame-out-prev {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(20%, 16%, 0) rotate(8deg) scale(0.9); }
+}
+
+/*
+ * Desktop: as in the reference, the incoming frame starts small at the lower-right
+ * corner and grows into place; the outgoing frame shrinks away towards the upper left.
+ * Transforms only, so the layout never shifts. Mobile keeps the swing above.
+ */
+@media (min-width: 1024px) {
+  .fy-hero-slide.is-active {
+    animation: fy-frame-grow-in-next 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .fy-hero-slide.is-leaving {
+    animation: fy-frame-shrink-out-next 700ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  }
+
+  .fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-active { animation-name: fy-frame-grow-in-prev; }
+  .fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-leaving { animation-name: fy-frame-shrink-out-prev; }
+
+  .fy-hero-shadow {
+    animation-duration: 1100ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes fy-frame-grow-in-next {
+  0% { opacity: 0; transform: translate3d(52%, 38%, 0) scale(0.3); }
+  30% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes fy-frame-shrink-out-next {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(-34%, -28%, 0) scale(0.5); }
+}
+
+@keyframes fy-frame-grow-in-prev {
+  0% { opacity: 0; transform: translate3d(-34%, -28%, 0) scale(0.3); }
+  30% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes fy-frame-shrink-out-prev {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(52%, 38%, 0) scale(0.5); }
+}
+
+/* Soft contact shadow under the floating frame; it settles as each frame lands. */
+.fy-hero-shadow {
+  width: 78%;
+  height: 22px;
+  margin-top: 26px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0));
+  filter: blur(4px);
+  animation: fy-shadow-settle 1000ms var(--fy-ease-spring) both;
+}
+
+.fy-hero[data-dark='true'] .fy-hero-shadow {
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+}
+
+@keyframes fy-shadow-settle {
+  0% { opacity: 0; transform: scaleX(0.55); }
+  100% { opacity: 1; transform: scaleX(1); }
+}
+
+/* ---------- Copy entrance (plays once on load) ---------- */
+
+.fy-hero-rise {
+  animation: fy-hero-rise 800ms var(--fy-ease-out) both;
+}
+
+@keyframes fy-hero-rise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Autoplay progress on the active slide indicator. */
+.fy-hero-progress {
+  transform-origin: left center;
+  animation: fy-hero-progress linear both;
+}
+
+@keyframes fy-hero-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

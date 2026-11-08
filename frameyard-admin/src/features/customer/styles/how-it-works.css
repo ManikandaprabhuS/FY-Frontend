@@ -1,0 +1,366 @@
+/* How it works: dark grid section with step cards whose scenes animate on hover or in view. */
+
+.fy-hiw {
+  position: relative;
+  isolation: isolate;
+  background: #111111;
+  color: #ffffff;
+}
+
+/* Faint drafting grid behind the section. */
+.fy-hiw::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse at 50% 40%, #000 45%, transparent 85%);
+}
+
+/* ---------- Card ---------- */
+
+.fy-step {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #161616;
+  transition: border-color 300ms var(--fy-ease-out), transform 400ms var(--fy-ease-out);
+}
+
+@media (hover: hover) {
+  .fy-step:hover { border-color: rgba(255, 255, 255, 0.32); transform: translate3d(0, -4px, 0); }
+}
+
+/* The card the sequence is on gets a brighter edge, matching hover. */
+.fy-step[data-play] { border-color: rgba(255, 255, 255, 0.32); }
+
+/* Arrows between cards: dim, then light up and nudge forward as the sequence passes. */
+.fy-hiw-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  transition: color 300ms var(--fy-ease-out);
+}
+
+.fy-hiw-arrow[data-active] { color: #ffffff; }
+.fy-hiw-arrow[data-active] svg { animation: fy-hiw-arrow-x 900ms var(--fy-ease-out) both; }
+
+@media (max-width: 1023.98px) {
+  .fy-hiw-arrow[data-active] svg { animation-name: fy-hiw-arrow-y; }
+}
+
+@keyframes fy-hiw-arrow-x {
+  0% { transform: translateX(-8px); opacity: 0.3; }
+  60% { transform: translateX(4px); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes fy-hiw-arrow-y {
+  0% { transform: translateY(-8px); opacity: 0.3; }
+  60% { transform: translateY(4px); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* The scene: a small stage with crop marks in its corners. */
+.fy-scene {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px) 0 0 / 20px 20px,
+    #1c1c1c;
+}
+
+/* Phones: a shorter stage keeps the stacked cards compact. */
+@media (max-width: 639.98px) {
+  .fy-scene { aspect-ratio: 16 / 10; }
+  .fy-s1__zone { width: 44%; }
+}
+
+.fy-scene__mark {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(255, 255, 255, 0.55);
+  border-style: solid;
+  border-width: 0;
+  transition: transform 400ms var(--fy-ease-out);
+}
+
+.fy-scene__mark--tl { top: 8px; left: 8px; border-top-width: 1.5px; border-left-width: 1.5px; }
+.fy-scene__mark--tr { top: 8px; right: 8px; border-top-width: 1.5px; border-right-width: 1.5px; }
+.fy-scene__mark--bl { bottom: 8px; left: 8px; border-bottom-width: 1.5px; border-left-width: 1.5px; }
+.fy-scene__mark--br { bottom: 8px; right: 8px; border-bottom-width: 1.5px; border-right-width: 1.5px; }
+
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-scene__mark--tl { transform: translate(-3px, -3px); }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-scene__mark--tr { transform: translate(3px, -3px); }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-scene__mark--bl { transform: translate(-3px, 3px); }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-scene__mark--br { transform: translate(3px, 3px); }
+
+/* A small monochrome "photograph" drawn in CSS: sky, sun and hills. */
+.fy-mini-photo {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #e6e6e6 0%, #b8b8b8 58%, #4a4a4a 58.5%, #2b2b2b 100%);
+}
+
+.fy-mini-photo::before {
+  content: '';
+  position: absolute;
+  top: 26%;
+  left: 58%;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fafafa;
+}
+
+.fy-mini-photo::after {
+  content: '';
+  position: absolute;
+  inset: auto -10% 0 -10%;
+  height: 52%;
+  background: #3a3a3a;
+  clip-path: polygon(0 60%, 22% 20%, 40% 52%, 62% 8%, 82% 46%, 100% 30%, 100% 100%, 0 100%);
+}
+
+/* A framed mini photo: moulding + mat. */
+.fy-mini-frame {
+  padding: 6%;
+  background: #8f6a43;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+}
+
+.fy-mini-frame__mat {
+  height: 100%;
+  padding: 10% 10% 13%;
+  background: #f4f4f2;
+}
+
+.fy-mini-frame__mat .fy-mini-photo { height: 100%; }
+
+.fy-scene__center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- Scene 1: upload ---------- */
+
+.fy-s1__zone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54%;
+  aspect-ratio: 4 / 3;
+  border: 1.5px dashed rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.fy-s1__icon { transition: opacity 300ms; }
+
+.fy-s1__photo {
+  position: absolute;
+  inset: 12%;
+  opacity: 0;
+  transform: translate3d(70%, -90%, 0) rotate(10deg);
+}
+
+.fy-s1__bar {
+  position: absolute;
+  left: 23%;
+  right: 23%;
+  bottom: 13%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.fy-s1__bar span {
+  display: block;
+  height: 100%;
+  background: #ffffff;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s1__icon { opacity: 0; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s1__photo { animation: fy-s1-drop 2600ms var(--fy-ease-out) infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s1__bar span { animation: fy-s1-progress 2600ms var(--fy-ease-out) infinite; }
+
+@keyframes fy-s1-drop {
+  0% { opacity: 0; transform: translate3d(70%, -90%, 0) rotate(10deg); }
+  30%, 85% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+
+@keyframes fy-s1-progress {
+  0%, 30% { transform: scaleX(0); }
+  70%, 88% { transform: scaleX(1); }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* ---------- Scene 2: choose a frame ---------- */
+
+.fy-s2__frame { width: 34%; aspect-ratio: 4 / 5; }
+
+.fy-s2__swatches {
+  position: absolute;
+  bottom: 11%;
+  left: 50%;
+  display: flex;
+  gap: 10px;
+  transform: translateX(-50%);
+}
+
+.fy-s2__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.fy-s2__swatch:nth-child(1) { background: #8f6a43; box-shadow: 0 0 0 2px #1c1c1c, 0 0 0 3.5px #ffffff; }
+.fy-s2__swatch:nth-child(2) { background: #0e0e0e; }
+.fy-s2__swatch:nth-child(3) { background: #f2f2f0; }
+
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s2__frame { animation: fy-s2-finish 3600ms steps(1) infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s2__swatch:nth-child(1) { animation: fy-s2-ring-1 3600ms steps(1) infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s2__swatch:nth-child(2) { animation: fy-s2-ring-2 3600ms steps(1) infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s2__swatch:nth-child(3) { animation: fy-s2-ring-3 3600ms steps(1) infinite; }
+
+@keyframes fy-s2-finish {
+  0% { background: #8f6a43; }
+  33.3% { background: #0e0e0e; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 10px 22px rgba(0, 0, 0, 0.45); }
+  66.6% { background: #f2f2f0; }
+}
+
+@keyframes fy-s2-ring-1 { 0% { box-shadow: 0 0 0 2px #1c1c1c, 0 0 0 3.5px #ffffff; } 33.3% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25); } }
+@keyframes fy-s2-ring-2 { 0% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25); } 33.3% { box-shadow: 0 0 0 2px #1c1c1c, 0 0 0 3.5px #ffffff; } 66.6% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25); } }
+@keyframes fy-s2-ring-3 { 0% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25); } 66.6% { box-shadow: 0 0 0 2px #1c1c1c, 0 0 0 3.5px #ffffff; } }
+
+/* ---------- Scene 3: preview ---------- */
+
+.fy-s3__frame {
+  position: relative;
+  width: 36%;
+  aspect-ratio: 4 / 5;
+  background: #0e0e0e;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 10px 22px rgba(0, 0, 0, 0.45);
+}
+
+.fy-s3__frame .fy-mini-photo { transform: scale(1.35); transform-origin: 40% 40%; }
+
+/* Glass reflection that sweeps across while previewing. */
+.fy-s3__sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 45%, transparent 60%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.fy-s3__badge {
+  position: absolute;
+  top: 12%;
+  right: 12%;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #111111;
+  background: #ffffff;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 300ms, transform 300ms var(--fy-ease-out);
+}
+
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s3__frame .fy-mini-photo { animation: fy-s3-fit 2800ms var(--fy-ease-out) infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s3__sheen { animation: fy-s3-sheen 2800ms ease-in-out infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s3__badge { opacity: 1; transform: none; transition-delay: 600ms; }
+
+@keyframes fy-s3-fit {
+  0% { transform: scale(1.35); }
+  40%, 100% { transform: scale(1); }
+}
+
+@keyframes fy-s3-sheen {
+  0%, 45% { transform: translateX(-120%); }
+  80%, 100% { transform: translateX(120%); }
+}
+
+/* ---------- Scene 4: delivered and hung ---------- */
+
+.fy-s4__wall {
+  position: absolute;
+  inset: 0;
+}
+
+.fy-s4__frame {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 26%;
+  aspect-ratio: 4 / 5;
+  transform: translate(-50%, 60%);
+  opacity: 0;
+}
+
+.fy-s4__box {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  width: 40%;
+  height: 32%;
+  transform: translateX(-50%);
+  background: #b08d63;
+  box-shadow: inset 0 -10px 0 rgba(0, 0, 0, 0.12), 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+.fy-s4__box::before {
+  content: '';
+  position: absolute;
+  inset: -12% -4% auto;
+  height: 22%;
+  background: #c4a179;
+  transform-origin: left bottom;
+  transition: transform 400ms var(--fy-ease-out);
+}
+
+.fy-s4__box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 14%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateX(-50%);
+}
+
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s4__box { animation: fy-s4-box 3200ms var(--fy-ease-out) infinite; }
+.fy-step:is(:hover, :focus-within, [data-play]) .fy-s4__frame { animation: fy-s4-frame 3200ms var(--fy-ease-out) infinite; }
+
+@keyframes fy-s4-box {
+  0%, 20% { opacity: 1; transform: translateX(-50%); }
+  45%, 85% { opacity: 0; transform: translate(-50%, 30%); }
+  100% { opacity: 1; transform: translateX(-50%); }
+}
+
+@keyframes fy-s4-frame {
+  0%, 15% { opacity: 0; transform: translate(-50%, 60%) scale(0.8); }
+  45%, 85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Without motion, show each scene in its finished state. */
+@media (prefers-reduced-motion: reduce) {
+  .fy-hiw .fy-step * { animation: none !important; }
+  .fy-hiw .fy-s1__photo { opacity: 1; transform: none; }
+  .fy-hiw .fy-s1__icon { opacity: 0; }
+  .fy-hiw .fy-s3__frame .fy-mini-photo { transform: none; }
+  .fy-hiw .fy-s4__box { opacity: 0; }
+  .fy-hiw .fy-s4__frame { opacity: 1; transform: translate(-50%, -50%); }
+}

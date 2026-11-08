@@ -1,0 +1,75 @@
+/* Storefront foundation: scoped to the customer layout so admin pages keep their own styles. */
+
+.fy-store {
+  --fy-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Fallback for browsers without linear(): a gentle overshoot. */
+  --fy-ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  /* Bottom bar: 26px above its top edge (bubble, Customize) + 60px bar, flush with the screen bottom. */
+  --fy-dock-height: 86px;
+  --fy-dock-offset: env(safe-area-inset-bottom, 0px);
+
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: #ffffff;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  .fy-store {
+    /* Spring with a single soft overshoot, settling at ~55%. */
+    --fy-ease-spring: linear(0, 0.06 2.4%, 0.23 5.5%, 0.5 10%, 0.77 15.5%, 0.94 21%, 1.03 27%, 1.055 32%, 1.045 38%, 1.02 46%, 1 55%, 0.996 66%, 1);
+  }
+}
+
+.fy-store :where(h1, h2, h3).fy-display,
+.fy-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-kerning: normal;
+}
+
+.fy-store :focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+/* Reserve space above the mobile dock so it never covers page content. */
+@media (max-width: 1023.98px) {
+  .fy-store[data-dock='visible'] {
+    padding-bottom: calc(var(--fy-dock-height) + var(--fy-dock-offset) + 16px);
+  }
+}
+
+@keyframes fy-dock-rise {
+  from { transform: translate3d(0, calc(100% + 32px), 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fy-item-in {
+  from { opacity: 0; transform: translate3d(-12px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fy-badge-pop {
+  0% { transform: scale(0.4); }
+  100% { transform: scale(1); }
+}
+
+.fy-dock-enter {
+  animation: fy-dock-rise 720ms var(--fy-ease-spring) 180ms both;
+}
+
+.fy-menu-item {
+  animation: fy-item-in 420ms var(--fy-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-store *,
+  .fy-store *::before,
+  .fy-store *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}
