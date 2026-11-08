@@ -41,6 +41,7 @@ const CustomerProfilePage = lazy(() => import('../features/customer/pages/Custom
 const CustomerOrdersPage = lazy(() => import('../features/customer/pages/CustomerOrdersPage'));
 const BookAppointmentPage = lazy(() => import('../features/customer/pages/BookAppointmentPage'));
 const ContactUsPage = lazy(() => import('../features/customer/pages/ContactUsPage'));
+const StudioPage = lazy(() => import('../features/customer/pages/StudioPage'));
 const LazyFallback = <AuthPendingScreen />;
 const lazyElement = (element: React.ReactNode) => <Suspense fallback={LazyFallback}>{element}</Suspense>;
 
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
       { path: '/orders', element: <CustomerProtectedRoute><CustomerOrdersPage /></CustomerProtectedRoute> },
       { path: '/book-appointment', element: <BookAppointmentPage /> },
       { path: '/contact-us', element: <ContactUsPage /> },
+      { path: '/studio', element: <StudioPage /> },
     ],
   },
   {path: '/fyadminlogin',element: lazyElement(<LoginPage />),},

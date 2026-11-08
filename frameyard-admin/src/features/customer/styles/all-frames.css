@@ -1,0 +1,133 @@
+/* All frames: products hang on grey mats with gallery labels; sizes are drawn to scale. */
+
+/* ---------- Gallery card ---------- */
+
+.fy-mat {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--color-mat);
+}
+
+/* The product photo, hung on the mat with a soft wall shadow. */
+.fy-art {
+  width: 74%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  box-shadow: 0 2px 3px rgba(17, 17, 17, 0.12), 0 16px 26px -16px rgba(17, 17, 17, 0.42);
+  transition: transform 450ms var(--fy-ease-out), box-shadow 450ms var(--fy-ease-out), filter 300ms;
+}
+
+@media (hover: hover) {
+  .fy-card:hover .fy-art {
+    transform: translate3d(0, -5px, 0);
+    box-shadow: 0 4px 6px rgba(17, 17, 17, 0.12), 0 26px 34px -18px rgba(17, 17, 17, 0.5);
+  }
+
+  .fy-card .fy-card__add { opacity: 0.55; transition: opacity 250ms; }
+  .fy-card:hover .fy-card__add,
+  .fy-card:focus-within .fy-card__add { opacity: 1; }
+}
+
+.fy-card[data-sold-out='true'] .fy-art { filter: grayscale(1); opacity: 0.55; }
+
+/* ---------- Drawn frame sizes ---------- */
+
+.fy-size {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 2px;
+  font-size: 12px;
+  color: var(--color-mute);
+  transition: color 200ms;
+}
+
+.fy-size__shape {
+  display: block;
+  border: 1.5px solid var(--color-ink);
+  transition: background-color 200ms, transform 300ms var(--fy-ease-spring);
+}
+
+.fy-size:hover .fy-size__shape { transform: scale(1.06); }
+.fy-size[aria-pressed='true'] { color: var(--color-ink); font-weight: 600; }
+.fy-size[aria-pressed='true'] .fy-size__shape { background: var(--color-ink); }
+
+/* ---------- Price range: a thin rail with an ink handle ---------- */
+
+.fy-range {
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.fy-range::-webkit-slider-runnable-track { height: 1.5px; background: var(--color-ink); }
+.fy-range::-moz-range-track { height: 1.5px; background: var(--color-ink); }
+
+.fy-range::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -7.25px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 1px var(--color-ink);
+  appearance: none;
+}
+
+.fy-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 1px var(--color-ink);
+}
+
+/* ---------- Mobile filter sheet ---------- */
+
+.fy-sheet {
+  animation: fy-sheet-up 520ms var(--fy-ease-spring) both;
+}
+
+.fy-sheet-backdrop {
+  animation: fy-fade-in 250ms var(--fy-ease-out) both;
+}
+
+@keyframes fy-sheet-up {
+  from { transform: translate3d(0, 100%, 0); }
+  to { transform: none; }
+}
+
+@keyframes fy-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Grid reflow when filters change (View Transitions, where supported) ---------- */
+
+::view-transition-group(*) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

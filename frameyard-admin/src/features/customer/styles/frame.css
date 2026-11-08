@@ -1,0 +1,69 @@
+/* Framed photograph: moulding, bottom-weighted mat and glass. Shared by the hero and frame types. */
+
+.fy-frame {
+  height: 100%;
+  padding: 4.6%;
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.25),
+    0 34px 48px -26px rgba(0, 0, 0, 0.45);
+}
+
+.fy-frame--black {
+  background: linear-gradient(145deg, #2c2c2c, #0e0e0e 46%, #1c1c1c);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 2px 3px rgba(0, 0, 0, 0.3),
+    0 34px 48px -26px rgba(0, 0, 0, 0.5);
+}
+
+.fy-frame--walnut {
+  background: linear-gradient(145deg, #74472c, #3b2314 50%, #5a3621);
+}
+
+.fy-frame--white {
+  background: linear-gradient(145deg, #ffffff, #e9e8e5 55%, #f6f6f4);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 2px 3px rgba(0, 0, 0, 0.16),
+    0 34px 48px -26px rgba(0, 0, 0, 0.38);
+}
+
+/* Bottom-weighted mat, as in traditional framing. */
+.fy-frame__mat {
+  position: relative;
+  height: 100%;
+  padding: 9% 9% 11.5%;
+  background: #fbfbf9;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.22);
+}
+
+.fy-frame__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* A faint reflection on the glass. */
+.fy-frame__mat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 22%, rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+.fy-frame--oak {
+  background: linear-gradient(145deg, #c49a68, #9c7243 50%, #b88d5b);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 2px 3px rgba(0, 0, 0, 0.22),
+    0 34px 48px -26px rgba(0, 0, 0, 0.42);
+}
+
+/* Slim brushed metal. */
+.fy-frame--metal {
+  padding: 2.4%;
+  background: linear-gradient(135deg, #d9dadc, #8e9196 38%, #c4c6c9 62%, #75787d);
+}
