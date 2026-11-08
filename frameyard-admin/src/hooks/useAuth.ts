@@ -2,6 +2,8 @@ import { useAuthStore } from '../store/authStore';
 
 export const useAuth = () => {
   const user = useAuthStore((state) => state.user);
+  const status = useAuthStore(state => state.status);
+  const verificationError = useAuthStore(state => state.verificationError);
   const token = useAuthStore((state) => state.token);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const loading = useAuthStore((state) => state.loading);
@@ -15,6 +17,8 @@ export const useAuth = () => {
 
   return {
     user,
+    status,
+    verificationError,
     token,
     isAuthenticated,
     loading,

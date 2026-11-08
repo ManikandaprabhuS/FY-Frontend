@@ -6,7 +6,7 @@ import { showWarning } from '../../../utils/toast';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(() => useAuthStore.getState().status !== 'authenticated');
   const checkAuth = useAuthStore((state) => state.checkAuth);
 
   useEffect(() => {

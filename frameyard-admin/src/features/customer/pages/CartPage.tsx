@@ -11,8 +11,7 @@ import ColorSwatch from '../components/ColorSwatch';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   const items = useCustomerCommerceStore((state) => state.cartItems);
   const updateQuantity = useCustomerCommerceStore((state) => state.updateCartQuantity);
   const removeItem = useCustomerCommerceStore((state) => state.removeCartItem);
@@ -56,14 +55,20 @@ const CartPage: React.FC = () => {
     }
   };
 
-  const checkout = () => {
-    if (isAuthenticated && user?.role === 'CUSTOMER') return navigate('/checkout');
+  const checkout = async () => {
+    if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
+    const verified = useAuthStore.getState();
+    if (verified.status === 'checking') return;
+    if (verified.isAuthenticated && verified.user?.role === 'CUSTOMER') return navigate('/checkout');
     showWarning('Please login to continue to checkout');
     navigate('/profile', { state: { returnTo: '/checkout' } });
   };
 
   const moveToWishlist = async (item: (typeof items)[number]) => {
-    if (!isAuthenticated || user?.role !== 'CUSTOMER') {
+    if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
+    const verified = useAuthStore.getState();
+    if (verified.status === 'checking') return;
+    if (!verified.isAuthenticated || verified.user?.role !== 'CUSTOMER') {
       showWarning('Please login to move this product to your wishlist');
       navigate('/profile', { state: { returnTo: '/cart' } });
       return;

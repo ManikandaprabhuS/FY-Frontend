@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+import AuthPendingScreen from '../../components/auth/AuthPendingScreen';
+import { safeAuthReturnPath } from '../../utils/auth-return-path';
 import useAuth from '../../hooks/useAuth';
 import { LoaderCircle, LogIn } from 'lucide-react';
 import fyLogoIcon from '../../assets/fy-logo-icon.jpeg';
@@ -8,20 +10,16 @@ import { showSuccess, showWarning } from '../../utils/toast';
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading, error, isAuthenticated, user, clearError } = useAuth();
-  const navigate = useNavigate();
+  const { login, loading, error, status, verificationError, checkAuth, user, clearError } = useAuth();
+  const location = useLocation();
+  const returnTo = safeAuthReturnPath((location.state as { returnTo?: unknown } | null)?.returnTo, 'admin');
 
   // Clear previous auth errors on load
   useEffect(() => {
     clearError();
   }, [clearError]);
 
-  // If already authenticated, redirect
-  useEffect(() => {
-    if (isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'EMPLOYEE')) {
-      navigate('/admin/overview', { replace: true });
-    }
-  }, [isAuthenticated, navigate, user?.role]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,9 +27,12 @@ export const LoginPage: React.FC = () => {
     const success = await login(email, password);
     if (success) {
       showSuccess('Login successful');
-      navigate('/admin/overview', { replace: true });
+
     }
   };
+
+  if (status === 'checking') return <AuthPendingScreen error={verificationError} onRetry={() => { void checkAuth(); }} />;
+  if (status === 'authenticated') return <Navigate to={user?.role === 'CUSTOMER' ? '/' : returnTo} replace />;
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center px-4">

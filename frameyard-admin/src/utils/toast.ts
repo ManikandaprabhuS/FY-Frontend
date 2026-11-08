@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
 type Kind = 'success' | 'error' | 'warning';
-type Options = Pick<ToastOptions, 'id'>;
+type Options = Pick<ToastOptions, 'id'> & { retry?: () => void };
 const baseStyle: CSSProperties = {
   borderRadius: '12px', boxShadow: '0 12px 30px rgba(0, 0, 0, 0.14)',
   fontSize: '14px', fontWeight: 700,
@@ -24,14 +24,17 @@ const notify = (kind: Kind, message: string, options?: Options) => {
     style: { ...baseStyle, background: theme.background, color: theme.color, border: theme.border },
     icon: createElement(theme.component, { size: 21, color: theme.icon, strokeWidth: 2.5, 'aria-hidden': true }),
   };
-  return kind === 'success' ? toast.success(message, config) : kind === 'error' ? toast.error(message, config) : toast(message, config);
+  const content = options?.retry ? createElement('span', null, message, ' ', createElement('button', { type: 'button', className: 'ml-2 underline font-bold', onClick: () => { toast.dismiss(config.id); options.retry?.(); } }, 'Retry')) : message;
+  return kind === 'success' ? toast.success(content, config) : kind === 'error' ? toast.error(content, config) : toast(content, config);
 };
 export const showSuccess = (message: string, options?: Options) => notify('success', message, options);
 export const showError = (message: string, options?: Options) => notify('error', message, options);
 export const showWarning = (message: string, options?: Options) => notify('warning', message, options);
+export const showLoading = (message: string, id: string) => toast.loading(message, { id, duration: 30_000, style: { ...baseStyle, background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' } });
+export const dismissToast = (id: string) => toast.dismiss(id);
 
 // Use response metadata, not guesses based on message wording, for API validation.
-export const showApiError = (failure: unknown, message: string) => {
+export const showApiError = (failure: unknown, message: string, options?: Options) => {
   const response = axios.isAxiosError<{ error?: { code?: string } }>(failure) ? failure.response : undefined;
   const code = response?.data?.error?.code ?? '';
   const correctable = !['INVALID_CREDENTIALS', 'UNAUTHORIZED', 'FORBIDDEN'].includes(code) && (
@@ -40,7 +43,7 @@ export const showApiError = (failure: unknown, message: string) => {
     (response?.status === 429 && ['PASSWORD_RESET_RATE_LIMITED', 'OTP_ATTEMPTS_EXCEEDED'].includes(code)) ||
     (response?.status === 409 && ['DUPLICATE_RECORD', 'ACCOUNT_ALREADY_EXISTS'].includes(code)) ||
     (response?.status === 410 && /OTP|RESET_TOKEN|RECOVERY_CODE/.test(code)));
-  return correctable ? showWarning(message) : showError(message);
+  return correctable ? showWarning(message, options) : showError(message, options);
 };
 export const showValidationWarning = (errors: unknown) => {
   const fields = errors && typeof errors === 'object' ? Object.values(errors) : [];

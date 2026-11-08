@@ -48,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
       />
 
       {/* Modal Content container */}
-      <div className={`relative w-full max-h-[calc(100vh-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-2xl z-10 overflow-hidden transform transition-all duration-300 ${sizeClasses}`}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={`relative w-full max-h-[calc(100vh-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-2xl z-10 overflow-hidden transform transition-all duration-300 ${sizeClasses}`}>
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-outline-variant bg-surface-container-low">
           <h3 className="text-base font-bold text-on-surface">{title}</h3>

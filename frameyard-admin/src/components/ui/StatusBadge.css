@@ -1,0 +1,4 @@
+.frameyard-order-status { color-scheme: light; }
+.frameyard-order-status option { background-color: #ffffff; color: #111827; font-weight: 700; }
+.frameyard-order-status option:hover,
+.frameyard-order-status option:checked { background-color: #f3f4f6; color: #111827; }

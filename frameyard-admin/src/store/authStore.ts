@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { showApiError, showError } from '../utils/toast';
+import { showApiError, showError, showWarning, dismissToast } from '../utils/toast';
 import axios from 'axios';
 import { User } from '../types';
 import { authService, type CustomerRegistrationInput } from '../services/auth.service';
@@ -51,6 +51,8 @@ export type CustomerRegistrationResult = {
 };
 
 interface AuthState {
+  status: 'checking' | 'authenticated' | 'unauthenticated';
+  verificationError: string | null;
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
@@ -69,12 +71,15 @@ interface AuthState {
 
 let authCheckPromise: Promise<void> | null = null;
 
-export const useAuthStore = create<AuthState>((set) => ({
+const initialToken = getStoredAuthToken();
+export const useAuthStore = create<AuthState>((set, get) => ({
+  status: 'checking',
+  verificationError: null,
   user: null,
-  token: null,
+  token: initialToken,
   isAuthenticated: false,
   loading: false,
-  authChecked: !getStoredAuthToken(),
+  authChecked: false,
   error: null,
 
  login: async (email, password) => {
@@ -98,7 +103,7 @@ if (user?.role === 'CUSTOMER') {
   set({
     user: null,
     token: null,
-    isAuthenticated: false,
+    isAuthenticated: false, status: 'unauthenticated', verificationError: null,
     error: 'Access Denied: customers cannot access the admin dashboard.',
     loading: false,
   });
@@ -112,7 +117,7 @@ if (token) {
     set({
       user,
       token,
-      isAuthenticated: true,
+      isAuthenticated: true, status: 'authenticated', verificationError: null,
       loading: false,
       authChecked: true,
     });
@@ -135,7 +140,7 @@ if (token) {
       if (response.user.role !== 'CUSTOMER') {
         showError('This account is not a customer account.');
         clearStoredAuthToken();
-        set({ user: null, token: null, isAuthenticated: false, loading: false, error: 'This account is not a customer account.' });
+        set({ user: null, token: null, isAuthenticated: false, status: 'unauthenticated', verificationError: null, loading: false, error: 'This account is not a customer account.' });
         return false;
       }
       setStoredAuthToken(response.accessToken);
@@ -143,7 +148,7 @@ if (token) {
       set({
         user: response.user,
         token: response.accessToken,
-        isAuthenticated: true,
+        isAuthenticated: true, status: 'authenticated', verificationError: null,
         loading: false,
         authChecked: true,
         error: null,
@@ -154,7 +159,7 @@ if (token) {
       set({
         user: null,
         token: null,
-        isAuthenticated: false,
+        isAuthenticated: false, status: 'unauthenticated', verificationError: null,
         loading: false,
         authChecked: true,
         error: getAuthErrorMessage(err, 'Unable to log in right now. Please try again.'),
@@ -170,7 +175,7 @@ if (token) {
       const registration = await authService.registerCustomer(input);
       if (registration.emailConfirmationRequired) {
         clearStoredAuthToken();
-        set({ user: null, token: null, isAuthenticated: false, loading: false, error: null });
+        set({ user: null, token: null, isAuthenticated: false, status: 'unauthenticated', verificationError: null, loading: false, error: null });
         return { success: true, confirmationRequired: true };
       }
 
@@ -180,7 +185,7 @@ if (token) {
       set({
         user: login.user,
         token: login.accessToken,
-        isAuthenticated: true,
+        isAuthenticated: true, status: 'authenticated', verificationError: null,
         loading: false,
         error: null,
       });
@@ -190,7 +195,7 @@ if (token) {
       set({
         user: null,
         token: null,
-        isAuthenticated: false,
+        isAuthenticated: false, status: 'unauthenticated', verificationError: null,
         loading: false,
         error: getAuthErrorMessage(err, 'Registration failed'),
       });
@@ -211,7 +216,7 @@ if (token) {
     set({
       user: null,
       token: null,
-      isAuthenticated: false,
+      isAuthenticated: false, status: 'unauthenticated', verificationError: null,
       loading: false,
       authChecked: true,
     });
@@ -224,7 +229,7 @@ if (token) {
     set({
       user: null,
       token: null,
-      isAuthenticated: false,
+      isAuthenticated: false, status: 'unauthenticated', verificationError: null,
       loading: false,
       authChecked: true,
     });
@@ -232,30 +237,37 @@ if (token) {
 },
   checkAuth: async () => {
     if (authCheckPromise) return authCheckPromise;
-
-    if (!getStoredAuthToken()) {
-      set({ user: null, token: null, isAuthenticated: false, loading: false, authChecked: true });
+    const checkingToken = getStoredAuthToken();
+    if (!checkingToken) {
+      if (get().isAuthenticated || get().user) useCustomerCommerceStore.getState().setCartOwner(null);
+      if (get().status !== 'unauthenticated' || get().isAuthenticated) set({ user: null, token: null, isAuthenticated: false, status: 'unauthenticated', verificationError: null, loading: false, authChecked: true });
       return;
     }
-
     authCheckPromise = (async () => {
-      set({ loading: true });
+      dismissToast('auth-session-check');
+      set({ status: 'checking', verificationError: null, authChecked: false });
       try {
         const user = await authService.me();
-        const token = getStoredAuthToken();
+        if (getStoredAuthToken() !== checkingToken) return;
         useCustomerCommerceStore.getState().setCartOwner(user.role === 'CUSTOMER' ? user.id : null, user.role === 'CUSTOMER');
-        set({ user, token, isAuthenticated: true, loading: false, authChecked: true });
-      } catch {
-        clearStoredAuthToken();
-        useCustomerCommerceStore.getState().setCartOwner(null);
-        set({ user: null, token: null, isAuthenticated: false, loading: false, authChecked: true });
-      } finally {
-        authCheckPromise = null;
-      }
+        set({ user, token: checkingToken, isAuthenticated: true, status: 'authenticated', verificationError: null, loading: false, authChecked: true });
+      } catch (error: unknown) {
+        if (getStoredAuthToken() !== checkingToken) return;
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          clearStoredAuthToken();
+          useCustomerCommerceStore.getState().setCartOwner(null);
+          set({ user: null, token: null, isAuthenticated: false, status: 'unauthenticated', verificationError: null, loading: false, authChecked: true });
+          showWarning('Your session expired. Please login again.', { id: 'auth-session-expired' });
+        } else {
+          const message = 'Unable to verify your session. Check your connection and try again.';
+          set({ status: 'checking', verificationError: message, loading: false, authChecked: false });
+          showError(message, { id: 'auth-session-check', retry: () => { void get().checkAuth(); } });
+        }
+      } finally { authCheckPromise = null; }
     })();
-
     return authCheckPromise;
   },
+
 
   updateProfile: async (profileData) => {
     set({ loading: true, error: null });
@@ -275,7 +287,7 @@ if (token) {
       await authService.changePassword(currentPassword, newPassword);
       clearStoredAuthToken();
       useCustomerCommerceStore.getState().setCartOwner(null);
-      set({ user: null, token: null, isAuthenticated: false, loading: false });
+      set({ user: null, token: null, isAuthenticated: false, status: 'unauthenticated', verificationError: null, loading: false });
       return true;
     } catch (err: unknown) {
       set({ error: getAuthErrorMessage(err, 'Password update failed'), loading: false });

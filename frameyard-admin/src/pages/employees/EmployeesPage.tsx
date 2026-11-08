@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import FormAction, { FormStatus } from '../../components/ui/FormAction';
 import { Search, Plus, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
@@ -99,14 +100,16 @@ const EmployeesPage: React.FC = () => {
     return null;
   };
 
+  const saveLock = useRef(false);
   const handleSubmit = async () => {
+    if (saveLock.current) return;
     const validationError = validateForm();
     if (validationError) {
-      setError(validationError);
       showWarning(validationError);
       return;
     }
 
+    saveLock.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -120,11 +123,12 @@ const EmployeesPage: React.FC = () => {
       }
       showSuccess(editingEmployee ? 'Employee updated successfully' : 'Employee created successfully');
       setModalOpen(false);
-      await fetchEmployees();
+      void fetchEmployees();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save employee');
-      showApiError(err, err.response?.data?.message || 'Failed to save employee');
+      setError(null);
+      showApiError(err, err.response?.data?.message || 'Failed to save employee', { retry: () => { void handleSubmit(); } });
     } finally {
+      saveLock.current = false;
       setSaving(false);
     }
   };
@@ -147,7 +151,7 @@ const EmployeesPage: React.FC = () => {
       showSuccess(updatedEmployee.isActive ? 'Employee activated successfully' : 'Employee deactivated successfully');
     } catch (err: any) {
       const message = err.response?.data?.message || 'Failed to update employee status';
-      setError(message);
+      setError(null);
       showError(message);
     }
   };
@@ -271,8 +275,9 @@ const EmployeesPage: React.FC = () => {
         <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="rounded-lg border border-outline-variant px-4 py-2 text-sm disabled:opacity-40">Next</button>
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingEmployee ? 'Update Employee' : 'Create Employee'} footer={<><button onClick={() => setModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold">Cancel</button><button onClick={handleSubmit} disabled={saving} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-60">{saving ? 'Saving...' : editingEmployee ? 'Update Employee' : 'Create Employee'}</button></>}>
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingEmployee ? 'Update Employee' : 'Create Employee'} footer={<><button onClick={() => setModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold">Cancel</button><FormAction onClick={handleSubmit} busy={saving} issue={validateForm()} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary">{saving ? 'Saving...' : editingEmployee ? 'Update Employee' : 'Create Employee'}</FormAction></>}>
         <div className="grid gap-4">
+          <FormStatus busy={saving} />
           <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="rounded-xl border border-outline-variant p-3 text-sm outline-none" placeholder="Employee Name" />
           <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} disabled={!!editingEmployee} className="rounded-xl border border-outline-variant p-3 text-sm outline-none disabled:bg-surface-container" placeholder="Email Address" />
           <input value={form.phoneNumber} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} className="rounded-xl border border-outline-variant p-3 text-sm outline-none" placeholder="Phone Number (optional)" />

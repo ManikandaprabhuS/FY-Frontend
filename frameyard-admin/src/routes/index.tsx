@@ -2,6 +2,8 @@
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../layouts/ProtectedRoute';
+import CustomerProtectedRoute from '../layouts/CustomerProtectedRoute';
+import AuthPendingScreen from '../components/auth/AuthPendingScreen';
 import AdminOnlyRoute from '../layouts/AdminOnlyRoute';
 import RouteErrorPage from '../pages/errors/RouteErrorPage';
 import RouterErrorBoundary from '../pages/errors/RouterErrorBoundary';
@@ -39,7 +41,7 @@ const CustomerProfilePage = lazy(() => import('../features/customer/pages/Custom
 const CustomerOrdersPage = lazy(() => import('../features/customer/pages/CustomerOrdersPage'));
 const BookAppointmentPage = lazy(() => import('../features/customer/pages/BookAppointmentPage'));
 const ContactUsPage = lazy(() => import('../features/customer/pages/ContactUsPage'));
-const LazyFallback = <div className="min-h-[240px] animate-pulse p-8 text-sm text-secondary">Loading…</div>;
+const LazyFallback = <AuthPendingScreen />;
 const lazyElement = (element: React.ReactNode) => <Suspense fallback={LazyFallback}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
@@ -52,9 +54,9 @@ export const router = createBrowserRouter([
       { path: '/products', element: <CustomerProductsPage /> },
       { path: '/product/:slug', element: <ResourceRoute parameter="slug" apiRoot="/products/public"><CustomerProductDetailsPage /></ResourceRoute> },
       { path: '/cart', element: <CartPage /> },
-      { path: '/checkout', element: <CheckoutPage /> },
+      { path: '/checkout', element: <CustomerProtectedRoute><CheckoutPage /></CustomerProtectedRoute> },
       { path: '/profile', element: <CustomerProfilePage /> },
-      { path: '/orders', element: <CustomerOrdersPage /> },
+      { path: '/orders', element: <CustomerProtectedRoute><CustomerOrdersPage /></CustomerProtectedRoute> },
       { path: '/book-appointment', element: <BookAppointmentPage /> },
       { path: '/contact-us', element: <ContactUsPage /> },
     ],

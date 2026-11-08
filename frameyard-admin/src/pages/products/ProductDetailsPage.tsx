@@ -3,7 +3,10 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
 import Modal from '../../components/ui/Modal';
 import OptionalImageUpload from '../../components/ui/OptionalImageUpload';
+import ProductColorPicker from '../../components/ui/ProductColorPicker';
+import { resolveColorOption, useFrameColors } from '../../store/frameColorStore';
 import Badge from '../../components/ui/Badge';
+import FormAction, { FormStatus } from '../../components/ui/FormAction';
 import { ArrowLeft, Plus, Edit2, Trash2, Image as ImageIcon, Upload, Info, CheckCircle2 } from 'lucide-react';
 import { ProductImage, ProductStatus } from '../../types';
 import { uploadProductImages } from '../../services/product.service';
@@ -42,6 +45,8 @@ export const ProductDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
+  const colorCatalogue = useFrameColors();
+  const [isAddingColor, setIsAddingColor] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
@@ -71,10 +76,13 @@ export const ProductDetailsPage: React.FC = () => {
   const [createdProductName, setCreatedProductName] = useState('');
 
   // Upload State
-  const [imageError, setImageError] = useState<string | null>(null);
-  const [wizardError, setWizardError] = useState<string | null>(null);
+const [, setImageError] = useState<string | null>(null);
+const [, setWizardError] = useState<string | null>(null);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+const [isSaving, setIsSaving] = useState(false);
+  const saveLock = useRef(false);
+  const uploadLock = useRef(false);
+  const [isSavingVariant, setIsSavingVariant] = useState(false);
 
   // Variant Modal State
   const [variantModalOpen, setVariantModalOpen] = useState(false);
@@ -106,7 +114,7 @@ export const ProductDetailsPage: React.FC = () => {
     setDescription('');
     setBrand('');
     setMaterial('Solid Oak');
-    setColors(['#0f172a', '#fef3c7', '#ffffff']);
+    setColors([]);
     setStatus('active');
     setVariants([]);
     setImages([]);
@@ -139,20 +147,20 @@ export const ProductDetailsPage: React.FC = () => {
     const fileError = validateProductFiles(selectedFiles);
     if (fileError) { setImageError(fileError); showWarning(fileError); return; }
 
-    if (isUploadingImages) {
-      setImageError('Please wait for the current upload to finish.');
+    if (uploadLock.current || isUploadingImages) {
+      showWarning('Please wait for the current upload to finish.');
       return;
     }
 
     const remainingSlots = MAX_IMAGES - images.length;
     if (remainingSlots <= 0) {
-      setImageError(`You can upload up to ${MAX_IMAGES} images.`);
+      showWarning(`You can upload up to ${MAX_IMAGES} images.`);
       return;
     }
 
     const filesToUpload = selectedFiles.slice(0, remainingSlots);
     if (selectedFiles.length > remainingSlots) {
-      setImageError(`Only ${remainingSlots} more image(s) can be added.`);
+      showWarning(`Only ${remainingSlots} more image(s) can be added.`);
     } else {
       setImageError(null);
     }
@@ -170,6 +178,7 @@ export const ProductDetailsPage: React.FC = () => {
     });
 
     setImages((prev) => normalizeImageOrder([...prev, ...tempEntries]));
+    uploadLock.current = true;
     setIsUploadingImages(true);
 
     try {
@@ -198,12 +207,14 @@ export const ProductDetailsPage: React.FC = () => {
         )
       );
 
+      showSuccess('Images uploaded successfully');
       tempEntries.forEach((entry) => {
         if (entry.previewUrl?.startsWith('blob:')) {
           URL.revokeObjectURL(entry.previewUrl);
         }
       });
     } catch (error: unknown) {
+      tempEntries.forEach(entry => { if (entry.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(entry.previewUrl); });
       setImages((prev) =>
         normalizeImageOrder(prev.filter((image) => !tempEntries.some((entry) => entry.id === image.id)))
       );
@@ -216,8 +227,9 @@ export const ProductDetailsPage: React.FC = () => {
         uploadError?.message ||
         'Failed to upload images.'
       );
-      showApiError(error, uploadError?.response?.data?.message || uploadError?.message || 'Failed to upload images.');
+      showApiError(error, uploadError?.response?.data?.message || uploadError?.message || 'Failed to upload images.', { retry: () => fileInputRef.current?.click() });
     } finally {
+      uploadLock.current = false;
       setIsUploadingImages(false);
     }
   };
@@ -233,11 +245,12 @@ export const ProductDetailsPage: React.FC = () => {
     });
   };
 
+  const getColorImage = (color: string) => colorImages[color] || Object.entries(colorImages).find(([key]) => key.toLowerCase() === color.toLowerCase())?.[1] || '';
   const handleSave = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (isUploadingImages || isSaving) return;
+    if (isUploadingImages || isAddingColor || saveLock.current) return;
     const requiredError = !name.trim() ? 'Product name is required.'
-      : !brand.trim() ? 'Brand name is required.' : !material.trim() ? 'Material is required.'
+      : !description.trim() ? 'Description is required.' : !brand.trim() ? 'Brand name is required.' : !material.trim() ? 'Material is required.'
       : colors.length === 0 ? 'Select at least one frame color.'
       : variants.length === 0 ? 'Add at least one variant.'
       : images.length === 0 ? 'Upload at least one default product image.' : null;
@@ -245,6 +258,7 @@ export const ProductDetailsPage: React.FC = () => {
     const formatError = validateProductBasics({ name, brandName: brand, material, description, availableColors: colors }) || variants.map(validateVariant).find(Boolean);
     if (formatError) { setWizardError(formatError); showWarning(formatError); return; }
 
+    saveLock.current = true;
     setIsSaving(true);
 
     const payload = {
@@ -257,7 +271,7 @@ export const ProductDetailsPage: React.FC = () => {
       images: [...images.map((image, index) => ({
         imageUrl: image.imageUrl,
         displayOrder: index + 1,
-      })), ...colors.filter(color => colorImages[color]).map((color, index) => ({ imageUrl: colorImages[color], color, displayOrder: images.length + index + 1 }))],
+      })), ...colors.filter(color => getColorImage(color)).map((color, index) => ({ imageUrl: getColorImage(color), color, displayOrder: images.length + index + 1 }))],
       variants: variants.map((variant) => ({
         imageUrl: variant.imageUrl ?? null,
         frameSize: variant.frameSize,
@@ -269,18 +283,18 @@ export const ProductDetailsPage: React.FC = () => {
       })),
     };
 
+    try {
     let success = false;
     if (isNew) {
-      const product = await addProduct(payload);
+      const product = await addProduct(payload, () => { void handleSave(); });
       if (product) {
         setCreatedProductName(product.name || name);
         success = true;
       }
     } else if (id) {
-      success = await editProduct(id, payload);
+      success = await editProduct(id, payload, () => { void handleSave(); });
     }
 
-    setIsSaving(false);
     if (success) showSuccess(isNew ? 'Product Created Successfully!' : 'Product updated successfully');
 
     if (success && isNew) {
@@ -291,15 +305,10 @@ export const ProductDetailsPage: React.FC = () => {
     if (success) {
       navigate('/admin/products');
     }
+    } finally { saveLock.current = false; setIsSaving(false); }
   };
 
-  const togglePresetColor = (colorCode: string) => {
-    if (colors.includes(colorCode)) {
-      setColors(colors.filter((color) => color !== colorCode));
-    } else {
-      setColors([...colors, colorCode]);
-    }
-  };
+
 
   const openAddVariant = () => {
     setEditingVariant(null);
@@ -326,7 +335,7 @@ export const ProductDetailsPage: React.FC = () => {
   };
 
   const handleSaveVariant = async () => {
-    if (isUploadingImages) return;
+    if (isUploadingImages || isSavingVariant) return;
     if (!varSize.trim() || !varMountType.trim() || !varPrice.trim() || !varStock.trim()) {
       showWarning('Variant size, mount type, price and stock are required.'); return;
     }
@@ -357,9 +366,12 @@ export const ProductDetailsPage: React.FC = () => {
         offerPrice: newVariant.offerPrice,
         stockQuantity: newVariant.stockQuantity,
       };
-      const saved = editingVariant
-        ? await editVariant(editingVariant.id, payload)
-        : await addVariant(id, payload);
+      setIsSavingVariant(true);
+      let saved;
+      try { saved = editingVariant
+        ? await editVariant(editingVariant.id, payload, () => { void handleSaveVariant(); })
+        : await addVariant(id, payload, () => { void handleSaveVariant(); }); }
+      finally { setIsSavingVariant(false); }
       if (!saved) return;
       showSuccess(editingVariant ? 'Variant updated successfully' : 'Variant added successfully');
       setVariantModalOpen(false);
@@ -385,7 +397,7 @@ export const ProductDetailsPage: React.FC = () => {
     setVariants(variants.filter((variant) => variant.id !== variantId));
   };
 
-  if (loading && !isNew) {
+  if (loading && !isNew && !currentProduct) {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[60vh]">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -394,17 +406,20 @@ export const ProductDetailsPage: React.FC = () => {
     );
   }
 
-  const presetColors = [
-    { code: '#0f172a', name: 'Black' },
-    { code: '#fef3c7', name: 'Natural Oak' },
-    { code: '#ffffff', name: 'White' },
-    { code: '#4a3728', name: 'Dark Walnut' },
-    { code: '#94a3b8', name: 'Silver' },
-    { code: '#ca8a04', name: 'Gold' },
-  ];
 
+
+  const basicIssue = !name.trim() || !description.trim() || !brand.trim()
+    ? 'Please complete Product Name, Description, and Brand Name before continuing.'
+    : validateProductBasics({ name, description, brandName: brand, material: 'Valid material', availableColors: ['Black'] });
+  const materialIssue = !material.trim() || !colors.length ? 'Please select a material and at least one available colour before continuing.'
+    : validateProductBasics({ name: 'Valid name', description: '', brandName: 'Valid brand', material, availableColors: colors });
+  const variantIssue = !variants.length ? 'Please add at least one product variant before continuing.' : variants.map(validateVariant).find(Boolean);
+  const imageIssue = !images.length || images.some(image => image.isUploading) ? 'Please upload at least one product image before continuing.' : null;
+  const stepIssue = [basicIssue, materialIssue, variantIssue, imageIssue][wizardStep - 1];
+  const productIssue = basicIssue || materialIssue || variantIssue || imageIssue;
+  const variantFormIssue = !varPrice.trim() || !varStock.trim() ? 'Variant price and stock are required.' : validateVariant({ frameSize: varSize, mountType: varMountType, glassType: varGlassType, price: Number(varPrice), offerPrice: varOfferPrice ? Number(varOfferPrice) : null, stockQuantity: Number(varStock) });
   const wizardSteps = ['Basic Info', 'Materials', 'Variants', 'Images', 'Review'];
-  const colorImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{colors.map(color => <OptionalImageUpload key={color} label={`${presetColors.find(preset => preset.code === color)?.name ?? color} frame image`} value={colorImages[color]} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={url => setColorImages(previous => { const next = { ...previous }; if (url) next[color] = url; else delete next[color]; return next; })} />)}</div>;
+  const colorImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{colors.map(color => <OptionalImageUpload key={color} label={`${resolveColorOption(color, colorCatalogue.colors, colorCatalogue.legacyColors).name} frame image`} value={getColorImage(color)} busy={isUploadingImages || isSaving || isSavingVariant} onBusyChange={setIsUploadingImages} onChange={url => setColorImages(previous => { const next = { ...previous }; for (const key of Object.keys(next)) { if (key.toLowerCase() === color.toLowerCase()) delete next[key]; } if (url) next[color] = url; return next; })} />)}</div>;
   const variantImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{variants.map(variant => <OptionalImageUpload key={variant.id} label={`${variant.frameSize} · ${variant.mountType} · ${variant.glassType} image`} value={variant.imageUrl} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={url => setVariants(previous => previous.map(item => item.id === variant.id ? { ...item, imageUrl: url } : item))} />)}</div>;
 
   const startAnotherProduct = () => {
@@ -413,7 +428,7 @@ export const ProductDetailsPage: React.FC = () => {
     setDescription('');
     setBrand('');
     setMaterial('Solid Oak');
-    setColors(['#0f172a', '#fef3c7', '#ffffff']);
+    setColors([]);
     setStatus('active');
     setVariants([]);
     setImages([]);
@@ -445,8 +460,8 @@ export const ProductDetailsPage: React.FC = () => {
   // same save/upload handlers as the existing product form.
   if (isNew) {
     const goNext = () => {
-      if (isUploadingImages) return;
-      let message: string | null = null;
+      if (isUploadingImages || isSaving) return;
+      let message: string | null = stepIssue || null;
       if (wizardStep === 1 && (!name.trim() || !description.trim() || !brand.trim())) {
         message = 'Please complete Product Name, Description, and Brand Name before continuing.';
       } else if (wizardStep === 2 && (!material.trim() || colors.length === 0)) {
@@ -495,33 +510,33 @@ export const ProductDetailsPage: React.FC = () => {
             <div className="mt-7 grid gap-5 md:grid-cols-2">
               <label className="md:col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Product Name *<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Modern Family Frame" className="mt-2 w-full rounded-lg border border-outline-variant p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary" /></label>
               <label className="md:col-span-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Description *<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} placeholder="Write product description..." className="mt-2 w-full resize-none rounded-lg border border-outline-variant p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary" /></label>
-              <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Brand Name *<input value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="e.g. FrameYard" className="mt-2 w-full rounded-lg border border-outline-variant p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary" /></label>
+              <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Brand Name *<input value={brand} onChange={(event) => setBrand(event.target.value)} placeholder="e.g. FrameYaad" className="mt-2 w-full rounded-lg border border-outline-variant p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary" /></label>
               <fieldset className="text-xs font-bold uppercase tracking-wider text-on-surface-variant"><legend>Publishing Status</legend><div className="mt-3 flex gap-5 text-sm font-normal normal-case tracking-normal text-on-surface"><label className="flex items-center gap-2"><input type="radio" checked={status === 'active'} onChange={() => setStatus('active')} /> Active</label><label className="flex items-center gap-2"><input type="radio" checked={status === 'draft'} onChange={() => setStatus('draft')} /> Draft</label></div></fieldset>
             </div>
           </div>}
 
           {wizardStep === 2 && <div className="mx-auto max-w-3xl">
             <h3 className="text-base font-bold text-on-surface">Material &amp; Colours</h3><p className="mt-1 text-xs text-on-surface-variant">Choose the frame material and available finish colours.</p>
-            <div className="mt-7 grid gap-6 md:grid-cols-2"><label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Material<select value={material} onChange={(event) => setMaterial(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant bg-white p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary"><option>Solid Oak</option><option>Black Walnut</option><option>Anodized Aluminum</option><option>Maple Wood</option><option>Pine Wood</option></select></label><div><p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Available Colours</p><div className="mt-3 flex flex-wrap gap-3">{presetColors.map((color) => <button key={color.code} type="button" onClick={() => togglePresetColor(color.code)} title={color.name} className={`h-9 w-9 rounded-full border-2 ${colors.includes(color.code) ? 'border-primary ring-2 ring-primary/20' : 'border-outline-variant'}`} style={{ backgroundColor: color.code }} />)}</div><p className="mt-3 text-xs text-on-surface-variant">Select one or more colours.</p></div></div>
+            <div className="mt-7 grid gap-6 md:grid-cols-2"><label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Material<select value={material} onChange={(event) => setMaterial(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant bg-white p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary"><option>Solid Oak</option><option>Black Walnut</option><option>Anodized Aluminum</option><option>Maple Wood</option><option>Pine Wood</option></select></label><div><p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Available Colours</p><div className="mt-3"><ProductColorPicker selected={colors} onChange={setColors} busy={isSaving || isUploadingImages || isAddingColor} onBusyChange={setIsAddingColor} /></div><p className="mt-3 text-xs text-on-surface-variant">Select one or more colours.</p></div></div>
           </div>}
 
           {wizardStep === 3 && <div>
-            <div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface">Add Variants</h3><p className="mt-1 text-xs text-on-surface-variant">Add sizes, mount options, glass options, prices and stock.</p></div><button type="button" onClick={openAddVariant} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary"><Plus className="h-3.5 w-3.5" /> Add Variant</button></div>
+            <div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface">Add Variants</h3><p className="mt-1 text-xs text-on-surface-variant">Add sizes, mount options, glass options, prices and stock.</p></div><button type="button" data-variant-entry onClick={openAddVariant} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary"><Plus className="h-3.5 w-3.5" /> Add Variant</button></div>
             <div className="mt-6 overflow-x-auto rounded-lg border border-outline-variant"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-surface text-[11px] uppercase tracking-wider text-on-surface-variant"><tr><th className="px-4 py-3">Size</th><th className="px-4 py-3">Mount Type</th><th className="px-4 py-3">Glass Type</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Stock</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-outline-variant/50">{variants.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-xs text-on-surface-variant">No variants added yet.</td></tr> : variants.map((variant) => <tr key={variant.id}><td className="px-4 py-3 font-medium">{variant.frameSize}</td><td className="px-4 py-3">{variant.mountType}</td><td className="px-4 py-3">{variant.glassType}</td><td className="px-4 py-3">₹{variant.price.toFixed(2)}</td><td className="px-4 py-3">{variant.stockQuantity}</td><td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditVariant(variant)} className="p-1 text-on-surface-variant hover:text-primary"><Edit2 className="h-4 w-4" /></button><button type="button" onClick={() => handleDeleteVariant(variant.id)} className="p-1 text-on-surface-variant hover:text-error"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>
           </div>}
 
-          {wizardStep === 4 && <div><div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface">Upload Product Images</h3><p className="mt-1 text-xs text-on-surface-variant">Upload up to {MAX_IMAGES} images or videos. The first is the product cover.</p></div><button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || images.length >= MAX_IMAGES} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-60"><Upload className="h-3.5 w-3.5" /> {isUploadingImages ? 'Uploading...' : 'Upload Images'}</button></div><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,.jpg,.jpeg,.png,.webp,.mp4" multiple className="hidden" onChange={handleImageSelection} />{imageError && <p className="mt-4 rounded-lg bg-error-container/20 p-3 text-xs text-error">{imageError}</p>}<div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">{images.map((image, index) => <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg border border-outline-variant bg-surface-container">{isVideoUrl(image.imageUrl) ? <video src={image.imageUrl} className="h-full w-full object-cover" controls /> : <img src={image.imageUrl} alt={`Product image ${index + 1}`} className="h-full w-full object-cover" />}<span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold text-white">{index === 0 ? 'Cover' : `Image ${index + 1}`}</span><button type="button" onClick={() => handleRemoveImage(image.id)} className="absolute right-1 top-1 rounded bg-white p-1 text-error shadow"><Trash2 className="h-3.5 w-3.5" /></button></div>)}<button type="button" onClick={() => fileInputRef.current?.click()} className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant text-xs text-on-surface-variant hover:bg-surface"><Plus className="mb-1 h-5 w-5" />Add Image</button></div></div>}
+          {wizardStep === 4 && <div><div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface">Upload Product Images</h3><p className="mt-1 text-xs text-on-surface-variant">Upload up to {MAX_IMAGES} images or videos. The first is the product cover.</p></div><button type="button" data-image-entry onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || images.length >= MAX_IMAGES} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-60"><Upload className="h-3.5 w-3.5" /> {isUploadingImages ? 'Uploading...' : 'Upload Images'}</button></div><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,.jpg,.jpeg,.png,.webp,.mp4" multiple className="hidden" onChange={handleImageSelection} /><div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">{images.map((image, index) => <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg border border-outline-variant bg-surface-container">{isVideoUrl(image.imageUrl) ? <video src={image.imageUrl} className="h-full w-full object-cover" controls /> : <img src={image.imageUrl} alt={`Product image ${index + 1}`} className="h-full w-full object-cover" />}{image.isUploading && <div role="status" className="absolute inset-0 flex items-center justify-center bg-white/80"><span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-label="Uploading image" /></div>}<span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold text-white">{index === 0 ? 'Cover' : `Image ${index + 1}`}</span><button type="button" onClick={() => handleRemoveImage(image.id)} disabled={isUploadingImages || isSaving} className="absolute right-1 top-1 rounded bg-white p-1 text-error shadow"><Trash2 className="h-3.5 w-3.5" /></button></div>)}<button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || isSaving} className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant text-xs text-on-surface-variant hover:bg-surface"><Plus className="mb-1 h-5 w-5" />Add Image</button></div></div>}
 
           {wizardStep === 5 && <div className="mx-auto max-w-3xl"><h3 className="text-base font-bold text-on-surface">Review Product</h3><p className="mt-1 text-xs text-on-surface-variant">Review the product before creating it.</p><div className="mt-6 divide-y divide-outline-variant overflow-hidden rounded-lg border border-outline-variant text-sm"><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Basic Information</span><span><strong>{name}</strong><br /><span className="text-on-surface-variant">{description}</span><br /><span className="text-on-surface-variant">Brand: {brand} · {status === 'active' ? 'Active' : 'Draft'}</span></span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Materials</span><span>{material} · {colors.length} colour{colors.length === 1 ? '' : 's'} selected</span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Variants</span><span>{variants.length} variant{variants.length === 1 ? '' : 's'} added</span></div><div className="grid gap-2 p-4 sm:grid-cols-[150px_1fr]"><span className="font-bold">Images</span><span>{images.length} image{images.length === 1 ? '' : 's'} added</span></div></div></div>}
         </section>
 
         {wizardStep === 2 && colorImageFields}
         {wizardStep === 3 && variantImageFields}
-        {isUploadingImages && <p role="status" className="text-xs text-on-surface-variant">Uploading image. Please wait before saving.</p>}
-        {wizardError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600" role="alert">{wizardError}</p>}
-        <footer className="flex items-center justify-between"><button type="button" onClick={() => { setWizardError(null); setWizardStep((step) => Math.max(1, step - 1)); }} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:invisible hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <button type="button" onClick={goNext} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next</button> : <button type="button" onClick={() => { if (images.length === 0) { setWizardError('Please upload at least one product image before creating the product.'); return; } if (variants.length === 0) { setWizardError('Please add at least one product variant before creating the product.'); return; } handleSave(); }} disabled={isSaving || isUploadingImages} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary disabled:opacity-60">{isSaving ? 'Creating...' : 'Create Product'}</button>}</footer>
+        <FormStatus busy={isUploadingImages || isSaving || isSavingVariant} images={isUploadingImages} />
+        
+        <footer className="flex items-center justify-between"><button type="button" onClick={() => { setWizardError(null); setWizardStep((step) => Math.max(1, step - 1)); }} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:invisible hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <FormAction onClick={goNext} focusSelector={wizardStep === 3 ? '[data-variant-entry]' : wizardStep === 4 ? '[data-image-entry]' : undefined} issue={stepIssue} busy={isSaving || isUploadingImages || isAddingColor} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next</FormAction> : <FormAction onClick={() => { void handleSave(); }} issue={productIssue} busy={isSaving || isUploadingImages || isAddingColor} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">{isSaving ? 'Creating...' : 'Create Product'}</FormAction>}</footer>
 
-        <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><button type="button" onClick={handleSaveVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</button></>}><div className="grid grid-cols-2 gap-4"><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
+        <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><FormAction onClick={handleSaveVariant} issue={variantFormIssue} busy={isUploadingImages || isSavingVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</FormAction></>}><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><FormStatus busy={isSavingVariant} /></div><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
       </div>
     );
   }
@@ -555,14 +570,14 @@ export const ProductDetailsPage: React.FC = () => {
           >
             Discard
           </button>
-          <button
-            type="button"
+          <FormAction
             onClick={handleSave}
-            disabled={isUploadingImages || isSaving}
+            busy={isUploadingImages || isSaving}
+            issue={productIssue}
             className="h-10 w-full rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-on-primary shadow-sm transition-all hover:scale-[1.01] hover:bg-primary/95 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {isSaving ? 'Saving...' : 'Update Product'}
-          </button>
+          </FormAction>
         </div>
       </div>
 
@@ -608,7 +623,7 @@ export const ProductDetailsPage: React.FC = () => {
                   value={brand}
                   onChange={(event) => setBrand(event.target.value)}
                   className="w-full border border-outline-variant rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all"
-                  placeholder="e.g. FrameYard Studio"
+                  placeholder="e.g. FrameYaad Studio"
                   required
                 />
               </div>
@@ -630,22 +645,7 @@ export const ProductDetailsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Available Colors</label>
-                <div className="flex flex-wrap items-center gap-2 py-1">
-                  {presetColors.map((color) => {
-                    const isSelected = colors.includes(color.code);
-                    return (
-                      <button
-                        key={color.code}
-                        type="button"
-                        onClick={() => togglePresetColor(color.code)}
-                        className={`w-7 h-7 rounded-full border ring-offset-1 transition-all ${isSelected ? 'ring-2 ring-primary border-transparent' : 'border-outline-variant hover:scale-105'
-                          }`}
-                        style={{ backgroundColor: color.code }}
-                        title={color.name}
-                      />
-                    );
-                  })}
-                </div>
+                <ProductColorPicker selected={colors} onChange={setColors} busy={isSaving || isUploadingImages || isAddingColor} onBusyChange={setIsAddingColor} />
               </div>
 
               <div>
@@ -784,11 +784,7 @@ export const ProductDetailsPage: React.FC = () => {
               onChange={handleImageSelection}
             />
 
-            {imageError && (
-              <div className="rounded-lg border border-error/20 bg-error-container/20 px-3 py-2 text-xs text-error">
-                {imageError}
-              </div>
-            )}
+
 
             <div className="grid grid-cols-2 gap-4">
               {images.length > 0 ? (
@@ -865,11 +861,7 @@ export const ProductDetailsPage: React.FC = () => {
               </p>
             </div>
 
-            {isUploadingImages && (
-              <div className="text-xs text-primary font-medium">
-                Upload in progress. Saving is disabled until the selected files finish uploading.
-              </div>
-            )}
+            <FormStatus busy={isUploadingImages || isSaving || isSavingVariant} images={isUploadingImages} />
           </section>
         </div>
       </div>
@@ -887,18 +879,19 @@ export const ProductDetailsPage: React.FC = () => {
             >
               Cancel
             </button>
-            <button
-              type="button"
+            <FormAction
               onClick={handleSaveVariant}
+              busy={isUploadingImages || isSavingVariant}
+              issue={variantFormIssue}
               className="px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:bg-primary/95"
             >
               Save Variant
-            </button>
+            </FormAction>
           </>
         }
       >
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2"><OptionalImageUpload label="Variant image" value={varImage} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={setVarImage} /></div>
+          <div className="col-span-2"><FormStatus busy={isSavingVariant} /><OptionalImageUpload label="Variant image" value={varImage} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={setVarImage} /></div>
           <div className="col-span-2">
             <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Frame Size (e.g. 11" x 14", A3)</label>
             <input

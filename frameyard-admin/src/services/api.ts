@@ -26,6 +26,8 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    // Bound only admin-form mutations, so failed requests cannot leave forms busy forever.
+    if (!config.timeout && !['get', 'head'].includes(config.method?.toLowerCase() ?? 'get') && /^\/(?:products|coupons|employees|product-discounts)(?:\/|$)/.test(config.url ?? '')) config.timeout = 60_000;
     const token =
       sessionStorage.getItem("fy_auth_token") ||
       localStorage.getItem("fy_auth_token");

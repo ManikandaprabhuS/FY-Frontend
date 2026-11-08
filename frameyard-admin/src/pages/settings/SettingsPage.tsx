@@ -53,7 +53,7 @@ export const SettingsPage: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue="FrameYard Store"
+                      defaultValue="FrameYaad Store"
                       className="w-full px-4 py-2.5 bg-surface border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>
@@ -63,7 +63,7 @@ export const SettingsPage: React.FC = () => {
                     </label>
                     <input
                       type="email"
-                      defaultValue="contact@frameyard.com"
+                      defaultValue="contact@frameyaad.com"
                       className="w-full px-4 py-2.5 bg-surface border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>

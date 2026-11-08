@@ -17,6 +17,7 @@ import {
 
 import ImageCropModal from '../components/ImageCropModal';
 import ColorSwatch from '../components/ColorSwatch';
+import { resolveColorOption, useFrameColors } from '../../../store/frameColorStore';
 import ProductFramePreview from '../components/ProductFramePreview';
 import { getFrameOpening } from '../components/framePreviewConfig';
 import { parseStoredCrops, ratioFromFrameSize, resolvePreviewFrameImage, selectVariantPhoto } from '../components/framePreviewGeometry';
@@ -41,6 +42,7 @@ const CustomerProductDetailsPage: React.FC = () => {
   const currentProduct = fetchedProduct?.id === slug ? fetchedProduct : cachedProduct;
   const [selectedVariantId, setSelectedVariantId] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const colorCatalogue = useFrameColors();
   const [selectedGalleryImage, setSelectedGalleryImage] = useState('');
   const [imageSelection, setImageSelection] = useState<ImageSelection>('default');
   const [quantity, setQuantity] = useState(1);
@@ -286,8 +288,8 @@ const CustomerProductDetailsPage: React.FC = () => {
             <OptionGroup number="3" title="Select Color / Finish">
               <div className="flex flex-wrap gap-3">
                 {colors.length === 0 ? <span className="text-xs text-black/45">Standard finish</span> : colors.map((color) => (
-                  <button key={color} type="button" onClick={() => { const variant = variantForColor(activeVariants, selectedVariant, color); if (variant) setSelectedVariantId(variant.id); setSelectedColor(color); setImageSelection('color'); setSelectedGalleryImage(''); }} aria-label={`Select color ${color}`} aria-pressed={effectiveColor === color} title={color} className="group flex items-center justify-center">
-                    <span className={`grid h-9 w-9 place-items-center rounded-full border-2 transition ${effectiveColor === color ? 'border-black' : 'border-transparent group-hover:border-black/25'}`}><ColorSwatch color={color} className="h-7 w-7" /></span>
+                  <button key={color} type="button" onClick={() => { const variant = variantForColor(activeVariants, selectedVariant, color); if (variant) setSelectedVariantId(variant.id); setSelectedColor(color); setImageSelection('color'); setSelectedGalleryImage(''); }} aria-label={`Select color ${resolveColorOption(color, colorCatalogue.colors, colorCatalogue.legacyColors).name}`} aria-pressed={effectiveColor === color} title={resolveColorOption(color, colorCatalogue.colors, colorCatalogue.legacyColors).name} className="group flex w-20 flex-col items-center justify-center gap-1.5">
+                    <span className={`grid h-9 w-9 place-items-center rounded-full border-2 transition ${effectiveColor === color ? 'border-black' : 'border-transparent group-hover:border-black/25'}`}><ColorSwatch color={color} className="h-7 w-7" /></span><span className="w-full break-words text-center text-[10px] font-bold">{resolveColorOption(color, colorCatalogue.colors, colorCatalogue.legacyColors).name}</span>
                   </button>
                 ))}
               </div>

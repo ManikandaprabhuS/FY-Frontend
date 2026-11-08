@@ -136,6 +136,9 @@ export interface OrderItem {
   productIdentifier?: string | null;
   variantId?: string | null;
   productName: string;
+  colorName?: string | null;
+  colorHex?: string | null;
+  material?: string | null;
   frameSize: string;
   mountType: string;
   glassType: string;

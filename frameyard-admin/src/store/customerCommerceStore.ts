@@ -26,6 +26,8 @@ export type CustomerCartItem = {
   material: string;
   frameSize: string;
   color?: string | null;
+  colorName?: string | null;
+  colorHex?: string | null;
   mountType: string;
   glassType: string;
   unitPrice: number;
@@ -33,10 +35,11 @@ export type CustomerCartItem = {
   stockQuantity: number;
 };
 
+const selectionKey = (item: Pick<CustomerCartItem, 'productId' | 'variantId' | 'color' | 'colorHex'>) => `${item.productId}:${item.variantId}:${(item.colorHex || item.color || '').trim().toLowerCase()}`;
 const readCart = (ownerId: string | null): CustomerCartItem[] => {
   try {
     const stored = window.localStorage.getItem(cartStorageKey(ownerId));
-    return stored ? (JSON.parse(stored) as CustomerCartItem[]) : [];
+    return stored ? (JSON.parse(stored) as CustomerCartItem[]).map(item => ({ ...item, key: selectionKey(item) })) : [];
   } catch {
     return [];
   }
@@ -45,7 +48,7 @@ const readCart = (ownerId: string | null): CustomerCartItem[] => {
 const readLegacyCart = (): CustomerCartItem[] => {
   try {
     const stored = window.localStorage.getItem(LEGACY_CART_STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as CustomerCartItem[]) : [];
+    return stored ? (JSON.parse(stored) as CustomerCartItem[]).map(item => ({ ...item, key: selectionKey(item) })) : [];
   } catch {
     return [];
   }
@@ -105,7 +108,7 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
   wishlistHasMore: false,
 
   addCartItem: (item) => set((state) => {
-    const key = `${item.productId}:${item.variantId}`;
+    const key = selectionKey(item);
     const existing = state.cartItems.find((cartItem) => cartItem.key === key);
     const cartItems = existing
       ? state.cartItems.map((cartItem) => cartItem.key === key

@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveColorOption, useFrameColorStore } from '../../../store/frameColorStore';
 
 type ColorSwatchProps = {
   color?: string | null;
@@ -22,14 +23,16 @@ const swatchColor = (value: string) => {
 const ColorSwatch: React.FC<ColorSwatchProps> = ({ color, className = 'h-6 w-6' }) => {
   const value = color?.trim() || '#d1d5db';
   const image = isImageValue(value);
+  const catalogue = useFrameColorStore();
+  const option = resolveColorOption(color, catalogue.colors, catalogue.legacyColors);
 
   return (
     <span
       role="img"
-      aria-label={`Color: ${color || 'Standard'}`}
-      title={color || 'Standard color'}
+      aria-label={`Color: ${option.name}`}
+      title={option.name}
       className={`inline-block shrink-0 rounded-full border border-black/15 bg-center bg-cover shadow-sm ${className}`}
-      style={image ? { backgroundImage: `url("${value.replaceAll('"', '\\"')}")` } : { backgroundColor: swatchColor(value) }}
+      style={image ? { backgroundImage: `url("${value.replaceAll('"', '\\"')}")` } : { backgroundColor: swatchColor(option.hex || value) }}
     />
   );
 };

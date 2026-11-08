@@ -15,10 +15,10 @@ interface ProductState {
   error: string | null;
   fetchProducts: (params?: ProductListParams) => Promise<void>;
   fetchProductById: (id: string, publicCatalog?: boolean) => Promise<void>;
-  addProduct: (product: ProductPayload) => Promise<Product | null>;
-  editProduct: (id: string, product: ProductPayload) => Promise<boolean>;
-  addVariant: (productId: string, variant: VariantPayload) => Promise<boolean>;
-  editVariant: (variantId: string, variant: VariantPayload) => Promise<boolean>;
+  addProduct: (product: ProductPayload, retry?: () => void) => Promise<Product | null>;
+  editProduct: (id: string, product: ProductPayload, retry?: () => void) => Promise<boolean>;
+  addVariant: (productId: string, variant: VariantPayload, retry?: () => void) => Promise<boolean>;
+  editVariant: (variantId: string, variant: VariantPayload, retry?: () => void) => Promise<boolean>;
   removeVariant: (variantId: string) => Promise<boolean>;
   clearCurrentProduct: () => void;
 }
@@ -65,7 +65,7 @@ export const useProductStore = create<ProductState>((set) => ({
     }
   },
 
-  addProduct: async (product) => {
+  addProduct: async (product, retry) => {
     set({ loading: true, error: null });
     try {
       const newProd = await productService.createProduct(product);
@@ -76,12 +76,12 @@ export const useProductStore = create<ProductState>((set) => ({
       return newProd;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to add product'), loading: false });
-      showApiError(err, getProductErrorMessage(err, 'Failed to add product'));
+      showApiError(err, getProductErrorMessage(err, 'Failed to add product'), { retry });
       return null;
     }
   },
 
-  editProduct: async (id, product) => {
+  editProduct: async (id, product, retry) => {
     set({ loading: true, error: null });
     try {
       const updatedProd = await productService.updateProduct(id, product);
@@ -112,12 +112,12 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to update product'), loading: false });
-      showApiError(err, getProductErrorMessage(err, 'Failed to update product'));
+      showApiError(err, getProductErrorMessage(err, 'Failed to update product'), { retry });
       return false;
     }
   },
 
-  addVariant: async (productId, variant) => {
+  addVariant: async (productId, variant, retry) => {
     set({ loading: true, error: null });
     try {
       await productService.createVariant(productId, variant);
@@ -130,12 +130,12 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to add variant'), loading: false });
-      showApiError(err, getProductErrorMessage(err, 'Failed to add variant'));
+      showApiError(err, getProductErrorMessage(err, 'Failed to add variant'), { retry });
       return false;
     }
   },
 
-  editVariant: async (variantId, variant) => {
+  editVariant: async (variantId, variant, retry) => {
     set({ loading: true, error: null });
     try {
       const updatedVariant = await productService.updateVariant(variantId, variant);
@@ -157,7 +157,7 @@ export const useProductStore = create<ProductState>((set) => ({
       return true;
     } catch (err: unknown) {
       set({ error: getProductErrorMessage(err, 'Failed to update variant'), loading: false });
-      showApiError(err, getProductErrorMessage(err, 'Failed to update variant'));
+      showApiError(err, getProductErrorMessage(err, 'Failed to update variant'), { retry });
       return false;
     }
   },

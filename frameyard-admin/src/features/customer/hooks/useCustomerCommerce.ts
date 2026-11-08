@@ -6,6 +6,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { useProductStore } from '../../../store/productStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import type { Product, ProductVariant } from '../../../types';
+import { resolveColorOption, useFrameColorStore } from '../../../store/frameColorStore';
 import { showError, showSuccess, showWarning } from '../../../utils/toast';
 
 export const useCustomerCommerce = () => {
@@ -26,13 +27,16 @@ export const useCustomerCommerce = () => {
   }, [customerLoggedIn, user, visibleIdentifiers, hydrateWishlist]);
 
 
-  const requestLogin = useCallback((message: string, returnTo = location.pathname) => {
+  const requestLogin = useCallback((message: string, returnTo = location.pathname + location.search + location.hash) => {
     showWarning(message);
     navigate('/profile', { state: { returnTo } });
-  }, [location.pathname, navigate]);
+  }, [location.pathname, location.search, location.hash, navigate]);
 
   const toggleWishlist = useCallback(async (product: Product) => {
-    if (!customerLoggedIn) {
+    if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
+    const verified = useAuthStore.getState();
+    if (verified.status === 'checking') return;
+    if (!verified.isAuthenticated || verified.user?.role !== 'CUSTOMER') {
       requestLogin('Please login / create an account to add products to wishlist');
       return;
     }
@@ -47,7 +51,7 @@ export const useCustomerCommerce = () => {
     } catch {
       showError('Wishlist could not be updated. Please try again.');
     }
-  }, [customerLoggedIn, requestLogin, toggleStoredWishlist]);
+  }, [requestLogin, toggleStoredWishlist]);
 
   const addToCart = useCallback((product: Product, variant: ProductVariant, quantity = 1, selectedColor?: string) => {
     const stockQuantity = Number(variant.stockQuantity ?? 0);
@@ -56,6 +60,8 @@ export const useCustomerCommerce = () => {
       return;
     }
     const unitPrice = getVariantPricing(variant).currentPrice;
+    const catalogue = useFrameColorStore.getState();
+    const color = resolveColorOption(selectedColor || variant.color, catalogue.colors, catalogue.legacyColors);
     addCartItem({
       productId: product.id,
       productIdentifier: product.productIdentifier,
@@ -65,6 +71,7 @@ export const useCustomerCommerce = () => {
       material: product.material,
       frameSize: variant.frameSize,
       color: selectedColor || variant.color,
+      colorName: color.name, colorHex: color.hex,
       mountType: variant.mountType,
       glassType: variant.glassType,
       unitPrice,

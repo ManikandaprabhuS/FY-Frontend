@@ -19,7 +19,9 @@ import { showError, showSuccess, showValidationWarning } from '../../../utils/to
 import femaleCustomerAvatar from '../../../assets/customer-avatar-female.svg';
 import maleCustomerAvatar from '../../../assets/customer-avatar-male.svg';
 import CustomerAccountDashboard from '../components/CustomerAccountDashboard';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+import AuthPendingScreen from '../../../components/auth/AuthPendingScreen';
+import { safeAuthReturnPath } from '../../../utils/auth-return-path';
 
 type AuthMode = 'login' | 'register';
 
@@ -50,14 +52,16 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const CustomerProfilePage: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
+
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const loading = useAuthStore((state) => state.loading);
   const authError = useAuthStore((state) => state.error);
   const loginCustomer = useAuthStore((state) => state.loginCustomer);
   const registerCustomer = useAuthStore((state) => state.registerCustomer);
-  const authChecked = useAuthStore((state) => state.authChecked);
+  const status = useAuthStore(state => state.status);
+  const verificationError = useAuthStore(state => state.verificationError);
+  const checkAuth = useAuthStore(state => state.checkAuth);
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const changePassword = useAuthStore((state) => state.changePassword);
   const logout = useAuthStore((state) => state.logout);
@@ -67,7 +71,9 @@ const CustomerProfilePage: React.FC = () => {
   const customerAuthenticated = isAuthenticated && user?.role === 'CUSTOMER';
   const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
 
-  if (!authChecked) return <ProfileSkeleton />;
+  if (status === 'checking') return <AuthPendingScreen error={verificationError} onRetry={() => { void checkAuth(); }} />;
+  if (status === 'authenticated' && user?.role !== 'CUSTOMER') return <Navigate to="/admin/overview" replace />;
+  if (customerAuthenticated && returnTo) { const target = safeAuthReturnPath(returnTo, 'customer'); if (target !== location.pathname + location.search + location.hash) return <Navigate to={target} replace />; }
 
   if (!customerAuthenticated || !user) {
     return (
@@ -85,7 +91,7 @@ const CustomerProfilePage: React.FC = () => {
           const success = await loginCustomer(values.email.trim().toLowerCase(), values.password);
           if (success) {
             showSuccess('Welcome back to FrameYaad');
-            if (returnTo) navigate(returnTo, { replace: true });
+
           }
         }}
         onRegister={async (values) => {
@@ -103,7 +109,7 @@ const CustomerProfilePage: React.FC = () => {
             return;
           }
           showSuccess('Your FrameYaad account is ready');
-          if (returnTo) navigate(returnTo, { replace: true });
+
         }}
       />
     );
@@ -396,11 +402,5 @@ const AuthBenefit: React.FC<{ text: string }> = ({ text }) => (
   <p className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-white" />{text}</p>
 );
 
-const ProfileSkeleton = () => (
-  <div className="mx-auto max-w-5xl animate-pulse px-4 py-12">
-    <div className="h-8 w-48 rounded bg-black/10" />
-    <div className="mt-7 h-[520px] rounded-3xl bg-black/5" />
-  </div>
-);
 
 export default CustomerProfilePage;

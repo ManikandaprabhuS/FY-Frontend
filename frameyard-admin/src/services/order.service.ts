@@ -4,6 +4,8 @@ import type { ApiEnvelope, Pagination } from './contracts';
 
 type BackendOrderItem = {
   id: string;
+  productId?: string | null; productName?: string; frameSize?: string; variantId?: string | null;
+  colorName?: string | null; colorHex?: string | null; material?: string | null;
   productIdentifier: string;
   quantity: number;
   price: number | string;
@@ -81,13 +83,14 @@ const normalizeOrderItem = (item: BackendOrderItem, order: BackendOrder): OrderI
   id: item.id,
   orderId: order.id,
   orderNumber: order.orderNumber,
-  productId: item.product.id,
+  productId: item.productId ?? item.product.id,
   productIdentifier: item.productIdentifier,
-  variantId: null,
-  productName: item.product.productName,
-  frameSize: item.product.variant?.frameSize ?? 'Not specified',
-  mountType: item.product.variant?.mountType ?? 'Not specified',
-  glassType: 'Not specified',
+  variantId: item.variantId ?? null,
+  productName: item.productName ?? item.product.productName,
+  frameSize: item.frameSize ?? item.product.variant?.frameSize ?? '-',
+  colorName: item.colorName ?? '-', colorHex: item.colorHex ?? null, material: item.material ?? '-',
+  mountType: item.product.variant?.mountType ?? '-',
+  glassType: '-',
   quantity: item.quantity,
   price: Number(item.price),
   subtotal: Number(item.subtotal),
@@ -132,6 +135,11 @@ const summaryFor = (orders: Order[]): OrdersResponse['summary'] => ({
 });
 
 export const orderService = {
+  getExportReport: async (params: Omit<OrderQueryParams, 'page' | 'limit'> = {}) => {
+    type ExportReport = { range: string; generatedAt: string; summary: { totalRevenue: number; orderCount: number; averageOrderValue: number }; orders: Array<{ createdAt: string; orderNumber: string; orderStatus: string; totalAmount: number; user: { name: string }; orderItems?: import('../utils/revenue-report-pdf').RevenueReportItem[] }> };
+    const response = await api.get<ApiEnvelope<ExportReport>>('/orders/export', { params: { ...params, status: params.status === 'all' ? undefined : params.status, search: params.search?.trim() || undefined }, timeout: 60_000 });
+    return response.data.data;
+  },
   getOrdersByIds: async (ids: string[]): Promise<Order[]> => {
     const uniqueIds = [...new Set(ids)];
     const orders: Order[] = [];

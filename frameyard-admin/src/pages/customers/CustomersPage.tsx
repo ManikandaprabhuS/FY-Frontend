@@ -36,10 +36,12 @@ export const CustomersPage: React.FC = () => {
   const requestedSearch = searchParams.get('search') ?? '';
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState(requestedSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(requestedSearch);
+  useEffect(() => { const timer = window.setTimeout(() => { setDebouncedSearch(searchTerm.trim()); setCurrentPage(1); }, 350); return () => window.clearTimeout(timer); }, [searchTerm]);
   const PAGE_SIZE = 8;
   useEffect(() => {
-  fetchCustomers(currentPage, PAGE_SIZE, requestedSearch);}, [currentPage, fetchCustomers, requestedSearch]);
-  useEffect(() => { setSearchTerm(requestedSearch); setCurrentPage(1); }, [requestedSearch]);
+  fetchCustomers(currentPage, PAGE_SIZE, debouncedSearch);}, [currentPage, fetchCustomers, debouncedSearch]);
+  useEffect(() => { setSearchTerm(requestedSearch); setDebouncedSearch(requestedSearch); setCurrentPage(1); }, [requestedSearch]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const exportCustomerReport = async () => {
   try {
@@ -137,12 +139,7 @@ export const CustomersPage: React.FC = () => {
   }
 };
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.phoneNumber || '').includes(searchTerm)
-  );
+  const filteredCustomers = customers;
 
   const headers = [
     { key: 'customer', label: 'Customer' },

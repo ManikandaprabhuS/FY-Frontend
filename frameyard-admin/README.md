@@ -299,6 +299,59 @@ npm run build
 - `src/pages/appointments/AppointmentDetailsPage.tsx` — details and lifecycle actions.
 - `src/layouts/AdminLayout.tsx` and `src/routes/index.tsx` — staff navigation and route registration.
 
+## Admin global search and header cleanup
+
+GlobalAdminSearch is shared by desktop/mobile headers. It debounces one staff-search endpoint by 300ms, cancels stale suggestions, and renders keyboard-accessible Orders/Customers groups with icons and detail lines. Order IDs (including long FY- IDs and numeric matches) route to Orders; normalized 7–15-digit phones route to Customers; names/emails search both groups. Enter uses the highlighted result or the matching section, with the top order chosen when both groups match; clicking chooses a specific result. Empty results show one deduplicated warning and never navigate.
+
+Search values are encoded into URLs. A single order opens its details popup through openOrder, including on refresh; a single customer opens the existing detail route with the search retained in the query string. Multiple matches go to the filtered section. Orders reset stale date/status filters for incoming search links. The Customers field remains usable after arrival by debouncing the same backend search rather than locally filtering an already-filtered page.
+
+Removed the Help icon and both desktop/mobile sidebar avatars. The bell and sidebar logout controls remain. The top-right avatar now has staff name/role, Profile and Log Out, with Escape/outside-close behavior. No order/customer data, statuses or database schema changed. Live checks verified FY-99053085, partial/numeric IDs, 8910943111 with/without +91, and grouped Mahesh/email matches. No-result and five-per-group cases were also checked.
+
+## Shared colours and immutable order-item details
+
+Add/Edit Product use ProductColorPicker and the backend /colors catalogue. Only Black (#000000) and White (#FFFFFF) are seeded defaults, with no preselected colours on a fresh product. Existing saved colours remain selected and retain their image associations. Named, accessible swatches wrap on mobile. Admins and employees can create validated custom colours; duplicate names/hexes and invalid input show one warning. Creation shows loading/success/error feedback and auto-selects the saved colour. Customer selectors use the same catalogue to resolve custom names and hexes.
+
+Local cart lines now distinguish colour as well as product/variant and preserve name/hex metadata. Backend POST /cart/items accepts optional variantId and color, validates them against the product, and keeps distinct selection keys. Existing backend checkout saves immutable product ID/name, variant ID/size, colour name/hex and material. Order normalization, admin item popup, customer account history, /orders view, and PDF item tables display those snapshots. Old orders fall back to current catalogue details read-only; missing values show '-'. Price formulas, saved prices, order totals and statuses are unchanged.
+
+As explicitly requested, CheckoutPage remains unchanged: it is still a placeholder with no place-order submission or payment UI. The API snapshot path is tested, but a customer cannot submit a new order from that placeholder page. No order-confirmation page, itemized order email, or invoice workflow exists to update; none was added. Apply prisma/compatibility/color-order-snapshots.sql and regenerate Prisma on other deployments before running the updated backend. It has already been applied to the configured database without rewriting old order items.
+
+## Orders Management date/search/export alignment
+
+Summary-card dots are replaced with neutral clock, package, check-circle, and x-circle icons. The existing 350ms search debounce and page-one resets are retained. Today/7/30/90/all-time ranges now reach backend validation and filtering on the same createdAt field displayed in the table. Status, range, and search combine server-side; empty results retain Clear filters and accurate pagination.
+
+The Orders Export button now calls the staff-only GET /orders/export endpoint with the applied range/status/search, then builds a paginated PDF from its complete matching result and backend totals. It no longer exports only the visible page. Range metadata includes active filters; zero matches produces the shared empty table. Loading/success/error notifications and double-click protection are included. The independent Overview revenue report remains unchanged.
+
+Live read-only checks on 8 November 2026: All Time table/export = 4/4; Today and 7/30/90 days = 0/0 (existing orders are older). FY-99053085, FY-9905, 99053085, 8910943111, +91 89109-43111, and 89109 each match one order. The combined 90-day/Processing/search case returns 0 in both table and export. No test orders were created or changed.
+
+## Revenue Report PDF table export
+
+The revenue export uses lazy-loaded jsPDF + jspdf-autotable instead of a hand-written, single-page text stream. It includes the existing logo, range/generated timestamp, a three-column summary, fixed-width order columns, wrapped customer names, DD/MM/YYYY dates, right-aligned INR amounts, shared status colors, repeated table headers, a final total, and Page X of Y footers. Rows stay together across automatic page breaks. Empty ranges show a clear no-orders row.
+
+The existing report filters and revenue/order-count/average calculations are unchanged. Export includes every order already in the displayed report rather than truncating at 28 rows; it does not fetch extra data or change the existing dashboard loading limit. Customer CSV export remains unchanged; Orders Management now uses the filtered PDF export described above. No other hand-written PDF export was found. The export button prevents duplicate clicks and replaces a bold loading toast with success/error feedback.
+
+Tests generate 0-, 4-, and 65-order PDFs for month/year/custom range labels, including long customer names. Rendered samples and extracted text verify wrapping, repeated headers, all 65 rows, totals, and four-page pagination. Build and focused regression tests pass. The dependency audit reports existing repository advisories; no advisory was reported for jsPDF/AutoTable or their PDF-rendering dependencies in this check. No unrelated dependency upgrades were applied.
+
+## Shared order status styling
+
+Order table/mobile controls, the details popup, dashboard recent orders, and customer account order history now use StatusBadge and one shared order-status style map. Case, spaces, underscores, and hyphens normalize for display only; stored/API values are unchanged. Placed is black/white, Processing blue/white with blue border, Ready to Ship dark/white with gray border, Shipped green/light-green, Delivered white/green, and Cancelled red/light-red. Unknown statuses (including Confirmed) use neutral gray. Native status/filter options explicitly use white backgrounds, dark text, and a light color scheme; gray hover/selection applies where the platform supports native option styling.
+
+Summary caveats (logic unchanged): Pending counts PLACED; Processing aggregates CONFIRMED, PROCESSING, and READY_TO_SHIP, so it is not an exact PROCESSING-only count. The existing status-update store refreshes summary counts after the API refresh; the row badge updates when the status update returns. The standalone /orders customer page is currently a placeholder with no status rows; actual customer order cards in the account dashboard use the shared badge.
+
+## Admin form validation and operation feedback
+
+- Product creation steps validate live: trimmed basic information, material/colors, valid variants, and completed default-image uploads. Review and product edit validate the complete form. Coupon, employee, and product-discount actions use the same guarded-button behavior; color/variant uploads share the existing optional upload control.
+- Incomplete actions look disabled and expose `aria-disabled`, but remain focusable so pressing them shows one deduplicated amber warning and focuses an incomplete field. During actual work they are natively disabled. Existing field-level messages are preserved; duplicate form-summary error bars are removed.
+- Upload/save operations show bold, polite spinner status text. Each uploading product image has a spinner. Success shows the existing success toast; failed uploads/saves offer a user-initiated Retry action. Upload Retry reopens the picker. Request timeouts and finally cleanup release busy states; no automatic retry creates duplicate records.
+- Affected admin mutation requests have a 60-second timeout. Backend validation remains authoritative; no database schema/data or page layout changed. Focused tests cover guarded actions plus upload success, failure/timeout, invalid files, and concurrent uploads.
+
+## Auth session restoration and route guards
+
+Auth now starts in a separate checking state, reads the stored token synchronously, and verifies the session before rendering protected content or login forms. Admin/employee role checks wait for the verified user. Customer profile, orders, checkout, and wishlist actions also wait for restoration; public pages remain available. A shared neutral screen reserves space immediately and delays its visible spinner by 150ms, including lazy-route loading.
+
+Logged-out redirects use replace navigation and retain safe same-portal return URLs, including query strings and hashes. Only a verification HTTP 401 clears the session and shows one session-expired warning. Network errors, timeouts, and server errors retain the session and offer Retry; verification requests time out after 15 seconds. Concurrent checks are deduplicated, and stale responses cannot restore a logged-out session or overwrite a newer login. Login/logout token storage, backend APIs, database behavior, and guest cart handling are unchanged.
+
+Validation: 18 focused tests cover delayed restoration, both portal guards, staff roles, expired tokens, transient failures/retry, stale-response races, return URLs, and the delayed loader. Browser reload, Slow 3G, and Back-button checks remain manual; these are not claimed as automated browser coverage.
+
 ## 404 handling
 
 Negative top margins caused the heading to overlap the artwork. Normal flow, positive spacing, natural-height responsive artwork, and viewport centering fix this without changing the existing copy/design.

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import StatusBadge from '../../../components/ui/StatusBadge';
+import OrderItemOptions from '../../../components/orders/OrderItemOptions';
 import { getLowestVariantPricing, getVariantPricing } from '../utils/product-pricing';
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
 import { Link, useLocation } from 'react-router-dom';
@@ -307,9 +309,7 @@ const AccountNavLink: React.FC<{ href?: string; icon: React.ReactNode; label: st
   return href ? <a href={href} className={className}>{content}</a> : <span className={className} aria-disabled={disabled}>{content}</span>;
 };
 
-const statusStyle: Record<Order['orderStatus'], string> = {
-  PLACED: 'bg-amber-50 text-amber-700', CONFIRMED: 'bg-blue-50 text-blue-700', PROCESSING: 'bg-amber-50 text-amber-700', READY_TO_SHIP: 'bg-violet-50 text-violet-700', SHIPPED: 'bg-blue-50 text-blue-700', DELIVERED: 'bg-emerald-50 text-emerald-700', CANCELLED: 'bg-black/5 text-black/55',
-};
+
 
 const CustomerOrderCard: React.FC<{ order: Order }> = ({ order }) => {
   const item = order.orderItems[0];
@@ -319,10 +319,11 @@ const CustomerOrderCard: React.FC<{ order: Order }> = ({ order }) => {
       {item?.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-20 w-full rounded-xl bg-[#f4f1ed] object-cover sm:w-20" /> : <div className="grid h-20 w-full place-items-center rounded-xl bg-[#f4f1ed] text-black/25 sm:w-20"><ShoppingBag className="h-6 w-6" /></div>}
       <div className="grid min-w-0 gap-3 text-[10px] sm:grid-cols-3">
         <div><span className="text-black/45">Order ID</span><strong className="mt-1 block text-xs">#{order.orderNumber}</strong><span className="mt-2 block text-black/45">Placed on</span><strong className="mt-1 block">{new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(order.createdAt))}</strong></div>
-        <div className="min-w-0"><span className="text-black/45">Items</span><strong className="mt-1 block truncate text-xs">{item?.productName ?? 'Frame order'}</strong><span className="mt-1 block truncate text-black/50">{item ? `${item.frameSize} · ${item.mountType}` : 'Details unavailable'}</span><span className="mt-1 block text-black/50">Qty: {item?.quantity ?? 0}{extraItems > 0 ? ` · +${extraItems} more` : ''}</span></div>
+        <div className="min-w-0"><span className="text-black/45">Items</span><strong className="mt-1 block truncate text-xs">{item?.productName ?? 'Frame order'}</strong><span className="mt-1 block truncate text-black/50">{item ? item.frameSize : '-'}</span><span className="mt-1 block text-black/50">Qty: {item?.quantity ?? 0}{extraItems > 0 ? ` · +${extraItems} more` : ''}</span></div>
         <div><span className="text-black/45">Amount</span><strong className="mt-1 block text-xs">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.totalAmount)}</strong></div>
       </div>
-      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end"><span className={`rounded-full px-3 py-1 text-[9px] font-bold ${statusStyle[order.orderStatus]}`}>{order.orderStatus.replaceAll('_', ' ')}</span><Link to="/orders" className="rounded-lg bg-black px-4 py-2 text-[10px] font-bold text-white">View Details</Link></div>
+      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end"><StatusBadge status={order.orderStatus} className="text-[9px]" /><Link to="/orders" className="rounded-lg bg-black px-4 py-2 text-[10px] font-bold text-white">View Details</Link></div>
+      <div className="col-span-full space-y-3 border-t border-black/10 pt-3">{order.orderItems.map(orderItem => <div key={orderItem.id}><p className="text-xs font-bold">{orderItem.productName}</p><OrderItemOptions item={orderItem} /><p className="mt-1 text-[11px]">Qty: {orderItem.quantity} · ₹{Number(orderItem.price).toLocaleString("en-IN")}</p></div>)}</div>
     </article>
   );
 };

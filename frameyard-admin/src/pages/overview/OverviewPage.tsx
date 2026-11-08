@@ -1,4 +1,7 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import StatusBadge from '../../components/ui/StatusBadge';
+import brandLogo from '../../assets/fy-logo-icon.jpeg';
+import { dismissToast, showError, showLoading, showSuccess } from '../../utils/toast';
 import { useNavigate, Link } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
 import useOrders from '../../hooks/useOrders';
@@ -19,6 +22,8 @@ const RevenueChart = lazy(() => import('./RevenueChart'));
 
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
+  const reportExportLock = useRef(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const { products, pagination: productPagination, fetchProducts } = useProducts(false);
   const { orders, pagination: orderPagination, summary: orderSummary, fetchOrders } = useOrders(false);
   const { total: customerTotal, fetchCustomers } = useCustomers(false);
@@ -187,81 +192,39 @@ export const OverviewPage: React.FC = () => {
 
   const reportRevenue = reportOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
 
-  const downloadPdf = (filename: string, lines: string[]) => {
-    const escapePdfText = (value: string) =>
-      value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-    const pageWidth = 595;
-    const pageHeight = 842;
-    const startX = 48;
-    let y = 780;
-    const contentLines: string[] = ['BT', '/F1 11 Tf', `${startX} ${y} Td`];
-
-    lines.forEach((line, index) => {
-      if (index > 0) {
-        y -= 18;
-        if (y < 56) {
-          return;
-        }
-        contentLines.push(`0 -18 Td`);
-      }
-      contentLines.push(`(${escapePdfText(line)}) Tj`);
-    });
-    contentLines.push('ET');
-
-    const stream = contentLines.join('\n');
-    const objects = [
-      '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
-      '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj',
-      `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj`,
-      '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
-      `5 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`,
-    ];
-
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-    objects.forEach((object) => {
-      offsets.push(pdf.length);
-      pdf += `${object}\n`;
-    });
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${objects.length + 1}\n`;
-    pdf += '0000000000 65535 f \n';
-    offsets.slice(1).forEach((offset) => {
-      pdf += `${offset.toString().padStart(10, '0')} 00000 n \n`;
-    });
-    pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-    const blob = new Blob([pdf], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+  const handleDownloadRevenueReport = async () => {
+    if (reportExportLock.current) return;
+    reportExportLock.current = true;
+    setGeneratingReport(true);
+    const toastId = 'revenue-report-export';
+    let notified = false;
+    showLoading('Please wait, your report is being generated...', toastId);
+    try {
+      await new Promise(resolve => window.setTimeout(resolve, 30));
+      const { createRevenueReportPdf } = await import('../../utils/revenue-report-pdf');
+      const logoResponse = await fetch(brandLogo, { signal: AbortSignal.timeout(15_000) });
+      if (!logoResponse.ok) throw new Error('Unable to load report branding');
+      const logo = new Uint8Array(await logoResponse.arrayBuffer());
+      const generatedAt = new Date();
+      const doc = createRevenueReportPdf({
+        range: reportDateRange.label, generatedAt, logo,
+        totalRevenue: reportRevenue, paidActiveOrders: reportOrders.length,
+        averageOrderValue: reportOrders.length ? reportRevenue / reportOrders.length : 0,
+        orders: reportOrders,
+      });
+      doc.save(`revenue-report-${generatedAt.toISOString().slice(0, 10)}.pdf`);
+      showSuccess('Revenue report downloaded successfully', { id: toastId });
+      notified = true;
+    } catch {
+      showError('Unable to generate the revenue report. Please try again.', { id: toastId });
+      notified = true;
+    } finally {
+      if (!notified) dismissToast(toastId);
+      reportExportLock.current = false;
+      setGeneratingReport(false);
+    }
   };
 
-  const handleDownloadRevenueReport = () => {
-    const generatedAt = new Date().toLocaleString('en-IN');
-    const lines = [
-      'FrameYaad Revenue Report',
-      `Range: ${reportDateRange.label}`,
-      `Generated: ${generatedAt}`,
-      '',
-      `Total revenue: INR ${reportRevenue.toFixed(2)}`,
-      `Paid/active orders: ${reportOrders.length}`,
-      `Average order value: INR ${(reportOrders.length ? reportRevenue / reportOrders.length : 0).toFixed(2)}`,
-      '',
-      'Orders',
-      ...reportOrders.slice(0, 28).map((order) =>
-        `${new Date(order.createdAt).toLocaleDateString('en-IN')} | ${order.orderNumber} | ${order.user?.name || 'Unknown Customer'} | ${order.orderStatus} | INR ${Number(order.totalAmount).toFixed(2)}`
-      ),
-      ...(reportOrders.length > 28 ? [`+ ${reportOrders.length - 28} more orders not shown on this summary page`] : []),
-    ];
-
-    downloadPdf(`revenue-report-${new Date().toISOString().slice(0, 10)}.pdf`, lines);
-  };
 
   // Recent 4 orders
   const recentOrders = orders.slice(0, 4);
@@ -290,20 +253,7 @@ export const OverviewPage: React.FC = () => {
     navigate(`/admin/orders?status=${status}`);
   };
 
-  const getOrderStatusBadge = (status: string) => {
-    switch (status) {
-      case 'DELIVERED':
-        return <Badge type="success">Delivered</Badge>;
-      case 'PROCESSING':
-        return <Badge type="info">Processing</Badge>;
-      case 'PLACED':
-        return <Badge type="warning">Pending</Badge>;
-      case 'CANCELLED':
-        return <Badge type="error">Cancelled</Badge>;
-      default:
-        return <Badge type="neutral">{status}</Badge>;
-    }
-  };
+
 
   const getStockStatusBadge = (status: string) => {
     if (status === 'Out of Stock') return <Badge type="error">Out of Stock</Badge>;
@@ -387,6 +337,8 @@ export const OverviewPage: React.FC = () => {
               )}
               <button
                 onClick={handleDownloadRevenueReport}
+                disabled={generatingReport}
+                aria-busy={generatingReport}
                 className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#111827] bg-[#111827] px-3 text-xs font-semibold text-white transition-colors hover:bg-black"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -479,7 +431,7 @@ export const OverviewPage: React.FC = () => {
                     <td className="p-4 text-on-surface-variant">{order.user?.name || 'Unknown Customer'}</td>
                     <td className="p-4 font-semibold text-primary">{order.addressLine}</td>
                     <td className="p-4 text-right font-semibold">₹{Number(order.totalAmount).toFixed(2)}</td>
-                    <td className="p-4">{getOrderStatusBadge(order.orderStatus)}</td>
+                    <td className="p-4"><StatusBadge status={order.orderStatus} /></td>
                   </tr>
                 ))}
               </tbody>

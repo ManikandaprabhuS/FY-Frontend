@@ -80,7 +80,7 @@ return { ...response.data.data, user: normalizeUser(response.data.data.user) };
   },
 
  me: async (): Promise<User> => {
-  const response = await api.get<ApiEnvelope<{ user: BackendUser }>>("/auth/me");
+  const response = await api.get<ApiEnvelope<{ user: BackendUser }>>("/auth/me", { timeout: 15000 });
   return normalizeUser(response.data.data.user);
 },
 

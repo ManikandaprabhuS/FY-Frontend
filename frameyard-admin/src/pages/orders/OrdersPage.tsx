@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import useOrders from '../../hooks/useOrders';
 import DataTable from '../../components/tables/DataTable';
 import Modal from '../../components/ui/Modal';
-import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download } from 'lucide-react';
+import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download, Clock, Package, CheckCircle2, XCircle } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
-import { showError, showSuccess } from '../../utils/toast';
+import StatusBadge, { OrderStatusFilter } from '../../components/ui/StatusBadge';
+import OrderItemOptions from '../../components/orders/OrderItemOptions';
+import { dismissToast, showError, showLoading, showSuccess } from '../../utils/toast';
+import { orderService } from '../../services/order.service';
+import brandLogo from '../../assets/fy-logo-icon.jpeg';
 
 const getSearchTermFromQueryString = (search: string) => {
   const params = new URLSearchParams(search);
@@ -21,6 +25,8 @@ const getStatusFilterFromQueryString = (search: string): 'all' | OrderStatus => 
 
 export const OrdersPage: React.FC = () => {
   const location = useLocation();
+  const exportLock = useRef(false);
+  const [exporting, setExporting] = useState(false);
   const { orders, loading, refreshing, fetchOrders, changeOrderStatus, pagination, summary } = useOrders(false);
   const [searchTerm, setSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
@@ -31,6 +37,16 @@ export const OrdersPage: React.FC = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const openedSearchResult = useRef('');
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('openOrder');
+    const key = location.key + location.search;
+    if (!id || loading || refreshing || openedSearchResult.current === key) return;
+    const order = orders.find(value => value.id === id);
+    if (!order) return;
+    const timer = window.setTimeout(() => { openedSearchResult.current = key; setSelectedOrder(order); setDetailsModalOpen(true); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [location.key, location.search, orders, loading, refreshing]);
 
   useEffect(() => {
     const nextSearchTerm = getSearchTermFromQueryString(location.search);
@@ -38,6 +54,7 @@ export const OrdersPage: React.FC = () => {
     setSearchTerm(nextSearchTerm);
     setDebouncedSearchTerm(nextSearchTerm);
     setStatusFilter(nextStatusFilter);
+    setDateFilter('all');
     setCurrentPage(1);
   }, [location.search]);
 
@@ -76,35 +93,36 @@ export const OrdersPage: React.FC = () => {
   };
 
   const exportOrdersReport = async () => {
+    if (exportLock.current) return;
+    exportLock.current = true;
+    setExporting(true);
+    const toastId = 'orders-report-export';
+    let notified = false;
+    showLoading('Please wait, your report is being generated...', toastId);
     try {
-      const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-      const rows = [
-        ['Order Number', 'Customer', 'Phone', 'Status', 'Total Amount', 'Created At'],
-        ...orders.map((order) => [
-          order.orderNumber,
-          order.user?.name ?? '',
-          order.user?.phoneNumber ?? order.phoneNumber ?? '',
-          order.orderStatus,
-          String(order.totalAmount),
-          order.createdAt,
-        ]),
-      ];
-      const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
-      const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `orders-report-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      showSuccess('Orders export downloaded successfully');
-    } catch (error) {
-      console.error('Orders export failed:', error);
-      showError('Unable to export orders');
+      const report = await orderService.getExportReport({ search: debouncedSearchTerm, status: statusFilter, dateFilter });
+      const { createRevenueReportPdf } = await import('../../utils/revenue-report-pdf');
+      const logoResponse = await fetch(brandLogo, { signal: AbortSignal.timeout(15_000) });
+      if (!logoResponse.ok) throw new Error('Unable to load report branding');
+      const logo = new Uint8Array(await logoResponse.arrayBuffer());
+      const doc = createRevenueReportPdf({
+        range: report.range, generatedAt: new Date(report.generatedAt), logo,
+        totalRevenue: report.summary.totalRevenue, paidActiveOrders: report.summary.orderCount,
+        averageOrderValue: report.summary.averageOrderValue, orders: report.orders,
+      });
+      doc.save(`orders-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      showSuccess('Orders export downloaded successfully', { id: toastId });
+      notified = true;
+    } catch {
+      showError('Unable to export orders', { id: toastId });
+      notified = true;
+    } finally {
+      if (!notified) dismissToast(toastId);
+      exportLock.current = false;
+      setExporting(false);
     }
   };
+
 
   const getCustomerName = (order: Order) => order.user?.name || 'Unknown Customer';
   const getCustomerEmail = (order: Order) => order.user?.email || 'No email';
@@ -114,26 +132,8 @@ export const OrdersPage: React.FC = () => {
       .filter(Boolean)
       .join(', ') || 'No address';
   const getItemsCount = (order: Order) => order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
-  const getVariantName = (
-  item: Order['orderItems'][number]
-) =>
-  `${item.frameSize} (${item.mountType}, ${item.glassType})`;
-  const getDropdownStyles = (status: OrderStatus) => {
-    switch (status) {
-      case 'PLACED':
-      case 'CONFIRMED':
-        return 'bg-surface-container-highest text-on-surface';
-      case 'PROCESSING':
-      case 'SHIPPED':
-        return 'bg-primary-container text-on-primary-container';
-      case 'DELIVERED':
-        return 'bg-tertiary-container text-on-tertiary-container';
-      case 'CANCELLED':
-        return 'bg-error-container text-on-error-container';
-      default:
-        return 'bg-surface text-on-surface';
-    }
-  };
+
+
 
   const headers = [
     { key: 'id', label: 'Order ID' },
@@ -157,7 +157,7 @@ export const OrdersPage: React.FC = () => {
     () => statusFilter === 'all' ? orders : orders.filter((order) => order.orderStatus === statusFilter),
     [orders, statusFilter],
   );
-  const emptyTitle = statusFilter !== 'all' ? `No ${statusFilter.toLowerCase()} orders` : 'No orders found';
+  const emptyTitle = 'No orders found for the selected filters';
   const emptyMessage = isFiltered
     ? 'No orders match the current filters. Try clearing one of the filters or search terms.'
     : 'There are no orders to display yet.';
@@ -172,6 +172,8 @@ export const OrdersPage: React.FC = () => {
 
         <button
           onClick={exportOrdersReport}
+          disabled={exporting || refreshing || debouncedSearchTerm !== searchTerm.trim()}
+          aria-busy={exporting}
           className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface"
         >
           <Download className="h-4 w-4" />
@@ -192,7 +194,7 @@ export const OrdersPage: React.FC = () => {
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Pending</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <Clock className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.pendingCount}</div>
           <div className="mt-1 text-[10px] text-secondary">Requires review</div>
@@ -201,7 +203,7 @@ export const OrdersPage: React.FC = () => {
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Processing</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            <Package className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.processingCount}</div>
           <div className="mt-1 text-[10px] text-secondary">In fulfillment</div>
@@ -210,7 +212,7 @@ export const OrdersPage: React.FC = () => {
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Delivered</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.deliveredCount}</div>
           <div className="mt-1 text-[10px] text-secondary">Completed</div>
@@ -219,7 +221,7 @@ export const OrdersPage: React.FC = () => {
         <div className="col-span-2 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm md:col-span-1">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Cancelled</span>
-            <span className="block h-1.5 w-1.5 rounded-full bg-red-500" />
+            <XCircle className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.cancelledCount}</div>
           <div className="mt-1 text-[10px] text-secondary">Refunded</div>
@@ -244,23 +246,7 @@ export const OrdersPage: React.FC = () => {
             </div>
 
             <div className="w-full sm:w-44">
-              <select
-                value={statusFilter}
-                onChange={(event) => {
-                  setStatusFilter(event.target.value as 'all' | OrderStatus);
-                  setCurrentPage(1);
-                }}
-                className="w-full cursor-pointer rounded-lg border border-outline-variant bg-surface px-3 py-2 text-center text-xs text-on-surface outline-none [text-align-last:center] focus:border-primary"
-              >
-                <option value="all">All Statuses</option>
-                <option value="PLACED">Placed</option>
-                <option value="CONFIRMED">Confirmed</option>
-                <option value="PROCESSING">Processing</option>
-                <option value="READY_TO_SHIP">Ready to Ship</option>
-                <option value="SHIPPED">Shipped</option>
-                <option value="DELIVERED">Delivered</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
+              <OrderStatusFilter value={statusFilter} onChange={value => { setStatusFilter(value as 'all' | OrderStatus); setCurrentPage(1); }} className="w-full cursor-pointer rounded-lg border border-outline-variant px-3 py-2 text-center text-xs outline-none focus:border-primary" />
             </div>
 
             <div className="w-full sm:w-44">
@@ -274,6 +260,7 @@ export const OrdersPage: React.FC = () => {
                   }}
                   className="h-10 w-full cursor-pointer rounded-lg border border-outline-variant bg-surface px-10 text-center text-sm text-on-surface outline-none [text-align-last:center]"
                 >
+                  <option value="today">Today</option>
                   <option value="7">Last 7 Days</option>
                   <option value="30">Last 30 Days</option>
                   <option value="90">Last 90 Days</option>
@@ -313,21 +300,7 @@ export const OrdersPage: React.FC = () => {
               <td className="px-6 py-4 text-right font-medium">{getItemsCount(order)}</td>
               <td className="px-6 py-4 text-right font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</td>
               <td className="px-6 py-4">
-                <select
-                  value={order.orderStatus}
-                  onChange={(event) => handleStatusChange(order.id, event.target.value as OrderStatus)}
-                  className={`cursor-pointer appearance-none rounded-full border-none px-3 py-1 text-center text-[11px] font-bold uppercase tracking-wider outline-none focus:ring-2 focus:ring-primary ${getDropdownStyles(
-                    order.orderStatus
-                  )}`}
-                >
-                  <option value="PLACED">Placed</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="PROCESSING">Processing</option>
-                  <option value="READY_TO_SHIP">Ready to Ship</option>
-                  <option value="SHIPPED">Shipped</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
+                <StatusBadge status={order.orderStatus} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{new Date(order.createdAt).toLocaleDateString()}</td>
               <td className="px-6 py-4 text-right">
@@ -353,21 +326,7 @@ export const OrdersPage: React.FC = () => {
                   </button>
                   <div className="mt-1 text-sm font-semibold text-on-surface">{getCustomerName(order)}</div>
                 </div>
-                <select
-                  value={order.orderStatus}
-                  onChange={(event) => handleStatusChange(order.id, event.target.value as OrderStatus)}
-                  className={`cursor-pointer rounded-full border-none px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider outline-none focus:ring-2 focus:ring-primary ${getDropdownStyles(
-                    order.orderStatus
-                  )}`}
-                >
-                  <option value="PLACED">Placed</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="PROCESSING">Processing</option>
-                  <option value="READY_TO_SHIP">Ready to Ship</option>
-                  <option value="SHIPPED">Shipped</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
+                <StatusBadge status={order.orderStatus} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1 text-xs text-on-surface-variant">
@@ -461,6 +420,7 @@ export const OrdersPage: React.FC = () => {
       >
         {selectedOrder && (
           <div className="space-y-6">
+            <StatusBadge status={(orders.find(order => order.id === selectedOrder.id) ?? selectedOrder).orderStatus} />
             <div className="rounded-xl border border-outline-variant bg-surface p-4">
               <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Customer Information</h4>
               <div className="space-y-4">
@@ -498,7 +458,7 @@ export const OrdersPage: React.FC = () => {
                   <div key={index} className="flex items-center justify-between p-4">
                     <div>
                       <p className="text-sm font-semibold text-on-surface">{item.productName}</p>
-                      <p className="mt-0.5 text-xs text-on-surface-variant">Variant: {getVariantName(item)}</p>
+                      <OrderItemOptions item={item} />
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-on-surface">₹{item.price.toFixed(2)}</p>

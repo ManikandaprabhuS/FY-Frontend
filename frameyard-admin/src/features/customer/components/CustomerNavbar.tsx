@@ -21,17 +21,21 @@ const CustomerNavbar: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const customerLoggedIn = useAuthStore((state) => state.isAuthenticated) && user?.role === 'CUSTOMER';
-  const accountLabel = customerLoggedIn ? user.name.split(' ')[0] || 'Account' : 'Login';
+  const authStatus = useAuthStore(state => state.status);
+  const accountLabel = authStatus === 'checking' ? 'Account' : customerLoggedIn ? user.name.split(' ')[0] || 'Account' : 'Login';
   const cartCount = useCustomerCommerceStore((state) => state.cartItems.reduce((total, item) => total + item.quantity, 0));
   const wishlistTotal = useCustomerCommerceStore((state) => state.wishlistTotal);
   const wishlistLoadedForUserId = useCustomerCommerceStore((state) => state.wishlistLoadedForUserId);
   const wishlistCount = customerLoggedIn && wishlistLoadedForUserId === user.id ? wishlistTotal : 0;
 
 
-  const openWishlist = () => {
-    if (!customerLoggedIn) {
+  const openWishlist = async () => {
+    if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
+    const verified = useAuthStore.getState();
+    if (verified.status === 'checking') return;
+    if (!verified.isAuthenticated || verified.user?.role !== 'CUSTOMER') {
       showWarning('Please login to add product to wishlist');
-      navigate('/profile', { state: { returnTo: location.pathname } });
+      navigate('/profile', { state: { returnTo: location.pathname + location.search + location.hash } });
       return;
     }
     setWishlistOpen(true);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
-import { customerService } from '../services/customer.service';
+import GlobalAdminSearch from '../components/admin/GlobalAdminSearch';
 import fyLogoIcon from '../assets/fy-logo-icon.jpeg';
 import { 
   LayoutDashboard, 
@@ -15,7 +15,7 @@ import {
   Menu, 
   X, 
   Search, 
-  HelpCircle, 
+
   LogOut,
   ChevronRight,
   IdCard,
@@ -30,7 +30,7 @@ export const AdminLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [globalSearch, setGlobalSearch] = useState('');
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -42,6 +42,7 @@ export const AdminLayout: React.FC = () => {
     const timeout = window.setTimeout(() => {
       setMobileMenuOpen(false);
       setNotifDropdownOpen(false);
+      setProfileDropdownOpen(false);
       setMobileSearchOpen(false);
     }, 0);
 
@@ -50,54 +51,10 @@ export const AdminLayout: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/fyadminlogin');
+    navigate('/fyadminlogin', { replace: true });
   };
 
-  const isLikelyPhoneNumber = (value: string) => {
-    const compactValue = value.replace(/\s+/g, '');
-    const digitsOnly = compactValue.replace(/\D/g, '');
 
-    return (
-      /^[+\d][\d\s()-]+$/.test(value) &&
-      digitsOnly.length >= 10 &&
-      digitsOnly.length <= 15 &&
-      !/^FY-/i.test(compactValue)
-    );
-  };
-
-  const isLikelyOrderNumber = (value: string) => /^FY-\d{4}$/i.test(value.trim());
-
-  const handleGlobalSearch = async (rawValue: string) => {
-    const value = rawValue.trim();
-
-    if (!value) {
-      return;
-    }
-
-    if (isLikelyPhoneNumber(value)) {
-      try {
-        const customer = await customerService.lookupCustomerByPhoneNumber(value);
-        navigate(`/admin/customers/${customer.id}`);
-        return;
-      } catch (error) {
-        console.error('Customer lookup failed', error);
-        window.alert('No customer found for that phone number.');
-        return;
-      }
-    }
-
-    if (isLikelyOrderNumber(value)) {
-      navigate(`/admin/orders?search=${encodeURIComponent(value)}`);
-      return;
-    }
-
-    navigate(`/admin/customers?search=${encodeURIComponent(value)}`);
-  };
-
-  const submitGlobalSearch = async (value: string) => {
-    await handleGlobalSearch(value);
-    setMobileSearchOpen(false);
-  };
 
   const navLinks = [
     { name: 'Overview', path: '/admin/overview', icon: LayoutDashboard },
@@ -179,15 +136,7 @@ export const AdminLayout: React.FC = () => {
         {user && (
           <div className="mt-auto border-t border-outline-variant flex-shrink-0 pt-4 px-3">
             <div className="flex flex-col items-center justify-between gap-3">
-              <Link 
-                to="/admin/profile" 
-                className="flex items-center gap-3 py-1 group"
-                title={`${user.name} (${user.role})`}
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex-shrink-0 flex items-center justify-center font-bold border border-outline-variant group-hover:ring-2 group-hover:ring-primary transition-all duration-200">
-                  {avatarInitial}
-                </div>
-              </Link>
+              
               <button 
                 onClick={handleLogout}
                 className="p-1.5 hover:bg-error/10 hover:text-error text-on-surface-variant rounded-lg transition-colors flex-shrink-0"
@@ -217,7 +166,7 @@ export const AdminLayout: React.FC = () => {
           <Link to="/admin/overview" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
             <img src={fyLogoIcon} alt="FrameYaad logo" className="h-9 w-9 rounded-xl object-contain p-1" />
             <div>
-              <h1 className="font-sans text-lg font-bold text-on-surface">FrameYard</h1>
+              <h1 className="font-sans text-lg font-bold text-on-surface">FrameYaad</h1>
               <p className="text-[10px] font-semibold text-secondary tracking-wider uppercase">Admin</p>
             </div>
           </Link>
@@ -258,9 +207,7 @@ export const AdminLayout: React.FC = () => {
         {user && (
           <div className="mt-auto px-4 pt-4 border-t border-outline-variant flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold border border-outline-variant">
-                {avatarInitial}
-              </div>
+
               <div className="text-left">
                 <p className="text-sm font-semibold text-on-surface leading-none">{user.name}</p>
                 <p className="text-[11px] text-on-surface-variant mt-1">{user.role}</p>
@@ -293,7 +240,7 @@ export const AdminLayout: React.FC = () => {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <span className="font-sans text-md font-bold text-on-surface">FrameYard</span>
+            <span className="font-sans text-md font-bold text-on-surface">FrameYaad</span>
           </div>
 
           {/* Breadcrumbs (Desktop) */}
@@ -305,32 +252,8 @@ export const AdminLayout: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-4">
             
             {/* Search (Desktop) */}
-            <div className="hidden lg:flex items-center bg-surface px-3 py-1.5 rounded-full border border-outline-variant focus-within:border-primary focus-within:bg-surface-container-lowest transition-colors w-64">
-              <Search className="w-4 h-4 text-outline-variant mr-2" />
-              <input
-                className="bg-transparent border-none focus:ring-0 text-xs text-on-surface w-full p-0 placeholder-on-surface-variant/60 focus:outline-none"
-                placeholder="Search orders, customers..."
-                type="text"
-                value={globalSearch}
-                onChange={(event) => setGlobalSearch(event.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    void submitGlobalSearch(e.currentTarget.value);
-                  }
-                }}
-              />
-              {globalSearch && (
-                <button
-                  type="button"
-                  onClick={() => setGlobalSearch('')}
-                  className="ml-2 rounded-full p-0.5 text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
-                  aria-label="Clear search"
-                  title="Clear search"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+            <div className="hidden w-64 lg:block"><GlobalAdminSearch /></div>
+
 
             <button
               onClick={() => setMobileSearchOpen((prev) => !prev)}
@@ -389,48 +312,25 @@ export const AdminLayout: React.FC = () => {
               )}
             </div>
 
-            <button className="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-all">
-              <HelpCircle className="w-[18px] h-[18px]" />
-            </button>
+
 
             <div className="h-6 w-px bg-outline-variant mx-1" />
 
             {/* Profile Avatar click */}
             {user && (
-              <Link to="/admin/profile" className="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all flex items-center justify-center text-xs font-bold text-primary">
-                {avatarInitial}
-              </Link>
+              <div className="relative" onKeyDown={event => { if (event.key === 'Escape') { setProfileDropdownOpen(false); event.currentTarget.querySelector('button')?.focus(); } }}>
+                <button type="button" title={`${user.name} (${user.role})`} aria-label="Account menu" aria-expanded={profileDropdownOpen} aria-haspopup="menu" onClick={() => setProfileDropdownOpen(value => !value)} onKeyDown={event => { if (event.key === 'Escape') setProfileDropdownOpen(false); }} className="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all flex items-center justify-center text-xs font-bold text-primary">{avatarInitial}</button>
+                {profileDropdownOpen && <><div className="fixed inset-0 z-40" onClick={() => setProfileDropdownOpen(false)} /><div role="menu" aria-label="Account" className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-outline-variant bg-surface-container-lowest p-1 shadow-xl"><div className="mb-1 border-b border-outline-variant px-3 py-2"><p className="truncate text-xs font-bold">{user.name}</p><p className="text-[10px] text-on-surface-variant">{user.role}</p></div><Link role="menuitem" to="/admin/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold hover:bg-surface"><User className="h-4 w-4" />Profile</Link><button role="menuitem" onClick={() => { setProfileDropdownOpen(false); void handleLogout(); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-surface"><LogOut className="h-4 w-4" />Log Out</button></div></>}
+              </div>
             )}
 
           </div>
           </div>
 
           {mobileSearchOpen && (
-            <div className="border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 lg:hidden">
-              <div className="flex items-center rounded-xl border border-outline-variant bg-surface px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
-                <Search className="mr-2 h-4 w-4 flex-shrink-0 text-outline-variant" />
-                <input
-                  autoFocus
-                  className="w-full border-none bg-transparent p-0 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-0"
-                  placeholder="Search orders, customers..."
-                  type="search"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      void submitGlobalSearch(e.currentTarget.value);
-                    }
-                    if (e.key === 'Escape') {
-                      setMobileSearchOpen(false);
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => setMobileSearchOpen(false)}
-                  className="ml-2 rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container"
-                  title="Close search"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="flex items-center gap-2 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 lg:hidden">
+              <GlobalAdminSearch autoFocus onNavigate={() => setMobileSearchOpen(false)} />
+              <button type="button" onClick={() => setMobileSearchOpen(false)} aria-label="Close search" className="shrink-0 rounded-lg p-1.5 text-on-surface-variant"><X className="h-4 w-4" /></button>
             </div>
           )}
         </header>

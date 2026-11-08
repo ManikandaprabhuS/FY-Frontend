@@ -193,7 +193,7 @@ export const productService = {
 
   getProductById: async (id: string, publicCatalog = false): Promise<Product> => {
     return detailRequests(JSON.stringify([requestScope(publicCatalog), id]), async () => {
-    const response = await api.get(publicCatalog ? `/products/public/${id}` : `/products/${id}`);
+    const response = await api.get(publicCatalog ? `/products/public/${id}` : `/products/${id}`, publicCatalog ? undefined : { timeout: 60_000 });
     return normalizeProduct(response.data.data?.product || response.data.product);
     });
   },
