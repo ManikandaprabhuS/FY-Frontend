@@ -6,6 +6,7 @@ import DataTable from '../../components/tables/DataTable';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { Plus, Download, Edit2, Trash2, Search } from 'lucide-react';
+import { getStockStatus, totalVariantStock } from "../../utils/stock";
 import { Product } from '../../types';
 import { downloadAdminCsv } from "../../utils/admin-export";
 import { productService } from '../../services/product.service';
@@ -36,26 +37,7 @@ export const ProductsPage: React.FC = () => {
     fetchProducts({ page: currentPage, limit: itemsPerPage, search: debouncedSearchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
   }, [fetchProducts, currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
 
-  // Handle stock computation
-  const getStockStatus = (product: Product) => {
-    const allVariants = product.variants || [];
-
-    if (allVariants.length === 0) {
-      return { label: 'Out of Stock', type: 'error' as const };
-    }
-
-    const totalStock = allVariants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
-
-    // All variants are zero → truly out of stock
-    if (totalStock === 0) return { label: 'Out of Stock', type: 'error' as const };
-
-    // Any variant is at or below 15 units (but product has stock somewhere)
-    const hasLowOrZeroVariant = allVariants.some(v => (v.stockQuantity || 0) <= 15);
-    if (hasLowOrZeroVariant) return { label: 'Low Stock', type: 'warning' as const };
-
-    return { label: 'In Stock', type: 'success' as const };
-  };
-
+  const productStockStatus = (product: Product) => getStockStatus(totalVariantStock(product.variants));
   // Pagination Logic
   const totalItems = pagination.total;
   const totalPages = pagination.totalPages;
@@ -172,7 +154,7 @@ export const ProductsPage: React.FC = () => {
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
           <span className="text-xs font-semibold text-on-surface-variant">Low Stock Alerts</span>
           <span className="text-2xl font-bold text-error">
-            {products.filter(p => getStockStatus(p).label !== 'In Stock').length}
+            {products.filter(p => productStockStatus(p).key !== 'in').length}
           </span>
           <span className="text-[11px] text-error font-medium">Requires attention</span>
         </div>
@@ -241,7 +223,7 @@ export const ProductsPage: React.FC = () => {
 
         // Desktop Row Renderer
         renderRow={(product, index) => {
-          const stockInfo = getStockStatus(product);
+          const stockInfo = productStockStatus(product);
           return (
             <tr key={product.id} className="hover:bg-surface/40 transition-colors group">
               <td className="px-6 py-4">
@@ -276,7 +258,7 @@ export const ProductsPage: React.FC = () => {
               <td className="px-6 py-4 text-on-surface-variant">{product.variants?.length || 0} Variants</td>
               <td className="px-6 py-4">
                 <div className="flex justify-center">
-                  <Badge type={stockInfo.type}  className="min-w-[100px] justify-center"> {stockInfo.label}</Badge>
+                  <Badge type={stockInfo.type}  className="min-w-[100px] justify-center font-bold"> {stockInfo.label}</Badge>
                 </div>
               </td>
               <td className="px-6 py-4">
@@ -317,7 +299,7 @@ export const ProductsPage: React.FC = () => {
 
         // Mobile Card Renderer
         renderCard={(product) => {
-          const stockInfo = getStockStatus(product);
+          const stockInfo = productStockStatus(product);
           return (
             <div key={product.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex gap-4 relative group">
               <div className="w-20 h-20 rounded bg-surface-container overflow-hidden inner-stroke flex-shrink-0">
@@ -333,7 +315,7 @@ export const ProductsPage: React.FC = () => {
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex justify-between items-start gap-2">
                   <h4 className="font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{product.name}</h4>
-                  <Badge type={stockInfo.type} className="min-w-[100px] justify-center">  {stockInfo.label}</Badge>
+                  <Badge type={stockInfo.type} className="min-w-[100px] justify-center font-bold">  {stockInfo.label}</Badge>
                 </div>
                 <p className="text-xs text-on-surface-variant mt-0.5">{product.material} • {product.variants?.length || 0} Variants</p>
                 <div className="flex items-center gap-3 mt-auto pt-2">

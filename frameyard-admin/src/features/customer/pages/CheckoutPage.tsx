@@ -1,3 +1,5 @@
+import { cartStockIssue } from '../../../utils/stock';
+import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +23,8 @@ const CheckoutPage: React.FC = () => {
         navigate('/profile', { replace: true, state: { returnTo: '/checkout' } });
         return;
       }
+      const issue = cartStockIssue(useCustomerCommerceStore.getState().cartItems);
+      if (issue) { showWarning(issue, { id: 'cart-stock' }); navigate('/cart', { replace: true }); return; }
       setChecking(false);
     })();
     return () => { active = false; };

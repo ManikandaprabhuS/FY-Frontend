@@ -3,6 +3,7 @@ import { Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import heroFallback from '../../../assets/hero.png';
+import { getStockStatus } from '../../../utils/stock';
 import type { Product } from '../../../types';
 import type { CatalogPricing } from '../utils/catalog-product';
 import '../styles/all-frames.css';
@@ -32,7 +33,7 @@ const getColorName = (color?: string | null) => {
   return COLOR_NAMES[value.toLowerCase()] ?? (value.startsWith('#') ? 'Custom Color' : value);
 };
 
-const LOW_STOCK = 3;
+
 const formatPrice = (value: number) => `₹${value.toLocaleString('en-IN')}`;
 
 /** A product hung on a grey mat, with a gallery-style label underneath. */
@@ -49,8 +50,8 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
   const image = product.images?.find((item) => item.isPrimary)?.imageUrl
     ?? product.images?.[0]?.imageUrl
     ?? heroFallback;
-  const inStock = totalStock > 0;
-  const lowStock = inStock && totalStock <= LOW_STOCK;
+  const stockStatus = getStockStatus(totalStock);
+  const inStock = stockStatus.quantity > 0;
   const details = [pricing.variant?.frameSize, product.material, getColorName(pricing.variant?.color)].filter(Boolean).join(', ');
   const productPath = `/product/${product.id}`;
 
@@ -118,7 +119,7 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
             {inStock ? 'Add to bag' : 'Sold out'}
           </button>
         </div>
-        {lowStock && <p className="mt-1 text-[12px] text-mute">Only {totalStock} left</p>}
+        <p className={`mt-1 text-[12px] ${stockStatus.textClass}`}>{stockStatus.label}</p>
       </div>
     </article>
   );

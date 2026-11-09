@@ -28,8 +28,8 @@ const CustomerNavbar: React.FC = () => {
   const accountLabel = authStatus === 'checking' ? 'Account' : firstName ?? 'Sign in';
   const cartCount = useCustomerCommerceStore((state) => state.cartItems.reduce((total, item) => total + item.quantity, 0));
   const wishlistTotal = useCustomerCommerceStore((state) => state.wishlistTotal);
-  const wishlistLoadedForUserId = useCustomerCommerceStore((state) => state.wishlistLoadedForUserId);
-  const wishlistCount = customerLoggedIn && wishlistLoadedForUserId === user.id ? wishlistTotal : 0;
+  const wishlistOwnerId = useCustomerCommerceStore((state) => state.cartOwnerId);
+  const wishlistCount = customerLoggedIn && wishlistOwnerId === user.id ? wishlistTotal : 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);

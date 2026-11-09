@@ -35,6 +35,8 @@ export type CustomerWishlistItem = {
   };
 };
 
+export type WishlistMutationResult = { wishlistItem: CustomerWishlistItem; wishlistCount: number; alreadySaved: boolean };
+
 export const customerWishlistService = {
   listPage: async (page = 1, limit = 20) => {
     const response = await api.get<ApiEnvelope<{ wishlist: CustomerWishlistItem[]; pagination: Pagination }>>('/wishlist', { params: { page, limit } });
@@ -48,14 +50,14 @@ export const customerWishlistService = {
     return (await customerWishlistService.listPage()).wishlist;
   },
 
-  add: async (productIdentifier: string): Promise<CustomerWishlistItem> => {
-    const response = await api.post<ApiEnvelope<{ wishlistItem: CustomerWishlistItem }>>('/wishlist', { productIdentifier });
-    return response.data.data.wishlistItem;
+  add: async (productIdentifier: string): Promise<WishlistMutationResult> => {
+    const response = await api.post<ApiEnvelope<WishlistMutationResult>>('/wishlist', { productIdentifier }, { timeout: 20_000 });
+    return response.data.data;
   },
 
-  moveFromCart: async (productIdentifier: string): Promise<CustomerWishlistItem> => {
-    const response = await api.post<ApiEnvelope<{ wishlistItem: CustomerWishlistItem }>>('/cart/move-to-wishlist', { productIdentifier });
-    return response.data.data.wishlistItem;
+  moveFromCart: async (productIdentifier: string, variantId?: string, color?: string): Promise<WishlistMutationResult> => {
+    const response = await api.post<ApiEnvelope<WishlistMutationResult>>('/cart/move-to-wishlist', { productIdentifier, variantId, color }, { timeout: 20_000 });
+    return response.data.data;
   },
 
   remove: async (wishlistItemId: string): Promise<void> => {

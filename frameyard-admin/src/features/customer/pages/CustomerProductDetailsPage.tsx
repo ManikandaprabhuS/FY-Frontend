@@ -1,3 +1,4 @@
+import { getStockStatus, normalizeStock } from '../../../utils/stock';
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -262,7 +263,7 @@ const CustomerProductDetailsPage: React.FC = () => {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-black/45">{currentProduct.brandName || 'FrameYaad'}</p>
                 <h1 className="mt-1 text-2xl font-black sm:text-3xl">{currentProduct.name}</h1>
-                <div className="mt-2 flex items-center gap-3 text-[11px]"><span className="text-amber-500">★ 4.8</span><span className="text-black/45">Premium custom frame</span><span className="inline-flex items-center gap-1 font-bold text-emerald-600"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> In stock</span></div>
+                <div className="mt-2 flex items-center gap-3 text-[11px]"><span className="text-amber-500">★ 4.8</span><span className="text-black/45">Premium custom frame</span><span className={`inline-flex items-center gap-1 ${getStockStatus(selectedVariant?.stockQuantity).textClass}`}><span className={`h-1.5 w-1.5 rounded-full ${getStockStatus(selectedVariant?.stockQuantity).dotClass}`} />{getStockStatus(selectedVariant?.stockQuantity).label}</span></div>
               </div>
             </div>
 
@@ -311,9 +312,9 @@ const CustomerProductDetailsPage: React.FC = () => {
               <div className="flex h-11 w-full items-center justify-between rounded-lg border border-black/15 min-[380px]:w-auto min-[380px]:justify-start">
                 <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((current) => Math.max(1, current - 1))} className="grid h-full w-10 place-items-center"><Minus className="h-3.5 w-3.5" /></button>
                 <span className="w-8 text-center text-xs font-black">{quantity}</span>
-                <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((current) => Math.min(Number(selectedVariant?.stockQuantity ?? 1), current + 1))} className="grid h-full w-10 place-items-center"><Plus className="h-3.5 w-3.5" /></button>
+                <button type="button" aria-label="Increase quantity" onClick={() => { const available = normalizeStock(selectedVariant?.stockQuantity); if (quantity >= available) { showWarning('Requested quantity exceeds available stock (' + available + ')'); return; } setQuantity(current => current + 1); }} className="grid h-full w-10 place-items-center"><Plus className="h-3.5 w-3.5" /></button>
               </div>
-              <button type="button" onClick={() => { if (selectedVariant) addToCart(currentProduct, selectedVariant, quantity, effectiveColor); }} disabled={!selectedVariant || Number(selectedVariant.stockQuantity) <= 0} className="inline-flex h-11 w-full flex-1 items-center justify-center gap-2 rounded-lg bg-black text-xs font-black text-white disabled:bg-black/30"><ShoppingBag className="h-4 w-4" /> Add to Bag</button>
+              <button type="button" onClick={() => { if (selectedVariant) addToCart(currentProduct, selectedVariant, quantity, effectiveColor); }} disabled={!selectedVariant || normalizeStock(selectedVariant.stockQuantity) <= 0} className="inline-flex h-11 w-full flex-1 items-center justify-center gap-2 rounded-lg bg-black text-xs font-black text-white disabled:bg-black/30"><ShoppingBag className="h-4 w-4" /> Add to Bag</button>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-2 border-t border-black/10 pt-4 sm:grid-cols-4">

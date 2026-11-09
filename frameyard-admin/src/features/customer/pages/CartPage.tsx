@@ -1,3 +1,4 @@
+import { cartStockIssue } from '../../../utils/stock';
 import React, { useMemo, useState } from 'react';
 import axios from 'axios';
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
@@ -59,7 +60,11 @@ const CartPage: React.FC = () => {
     if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
     const verified = useAuthStore.getState();
     if (verified.status === 'checking') return;
-    if (verified.isAuthenticated && verified.user?.role === 'CUSTOMER') return navigate('/checkout');
+    if (verified.isAuthenticated && verified.user?.role === 'CUSTOMER') {
+      const issue = cartStockIssue(useCustomerCommerceStore.getState().cartItems);
+      if (issue) { showWarning(issue, { id: 'cart-stock' }); return; }
+      return navigate('/checkout');
+    }
     showWarning('Please login to continue to checkout');
     navigate('/profile', { state: { returnTo: '/checkout' } });
   };
@@ -69,7 +74,7 @@ const CartPage: React.FC = () => {
     const verified = useAuthStore.getState();
     if (verified.status === 'checking') return;
     if (!verified.isAuthenticated || verified.user?.role !== 'CUSTOMER') {
-      showWarning('Please login to move this product to your wishlist');
+      showWarning('Please login / create an account to add products to wishlist');
       navigate('/profile', { state: { returnTo: '/cart' } });
       return;
     }
@@ -83,7 +88,8 @@ const CartPage: React.FC = () => {
       const moved = await moveCartItemToWishlist(item.key, item.productIdentifier);
       if (!moved) return;
       setRemovalChoiceKey(null);
-      showSuccess('Product moved to wishlist');
+      if (moved === 'exists') showWarning('Already in your wishlist. Removed from cart.');
+      else showSuccess('Moved to wishlist');
     } catch {
       showError('Product could not be moved to the wishlist. Please try again.');
     } finally {

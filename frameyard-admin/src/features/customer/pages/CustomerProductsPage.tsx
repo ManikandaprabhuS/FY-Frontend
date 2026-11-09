@@ -1,3 +1,4 @@
+import { totalVariantStock } from '../../../utils/stock';
 import React, { useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import {
@@ -23,8 +24,7 @@ type CatalogEntry = { product: Product; pricing: CatalogPricing; totalStock: num
 const toggleValue = <T,>(values: T[], value: T): T[] =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 
-const totalStockFor = (product: Product) =>
-  (product.variants ?? []).reduce((total, variant) => total + Number(variant.stockQuantity ?? 0), 0);
+const totalStockFor = (product: Product) => totalVariantStock(product.variants);
 
 const CustomerProductsPage: React.FC = () => {
   const products = useProductStore((state) => state.products);

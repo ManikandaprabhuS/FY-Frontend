@@ -1,4 +1,5 @@
 import React from 'react';
+import { getStockStatus, totalVariantStock } from '../../../utils/stock';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '../../../types';
 import heroFallback from '../../../assets/hero.png';
@@ -96,6 +97,7 @@ const FeaturedProductCard: React.FC<FeaturedProductCardProps> = ({
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/20 transition hover:bg-black hover:text-white focus:outline-none focus:ring-4 focus:ring-black/15 ${
               isActive ? 'bg-black text-white' : 'bg-white text-black'
             }`}
+            disabled={getStockStatus(totalVariantStock(product.variants)).quantity === 0}
             aria-label={`Add ${product.name} to cart`}
             onClick={(event) => { event.stopPropagation(); onAddToCart?.(); }}
           >

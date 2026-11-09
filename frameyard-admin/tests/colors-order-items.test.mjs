@@ -1,4 +1,5 @@
 import test from 'node:test';
+import * as stock from '../src/utils/stock.ts';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -47,7 +48,7 @@ test('order item views show snapshots, a swatch and safe dashes', async () => {
   assert.doesNotMatch(unsafe, /<script>/);
 });
 test('different colours remain separate cart lines without changing unit prices', async () => {
-  const storeModule = await compile('store/customerCommerceStore.ts', { '../services/customer-wishlist.service': { customerWishlistService: {} } });
+  const storeModule = await compile('store/customerCommerceStore.ts', { '../services/customer-wishlist.service': { customerWishlistService: {} }, '../utils/stock': stock, '../utils/toast': { showWarning: () => {} } });
   const store = storeModule.useCustomerCommerceStore;
   const item = { productId: 'product', variantId: 'variant', name: 'Frame', material: 'Wood', frameSize: '5 X 5', mountType: 'NONE', glassType: 'NONE', unitPrice: 650, quantity: 1, stockQuantity: 10 };
   store.getState().addCartItem({ ...item, color: '#000000', colorName: 'Black', colorHex: '#000000' });

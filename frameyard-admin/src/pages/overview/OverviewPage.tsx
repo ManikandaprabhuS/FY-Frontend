@@ -1,3 +1,4 @@
+import { getStockStatus, normalizeStock } from '../../utils/stock';
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../../components/ui/StatusBadge';
 import brandLogo from '../../assets/fy-logo-icon.jpeg';
@@ -234,11 +235,11 @@ export const OverviewPage: React.FC = () => {
     .flatMap(p => p.variants.map(v => ({
       name: p.name,
       variantName: v.frameSize,
-      stock: v.stockQuantity,
+      stock: normalizeStock(v.stockQuantity),
       productId: p.id,
-      status: v.stockQuantity === 0 ? 'Out of Stock' : v.stockQuantity <= 5 ? 'Critical' : 'Low'
+      status: getStockStatus(v.stockQuantity)
     })))
-    .filter(item => item.stock <= 15)
+    .filter(item => item.status.key !== 'in')
     .slice(0, 4);
 
   const displayLowStock = lowStockAlerts;
@@ -255,12 +256,7 @@ export const OverviewPage: React.FC = () => {
 
 
 
-  const getStockStatusBadge = (status: string) => {
-    if (status === 'Out of Stock') return <Badge type="error">Out of Stock</Badge>;
-    if (status === 'Critical') return <Badge type="error">Critical</Badge>;
-    return <Badge type="warning">Low</Badge>;
-  };
-
+  const getStockStatusBadge = (status: ReturnType<typeof getStockStatus>) => <Badge type={status.type} className="font-bold">{status.label}</Badge>;
   return (
     <div className="space-y-8 animate-fade-in">
       <div>

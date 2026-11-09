@@ -1,3 +1,4 @@
+import { normalizeStock } from "../../../utils/stock";
 import React, { useEffect, useState } from 'react';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import OrderItemOptions from '../../../components/orders/OrderItemOptions';
@@ -140,6 +141,9 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
       return;
     }
 
+    const inCart = useCustomerCommerceStore.getState().cartItems.filter(entry => entry.productId === item.product.id && entry.variantId === variant.id).reduce((sum, entry) => sum + entry.quantity, 0);
+    const available = normalizeStock(variant.stockQuantity);
+    if (inCart >= available) { showWarning('Requested quantity exceeds available stock (' + available + ')', { id: 'cart-stock' }); return; }
     try {
       const removed = await toggleWishlist(item.productIdentifier);
       if (removed === null) return;

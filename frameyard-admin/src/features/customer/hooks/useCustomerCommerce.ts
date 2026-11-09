@@ -1,3 +1,4 @@
+import { normalizeStock } from "../../../utils/stock";
 import { useCallback, useEffect, useMemo } from 'react';
 import { getVariantPricing } from '../utils/product-pricing';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -44,17 +45,26 @@ export const useCustomerCommerce = () => {
       showError('This product cannot be added to the wishlist right now.');
       return;
     }
+    const state = useCustomerCommerceStore.getState();
+    if (state.wishlistPending[product.productIdentifier]) return;
+    const saved = Boolean(state.wishlistByProductIdentifier[product.productIdentifier]);
+    const toastId = 'wishlist:' + product.productIdentifier;
+    const promise = toggleStoredWishlist(product.productIdentifier, {
+      id: product.id, productIdentifier: product.productIdentifier, productName: product.name,
+      material: { material: product.material, brandName: product.brandName, isActive: product.isActive },
+      images: product.images, variants: product.variants,
+    });
     try {
-      const added = await toggleStoredWishlist(product.productIdentifier);
-      if (added === null) return;
-      showSuccess(added ? 'Product added to wishlist' : 'Product removed from wishlist');
+      const added = await promise;
+      if (added === 'exists') showWarning('Already in your wishlist', { id: toastId });
+      else if (added !== null) showSuccess(saved ? 'Product removed from wishlist' : 'Added to wishlist', { id: toastId });
     } catch {
-      showError('Wishlist could not be updated. Please try again.');
+      showError('Wishlist could not be updated. Please try again.', { id: toastId });
     }
   }, [requestLogin, toggleStoredWishlist]);
 
   const addToCart = useCallback((product: Product, variant: ProductVariant, quantity = 1, selectedColor?: string) => {
-    const stockQuantity = Number(variant.stockQuantity ?? 0);
+    const stockQuantity = normalizeStock(variant.stockQuantity);
     if (stockQuantity <= 0) {
       showWarning('This product variant is out of stock.');
       return;
@@ -62,7 +72,7 @@ export const useCustomerCommerce = () => {
     const unitPrice = getVariantPricing(variant).currentPrice;
     const catalogue = useFrameColorStore.getState();
     const color = resolveColorOption(selectedColor || variant.color, catalogue.colors, catalogue.legacyColors);
-    addCartItem({
+    const added = addCartItem({
       productId: product.id,
       productIdentifier: product.productIdentifier,
       variantId: variant.id,
@@ -78,7 +88,7 @@ export const useCustomerCommerce = () => {
       quantity,
       stockQuantity,
     });
-    showSuccess(`${product.name} added to cart`);
+    if (added) showSuccess(`${product.name} added to cart`);
   }, [addCartItem]);
 
   return { customerLoggedIn, wishlist, toggleWishlist, addToCart, requestLogin };
