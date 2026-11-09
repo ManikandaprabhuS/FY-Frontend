@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { showError, showSuccess } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
@@ -7,6 +7,7 @@ import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { Plus, Download, Edit2, Trash2, Search } from 'lucide-react';
 import { Product } from '../../types';
+import { downloadAdminCsv } from "../../utils/admin-export";
 import { productService } from '../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
@@ -54,22 +55,6 @@ export const ProductsPage: React.FC = () => {
 
     return { label: 'In Stock', type: 'success' as const };
   };
-
-  // Filtered Products
-  const filteredProducts = useMemo(() => products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && product.isActive) ||
-      (statusFilter === 'draft' && !product.isActive);
-
-    return matchesSearch && matchesStatus;
-  }), [products, searchTerm, statusFilter]);
 
   // Pagination Logic
   const totalItems = pagination.total;
@@ -119,45 +104,10 @@ export const ProductsPage: React.FC = () => {
   }
 };
 
-  const handleExport = async () => {
-    try {
-      // Export the already-loaded/filtered catalog locally. The backend does
-      // not expose an export route, so this avoids a failing extra request.
-      const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-      const rows = [
-        ['Product ID', 'Product Name', 'Brand', 'Material', 'Colors', 'Variants', 'Status', 'Created Date'],
-        ...filteredProducts.map((product) => [
-          product.id,
-          product.name,
-          product.brandName,
-          product.material,
-          (product.availableColors || []).join(', '),
-          product.variants?.length || 0,
-          product.isActive ? 'Active' : 'Inactive',
-          new Date(product.createdAt).toISOString(),
-        ]),
-      ];
-      const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
-      const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
-
-      const url = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `inventory-${new Date().toISOString().split("T")[0]}.csv`;
-
-      document.body.appendChild(link);
-      link.click();
-
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      showSuccess('Product export downloaded successfully');
-    } catch (error) {
-      console.error("Export failed:", error);
-      showError('Unable to export products');
-    }
-  };
-
+  const handleExport = () => downloadAdminCsv('products', {
+    search: debouncedSearchTerm || undefined,
+    isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
+  });
   // Reset page when filters change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -264,7 +214,7 @@ export const ProductsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-          <button onClick={handleExport} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface transition-colors flex items-center gap-1.5">
+          <button onClick={handleExport} disabled={loading || debouncedSearchTerm !== searchTerm.trim()} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface transition-colors flex items-center gap-1.5">
             <Download className="w-4 h-4" />
             <span>Export</span>
           </button>

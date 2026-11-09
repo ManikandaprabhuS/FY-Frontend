@@ -6,7 +6,7 @@ import Badge from '../../components/ui/Badge';
 import { Search, Download,Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { Customer } from '../../types';
 import { showError, showSuccess } from '../../utils/toast';
-import { orderService } from '../../services/order.service';
+import { downloadAdminCsv } from '../../utils/admin-export';
 
 
 
@@ -43,102 +43,7 @@ export const CustomersPage: React.FC = () => {
   fetchCustomers(currentPage, PAGE_SIZE, debouncedSearch);}, [currentPage, fetchCustomers, debouncedSearch]);
   useEffect(() => { setSearchTerm(requestedSearch); setDebouncedSearch(requestedSearch); setCurrentPage(1); }, [requestedSearch]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const exportCustomerReport = async () => {
-  try {
-  const orderIds = [...new Set(customers.flatMap((customer) => customer.orders.map((order) => order.id)))];
-  const detailedOrders = await orderService.getOrdersByIds(orderIds);
-  const detailsById = new Map(detailedOrders.map((order) => [order.id, order]));
-  const rows = customers.flatMap((customer) => {
-
-    if (customer.orders.length === 0) {
-      return [{
-        CustomerName: customer.name,
-        Email: customer.email,
-        Phone: customer.phoneNumber,
-        Address: customer.addressLine,
-        City: customer.cityName,
-        State: customer.stateName,
-        OrderNumber: "",
-        OrderStatus: "",
-        ProductName: "",
-        FrameSize: "",
-        MountType: "",
-        GlassType: "",
-        Quantity: "",
-        Price: "",
-        Subtotal: "",
-      }];
-    }
-
-    return customer.orders.flatMap((summaryOrder: any) => {
-      const order: any = detailsById.get(summaryOrder.id) || summaryOrder;
-      const items = Array.isArray(order.orderItems) && order.orderItems.length > 0
-        ? order.orderItems
-        : [null];
-      return items.map((item: any) => ({
-        CustomerName: customer.name,
-        Email: customer.email,
-        Phone: customer.phoneNumber,
-        Address: customer.addressLine,
-        City: customer.cityName,
-        State: customer.stateName,
-
-        OrderNumber: order.orderNumber || order.id || '',
-        OrderStatus: order.orderStatus,
-
-        ProductName: item?.productName || '',
-        FrameSize: item?.frameSize || '',
-        MountType: item?.mountType || '',
-        GlassType: item?.glassType || '',
-        Quantity: item?.quantity ?? '',
-        Price: item?.price ?? order.totalAmount ?? '',
-        Subtotal: item?.subtotal ?? order.totalAmount ?? '',
-      }));
-
-    });
-
-  });
-
-  const columns = ['CustomerName', 'Email', 'Phone', 'Address', 'City', 'State', 'OrderNumber', 'OrderStatus', 'ProductName', 'FrameSize', 'MountType', 'GlassType', 'Quantity', 'Price', 'Subtotal'];
-  const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-  const csvContent = [
-    columns.join(","),
-    ...rows.map((row) =>
-      columns.map((column) => escapeCsv((row as Record<string, unknown>)[column]))
-        .join(",")
-    ),
-  ].join("\n");
-
-  const blob = new Blob(
-    [csvContent],
-    { type: "text/csv;charset=utf-8;" }
-  );
-
-  const url =
-    window.URL.createObjectURL(blob);
-
-  const link =
-    document.createElement("a");
-
-  link.href = url;
-
-  link.download =
-    `customers-report-${Date.now()}.csv`;
-
-  document.body.appendChild(link);
-
-  link.click();
-
-  document.body.removeChild(link);
-
-  window.URL.revokeObjectURL(url);
-  showSuccess('Customer export downloaded successfully');
-  } catch (error) {
-    console.error('Customer export failed:', error);
-    showError('Unable to export customers');
-  }
-};
-
+  const exportCustomerReport = () => downloadAdminCsv('customers', { search: debouncedSearch || undefined });
   const filteredCustomers = customers;
 
   const headers = [
@@ -498,7 +403,7 @@ const growthPercentage =
             Clear
           </button>
         )}
-  <button onClick={exportCustomerReport} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface transition-colors flex items-center gap-1.5">
+  <button onClick={exportCustomerReport} disabled={loading || debouncedSearch !== searchTerm.trim()} className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-semibold hover:bg-surface transition-colors flex items-center gap-1.5">
             <Download className="w-4 h-4" />
             <span>Export</span>
           </button>

@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
+import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 
 export const useNotifications = (autoFetch = false) => {
   const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
   const loading = useNotificationStore((state) => state.loading);
   const error = useNotificationStore((state) => state.error);
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
@@ -31,11 +33,12 @@ export const useNotifications = (autoFetch = false) => {
 
   return {
     notifications,
+    unreadCount,
     loading,
     error,
     fetchNotifications,
-    markAllAsRead,
-    toggleNotificationRead,
+    markAllAsRead: () => markAllAsRead(useAuthStore.getState().user ?? undefined),
+    toggleNotificationRead: (id: string) => toggleNotificationRead(id, useAuthStore.getState().user ?? undefined),
     removeNotification,
   };
 };

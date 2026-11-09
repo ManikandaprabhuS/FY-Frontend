@@ -136,7 +136,7 @@ const summaryFor = (orders: Order[]): OrdersResponse['summary'] => ({
 
 export const orderService = {
   getExportReport: async (params: Omit<OrderQueryParams, 'page' | 'limit'> = {}) => {
-    type ExportReport = { range: string; generatedAt: string; summary: { totalRevenue: number; orderCount: number; averageOrderValue: number }; orders: Array<{ createdAt: string; orderNumber: string; orderStatus: string; totalAmount: number; user: { name: string }; orderItems?: import('../utils/revenue-report-pdf').RevenueReportItem[] }> };
+    type ExportReport = { range: string; generatedAt: string; summary: { totalRevenue: number; orderCount: number; averageOrderValue: number }; orders: import('../utils/revenue-report-pdf').RevenueReportOrder[] };
     const response = await api.get<ApiEnvelope<ExportReport>>('/orders/export', { params: { ...params, status: params.status === 'all' ? undefined : params.status, search: params.search?.trim() || undefined }, timeout: 60_000 });
     return response.data.data;
   },

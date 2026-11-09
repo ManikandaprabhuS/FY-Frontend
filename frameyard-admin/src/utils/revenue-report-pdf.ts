@@ -2,12 +2,13 @@ import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
 import { getOrderStatusStyle, orderStatusLabel } from '../components/ui/order-status';
 
-export interface RevenueReportItem { productId?: string | null; productIdentifier?: string | null; productName?: string; frameSize?: string; colorName?: string | null; colorHex?: string | null; material?: string | null; quantity: number; price: number | string }
+export interface RevenueReportItem { productId?: string | null; productIdentifier?: string | null; productName?: string; frameSize?: string; colorName?: string | null; colorHex?: string | null; material?: string | null; quantity: number; price: number | string; subtotal?: number | string }
 export interface RevenueReportOrder {
   orderItems?: RevenueReportItem[];
   createdAt: string;
   orderNumber: string;
-  user?: { name?: string | null } | null;
+  user?: { name?: string | null; email?: string | null; phoneNumber?: string | null } | null;
+  address?: string; paymentStatus?: string; paymentMethod?: string; exportCoupon?: string; subtotal?: number; discount?: number;
   orderStatus: string;
   totalAmount: number | string;
 }
@@ -75,6 +76,21 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
       if (cell.section === 'head' && cell.column.index === 4) cell.cell.styles.halign = 'right';
     },
   });
+  if (data.orders.some(order => order.address !== undefined)) {
+    if (ordersBottom > 230) { doc.addPage(); ordersBottom = 12; }
+    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor('#111827');
+    doc.text('Order customer and payment details', margin, ordersBottom + 9);
+    autoTable(doc, {
+      startY: ordersBottom + 13, margin: { left: margin, right: margin, top: 16, bottom: 20 },
+      head: [['Order / Date', 'Customer / Contact', 'Address', 'Payment / Coupon', 'Subtotal / Discount / Total']],
+      body: data.orders.map(order => [order.orderNumber + '\n' + formatReportDate(order.createdAt), [order.user?.name || '-', order.user?.email || '-', order.user?.phoneNumber || '-'].join('\n'), order.address || '-', 'Status: ' + (order.paymentStatus || '-') + '\nMethod: ' + (order.paymentMethod || '-') + '\nCoupon: ' + (order.exportCoupon || '-'), 'Subtotal: ' + formatReportAmount(order.subtotal ?? order.totalAmount) + '\nDiscount: ' + formatReportAmount(order.discount ?? 0) + '\nTotal: ' + formatReportAmount(order.totalAmount)]),
+      theme: 'grid', rowPageBreak: 'avoid', showHead: 'everyPage',
+      styles: { fontSize: 7, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle', textColor: '#111827', lineColor: '#e5e7eb', lineWidth: 0.15 },
+      headStyles: { fillColor: '#111827', textColor: '#ffffff', fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 40 }, 2: { cellWidth: 42 }, 3: { cellWidth: 34 }, 4: { cellWidth: 38, halign: 'right' } },
+      didDrawPage: ({ cursor }) => { if (cursor) ordersBottom = cursor.y; },
+    });
+  }
   const itemRows = data.orders.flatMap(order => (order.orderItems ?? []).map(item => ({ ...item, orderNumber: order.orderNumber })));
   if (itemRows.length) {
     if (ordersBottom > 235) { doc.addPage(); ordersBottom = 12; }
@@ -82,12 +98,12 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
     doc.text('Order item details', margin, ordersBottom + 9);
     autoTable(doc, {
       startY: ordersBottom + 13, margin: { left: margin, right: margin, top: 16, bottom: 20 },
-      head: [['Order ID', 'Product / ID', 'Size', 'Color', 'Material', 'Qty', 'Unit (INR)']],
-      body: itemRows.map(item => [item.orderNumber, (item.productName || '-') + '\nProduct ID: ' + (item.productId || item.productIdentifier || '-'), item.frameSize || '-', item.colorName || '-', item.material || '-', String(item.quantity), formatReportAmount(item.price)]),
+      head: [['Order ID', 'Product / ID', 'Size', 'Color', 'Material', 'Qty', 'Unit (INR)', 'Line total']],
+      body: itemRows.map(item => [item.orderNumber, (item.productName || '-') + '\nProduct ID: ' + (item.productId || item.productIdentifier || '-'), item.frameSize || '-', item.colorName || '-', item.material || '-', String(item.quantity), formatReportAmount(item.price), formatReportAmount(item.subtotal ?? Number(item.price) * item.quantity)]),
       theme: 'grid', rowPageBreak: 'avoid', showHead: 'everyPage',
       styles: { fontSize: 7, cellPadding: 2.5, overflow: 'linebreak', valign: 'middle', lineColor: '#e5e7eb', lineWidth: 0.15, textColor: '#111827' },
       headStyles: { fillColor: '#111827', textColor: '#ffffff', fontStyle: 'bold' },
-      columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 48 }, 2: { cellWidth: 19 }, 3: { cellWidth: 25, cellPadding: { left: 7, right: 2, top: 2.5, bottom: 2.5 } }, 4: { cellWidth: 27 }, 5: { cellWidth: 10 }, 6: { cellWidth: 28, halign: 'right' } },
+      columnStyles: { 0: { cellWidth: 23 }, 1: { cellWidth: 38 }, 2: { cellWidth: 17 }, 3: { cellWidth: 22, cellPadding: { left: 7, right: 2, top: 2.5, bottom: 2.5 } }, 4: { cellWidth: 24 }, 5: { cellWidth: 10 }, 6: { cellWidth: 24, halign: 'right' }, 7: { cellWidth: 24, halign: 'right' } },
       didDrawCell: cell => { const hex = itemRows[cell.row.index]?.colorHex; if (cell.section === 'body' && cell.column.index === 3 && hex && /^#[a-f0-9]{6}$/i.test(hex)) { doc.setFillColor(hex).setDrawColor('#9ca3af'); doc.rect(cell.cell.x + 2.5, cell.cell.y + cell.cell.height / 2 - 1.2, 2.4, 2.4, 'FD'); } },
     });
   }

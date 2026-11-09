@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { notificationService } from '../../services/notification.service';
+import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import type { Notification } from '../../types';
 import type { Pagination } from '../../services/contracts';
@@ -18,15 +19,19 @@ export const NotificationsPage: React.FC = () => {
   const [summary, setSummary] = useState({ totalCount: 0, unreadCount: 0, readCount: 0 });
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
 
-  const { totalCount, unreadCount, readCount } = summary;
-  const filteredNotifications = notifications;
+  const storedNotifications = useNotificationStore(state => state.notifications);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
+  const { totalCount } = summary;
+  const readCount = Math.max(0, totalCount - unreadCount);
+  const filteredNotifications = notifications.map(item => storedNotifications.find(stored => stored.id === item.id) ?? item)
+    .filter(item => filter === 'all' || item.read === (filter === 'read'));
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
       try {
         const data = await notificationService.listPage(page, filter === 'all' ? undefined : filter === 'read');
-        if (active) { setNotifications(data.notifications); setPagination(data.pagination); setSummary(data.summary); setError(''); }
+        if (active) { useNotificationStore.getState().ingestPage(data.notifications, data.summary.unreadCount); setNotifications(data.notifications); setPagination(data.pagination); setSummary(data.summary); setError(''); }
       } catch (failure) {
         if (active) setError(axios.isAxiosError(failure) ? failure.response?.data?.error?.message ?? 'Could not load notifications.' : 'Could not load notifications.');
       } finally { if (active) setLoading(false); }
@@ -38,8 +43,8 @@ export const NotificationsPage: React.FC = () => {
     try { await action(); showSuccess(message); setRevision(value => value + 1); void useNotificationStore.getState().fetchNotifications(true); }
     catch (failure) { showError(axios.isAxiosError(failure) ? failure.response?.data?.error?.message ?? 'Notification could not be updated.' : 'Notification could not be updated.'); }
   };
-  const markAllAsRead = () => { void mutate(() => notificationService.markAllReadCount(), 'All notifications marked as read'); };
-  const toggleNotificationRead = (id: string) => { void mutate(() => notificationService.toggleRead(id), 'Notification marked as read'); };
+  const markAllAsRead = () => { void useNotificationStore.getState().markAllAsRead(useAuthStore.getState().user ?? undefined); };
+  const toggleNotificationRead = (id: string) => { void useNotificationStore.getState().toggleNotificationRead(id, useAuthStore.getState().user ?? undefined); };
   const removeNotification = (id: string) => { void mutate(async () => { await notificationService.deleteNotification(id); if (notifications.length === 1 && page > 1) setPage(page - 1); }, 'Notification removed'); };
 
   const getIconForType = (type: string) => {
@@ -168,7 +173,7 @@ export const NotificationsPage: React.FC = () => {
           ))
         )}
       </div>
-      <PaginationControls pagination={pagination} busy={loading} onPageChange={setPage} />
+      <PaginationControls pagination={{ ...pagination, total: filter === 'all' ? totalCount : filter === 'read' ? readCount : unreadCount, totalPages: Math.ceil((filter === 'all' ? totalCount : filter === 'read' ? readCount : unreadCount) / pagination.limit) }} busy={loading} onPageChange={setPage} />
     </div>
   );
 };

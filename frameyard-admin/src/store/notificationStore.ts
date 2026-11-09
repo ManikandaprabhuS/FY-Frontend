@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Notification } from '../types';
+import { Notification, type NotificationReader } from '../types';
 import { notificationService } from '../services/notification.service';
 import { showSuccess, showError } from '../utils/toast';
 
@@ -27,18 +27,35 @@ const playNotificationSound = () => {
 
 interface NotificationState {
   notifications: Notification[];
+  unreadCount: number;
+  ingestPage: (notifications: Notification[], unreadCount: number) => void;
   loading: boolean;
   error: string | null;
   fetchNotifications: (isBackground?: boolean) => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  toggleNotificationRead: (id: string) => Promise<void>;
+  markAllAsRead: (reader?: NotificationReader) => Promise<void>;
+  toggleNotificationRead: (id: string, reader?: NotificationReader) => Promise<void>;
   removeNotification: (id: string) => Promise<void>;
 }
 
 let notificationFetchPromise: Promise<void> | null = null;
+let readVersion = 0;
+const pendingReads = new Set<string>();
+const mergeNotifications = (current: Notification[], incoming: Notification[], preserveRead = false) => {
+  const merged = new Map(current.map(item => [item.id, item]));
+  for (const item of incoming) {
+    const previous = merged.get(item.id);
+    merged.set(item.id, preserveRead && previous?.read && !item.read ? previous : item);
+  }
+  return [...merged.values()].sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()) || a.id.localeCompare(b.id));
+};
 
 export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
+  unreadCount: 0,
+  ingestPage: (notifications, unreadCount) => set(state => ({
+    notifications: mergeNotifications(state.notifications, notifications, true),
+    unreadCount: pendingReads.size ? state.unreadCount : Math.max(0, unreadCount - notifications.filter(item => !item.read && state.notifications.some(current => current.id === item.id && current.read)).length),
+  })),
   loading: false,
   error: null,
 
@@ -49,7 +66,11 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     }
     notificationFetchPromise = (async () => {
       try {
-        const data = await notificationService.getNotifications();
+        const version = readVersion;
+        const snapshot = await notificationService.listPage(1, undefined, 100);
+        if (version !== readVersion || pendingReads.size) { set({ loading: false }); return; }
+        const data = snapshot.notifications;
+        set({ unreadCount: snapshot.summary.unreadCount });
         const currentNotifications = useNotificationStore.getState().notifications;
       
       if (currentNotifications.length > 0) {
@@ -60,8 +81,9 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         }
       }
       
-        const changed = JSON.stringify(currentNotifications) !== JSON.stringify(data);
-        if (changed) set({ notifications: data, loading: false, error: null });
+        const merged = mergeNotifications(currentNotifications, data);
+        const changed = JSON.stringify(currentNotifications) !== JSON.stringify(merged);
+        if (changed) set({ notifications: merged, loading: false, error: null });
         else if (!isBackground) set({ loading: false, error: null });
       } catch (err: any) {
         if (!isBackground) set({ error: err.response?.data?.message || 'Failed to fetch notifications', loading: false });
@@ -73,51 +95,41 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     return notificationFetchPromise;
   },
 
-  markAllAsRead: async () => {
-    const originalNotifications = useNotificationStore.getState().notifications;
-    // Optimistically update all to read: true
-    set((state) => ({
-      notifications: state.notifications.map((n) => ({ ...n, read: true })),
-    }));
-    const toastId = showSuccess("All notifications marked as read");
-
+  markAllAsRead: async (reader) => {
+    if (pendingReads.size) return;
+    const state = useNotificationStore.getState();
+    const ids = new Set(state.notifications.filter(n => !n.read).map(n => n.id));
+    const previousCount = state.unreadCount;
+    if (!previousCount) return;
+    pendingReads.add('*'); readVersion++;
+    set({ notifications: state.notifications.map(n => n.read ? n : ({ ...n, read: true, readBy: reader ?? n.readBy })), unreadCount: 0 });
+    const toastId = 'notifications-read-all';
+    showSuccess('Marked as read', { id: toastId });
     try {
-      const updated = await notificationService.markAllRead();
-      set({ notifications: updated });
-    } catch (err: any) {
-      // Revert on error
-      set({ notifications: originalNotifications });
-      showError(err.response?.data?.message || 'Failed to mark notifications as read', { id: toastId });
-    }
+      const unreadCount = await notificationService.markAllRead();
+      set({ unreadCount });
+    } catch {
+      set(current => ({ notifications: current.notifications.map(n => ids.has(n.id) ? state.notifications.find(original => original.id === n.id) ?? n : n), unreadCount: previousCount }));
+      showError('Failed to mark notifications as read', { id: toastId, retry: () => { void useNotificationStore.getState().markAllAsRead(reader); } });
+    } finally { pendingReads.delete('*'); readVersion++; }
   },
 
-  toggleNotificationRead: async (id: string) => {
-    const originalNotifications = useNotificationStore.getState().notifications;
-    const target = originalNotifications.find((n) => n.id === id);
-    if (!target) return;
-
-    const newReadStatus = true;
-
-    // Optimistically toggle read status
-    set((state) => ({
-      notifications: state.notifications.map((n) => (n.id === id ? { ...n, read: newReadStatus } : n)),
-    }));
-    
-    const message = "Marked as read";
-    const toastId = showSuccess(message);
-
+  toggleNotificationRead: async (id: string, reader) => {
+    if (pendingReads.has(id) || pendingReads.has('*')) return;
+    const target = useNotificationStore.getState().notifications.find(n => n.id === id);
+    if (!target || target.read) return;
+    pendingReads.add(id); readVersion++;
+    set(state => ({ notifications: state.notifications.map(n => n.id === id ? { ...n, read: true, readBy: reader ?? n.readBy } : n), unreadCount: Math.max(0, state.unreadCount - 1) }));
+    const toastId = 'notification-read-' + id;
+    showSuccess('Marked as read', { id: toastId });
     try {
-      const updated = await notificationService.toggleRead(id);
-      set((state) => ({
-        notifications: state.notifications.map((n) => (n.id === id ? updated : n)),
-      }));
-    } catch (err: any) {
-      // Revert on error
-      set({ notifications: originalNotifications });
-      showError(err.response?.data?.message || 'Failed to update notification read status', { id: toastId });
-    }
+      const result = await notificationService.toggleRead(id);
+      set(state => ({ notifications: state.notifications.map(n => n.id === id ? result.notification : n), ...(pendingReads.size === 1 ? { unreadCount: Math.min(state.unreadCount, result.unreadCount) } : {}) }));
+    } catch {
+      set(state => ({ notifications: state.notifications.map(n => n.id === id ? target : n), unreadCount: state.unreadCount + 1 }));
+      showError('Failed to update notification read status', { id: toastId, retry: () => { void useNotificationStore.getState().toggleNotificationRead(id, reader); } });
+    } finally { pendingReads.delete(id); readVersion++; }
   },
-
   removeNotification: async (id: string) => {
     const originalNotifications = useNotificationStore.getState().notifications;
 

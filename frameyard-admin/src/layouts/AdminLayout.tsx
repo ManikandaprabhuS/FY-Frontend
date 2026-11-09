@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNotificationStore } from '../store/notificationStore';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
@@ -89,7 +90,7 @@ export const AdminLayout: React.FC = () => {
     });
   };
 
-  const unreadCount = useMemo(() => notifications.reduce((count, notification) => count + (notification.read ? 0 : 1), 0), [notifications]);
+  const unreadCount = useNotificationStore(state => state.unreadCount);
 
   return (
     <div className="admin-monochrome min-h-screen bg-background flex text-on-background">
@@ -300,6 +301,7 @@ export const AdminLayout: React.FC = () => {
                           >
                             <p className="text-xs font-semibold text-on-surface">{notif.title}</p>
                             <p className="text-[11px] text-on-surface-variant mt-0.5 line-clamp-2">{notif.message}</p>
+                            {notif.readBy && <p className="mt-1 text-[10px] text-on-surface-variant">Read by {notif.readBy.name} ({notif.readBy.role})</p>}
                             <span className="text-[9px] text-on-surface-variant/60 mt-1 block">
                               {new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>

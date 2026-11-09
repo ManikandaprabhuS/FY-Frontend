@@ -24,13 +24,11 @@ const normalizeNotification = (notification: BackendNotification): Notification 
 });
 
 export const notificationService = {
-  listPage: async (page = 1, read?: boolean) => {
-    const response = await api.get<ApiEnvelope<{ notifications: BackendNotification[]; pagination: Pagination; summary: { totalCount: number; unreadCount: number; readCount: number } }>>('/notifications', { params: { page, limit: 20, read } });
+  listPage: async (page = 1, read?: boolean, limit = 20) => {
+    const response = await api.get<ApiEnvelope<{ notifications: BackendNotification[]; pagination: Pagination; summary: { totalCount: number; unreadCount: number; readCount: number } }>>('/notifications', { params: { page, limit, read } });
     return { ...response.data.data, notifications: response.data.data.notifications.map(normalizeNotification) };
   },
-  markAllReadCount: async () => {
-    await api.patch('/notifications/read-all');
-  },
+
   getNotifications: async (): Promise<Notification[]> => {
     const response = await api.get<ApiEnvelope<{ notifications: BackendNotification[]; pagination: Pagination }>>('/notifications', {
       params: { page: 1, limit: 100 },
@@ -39,14 +37,14 @@ export const notificationService = {
     return notifications;
   },
 
-  markAllRead: async (): Promise<Notification[]> => {
-    await api.patch('/notifications/read-all');
-    return notificationService.getNotifications();
+  markAllRead: async (): Promise<number> => {
+    const response = await api.patch<ApiEnvelope<{ unreadCount: number }>>('/notifications/read-all', undefined, { timeout: 15_000 });
+    return response.data.data.unreadCount;
   },
 
-  toggleRead: async (id: string): Promise<Notification> => {
-    const response = await api.patch<ApiEnvelope<{ notification: BackendNotification }>>(`/notifications/${id}/read`);
-    return normalizeNotification(response.data.data.notification);
+  toggleRead: async (id: string) => {
+    const response = await api.patch<ApiEnvelope<{ notification: BackendNotification; unreadCount: number }>>(`/notifications/${id}/read`, undefined, { timeout: 15_000 });
+    return { notification: normalizeNotification(response.data.data.notification), unreadCount: response.data.data.unreadCount };
   },
 
   deleteNotification: async (id: string): Promise<{ success: boolean }> => {

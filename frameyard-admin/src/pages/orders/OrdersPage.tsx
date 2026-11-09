@@ -7,7 +7,7 @@ import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download,
 import { Order, OrderStatus } from '../../types';
 import StatusBadge, { OrderStatusFilter } from '../../components/ui/StatusBadge';
 import OrderItemOptions from '../../components/orders/OrderItemOptions';
-import { dismissToast, showError, showLoading, showSuccess } from '../../utils/toast';
+import { dismissToast, showError, showLoading, showSuccess, showWarning } from '../../utils/toast';
 import { orderService } from '../../services/order.service';
 import brandLogo from '../../assets/fy-logo-icon.jpeg';
 
@@ -101,6 +101,7 @@ export const OrdersPage: React.FC = () => {
     showLoading('Please wait, your report is being generated...', toastId);
     try {
       const report = await orderService.getExportReport({ search: debouncedSearchTerm, status: statusFilter, dateFilter });
+      if (!report.orders.length) { showWarning('No records match the selected filters', { id: toastId }); notified = true; return; }
       const { createRevenueReportPdf } = await import('../../utils/revenue-report-pdf');
       const logoResponse = await fetch(brandLogo, { signal: AbortSignal.timeout(15_000) });
       if (!logoResponse.ok) throw new Error('Unable to load report branding');
