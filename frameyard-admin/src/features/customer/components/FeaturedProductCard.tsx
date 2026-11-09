@@ -1,4 +1,5 @@
 import React from 'react';
+import ProductRating from '../../../components/reviews/ProductRating';
 import { getStockStatus, totalVariantStock } from '../../../utils/stock';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '../../../types';
@@ -76,6 +77,7 @@ const FeaturedProductCard: React.FC<FeaturedProductCardProps> = ({
 
       <div className="relative z-10 -mt-3 flex min-h-0 flex-1 flex-col rounded-t-[1rem] bg-white px-4 pb-3 pt-3 shadow-[0_-10px_22px_rgba(0,0,0,0.04)]">
         <h3 className="truncate text-base font-black text-black">{product.name}</h3>
+        <ProductRating productId={product.id} />
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="min-w-0">
             <p className="text-xl font-black text-black">

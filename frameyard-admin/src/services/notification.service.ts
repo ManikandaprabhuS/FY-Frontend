@@ -3,6 +3,7 @@ import api from './api';
 import type { ApiEnvelope, Pagination } from './contracts';
 
 type BackendNotification = {
+  actionUrl?: string;
   id: string;
   title: string;
   message: string;
@@ -21,6 +22,7 @@ const normalizeNotification = (notification: BackendNotification): Notification 
   read: notification.read,
   readBy: notification.readBy ?? null,
   date: notification.createdAt,
+  actionUrl: notification.actionUrl,
 });
 
 export const notificationService = {

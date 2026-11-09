@@ -1,3 +1,4 @@
+import ProductRating from '../../../components/reviews/ProductRating';
 import React, { useEffect } from 'react';
 import { Heart, Trash2, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -81,6 +82,7 @@ const CustomerWishlistDrawer: React.FC<Props> = ({ open, onClose }) => {
                       {image ? <img src={image} alt={item.product.productName} loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-2 text-center text-[9px] text-black/35">No image</span>}
                     </Link>
                     <div className="min-w-0 flex-1 py-0.5">
+                      <ProductRating productId={item.product.id} />
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0"><Link to={`/product/${item.product.id}`} onClick={onClose} className="block truncate text-sm font-black hover:underline">{item.product.productName}</Link><p className="mt-1 truncate text-[10px] text-black/45">{item.product.material?.material || 'Frame'}{activeVariants[0]?.frameSize ? ` · ${activeVariants[0].frameSize}` : ''}</p></div>
                         <button type="button" onClick={() => void removeItem(item.productIdentifier)} aria-label={`Remove ${item.product.productName} from wishlist`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 text-black/50 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>

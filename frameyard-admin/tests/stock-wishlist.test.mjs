@@ -11,6 +11,14 @@ test('stock handles malformed values and sums valid variant totals',()=>{
   assert.equal(stock.totalVariantStock([{stockQuantity:3},{stockQuantity:'3'},{stockQuantity:-50},{stockQuantity:'bad'}]),6);
   assert.equal(stock.LOW_STOCK_THRESHOLD,5);
 });
+test('cart move toast is emitted before awaiting the API and failure replaces the same toast',()=>{
+ const cart=readFileSync(new URL('../src/features/customer/pages/CartPage.tsx',import.meta.url),'utf8');
+ const handler=cart.slice(cart.indexOf('const moveToWishlist ='),cart.indexOf('if (items.length === 0)'));
+ assert.ok(handler.indexOf("showSuccess('Moved to wishlist'") < handler.indexOf('await request'));
+ assert.ok(handler.indexOf('setRemovalChoiceKey(null)') < handler.indexOf('await request'));
+ assert.match(handler,/Could not move to wishlist\. Please try again\.', \{ id: toastId \}/);
+ assert.match(handler,/moveInFlight\.current\.has\(item.key\)/);
+});
 const preview={id:'product',productIdentifier:'FRAME',productName:'Frame',variants:[{id:'variant',frameSize:'5x5',price:450,stockQuantity:5,isActive:true}]};
 const row={id:'saved',productIdentifier:'FRAME',product:preview};
 const cartItem={productId:'product',productIdentifier:'FRAME',variantId:'variant',name:'Frame',material:'Wood',frameSize:'5x5',mountType:'NONE',glassType:'NONE',unitPrice:450,quantity:1,stockQuantity:5,color:'#000000'};

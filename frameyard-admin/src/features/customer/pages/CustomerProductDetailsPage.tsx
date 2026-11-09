@@ -1,6 +1,6 @@
 import { getStockStatus, normalizeStock } from '../../../utils/stock';
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   Check,
@@ -16,6 +16,8 @@ import {
   Upload,
 } from 'lucide-react';
 
+import ProductReviews from '../../../components/reviews/ProductReviews';
+import ProductRating from '../../../components/reviews/ProductRating';
 import ImageCropModal from '../components/ImageCropModal';
 import ColorSwatch from '../components/ColorSwatch';
 import { resolveColorOption, useFrameColors } from '../../../store/frameColorStore';
@@ -32,6 +34,7 @@ import { useCustomerCommerce } from '../hooks/useCustomerCommerce';
 const uniqueValues = (values: Array<string | null | undefined>) => [...new Set(values.filter((value): value is string => Boolean(value)))];
 
 const CustomerProductDetailsPage: React.FC = () => {
+  const reviewLocation = useLocation();
   const { slug } = useParams<{ slug: string }>();
   const products = useProductStore((state) => state.products);
   const fetchedProduct = useProductStore((state) => state.currentProduct);
@@ -263,7 +266,7 @@ const CustomerProductDetailsPage: React.FC = () => {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-black/45">{currentProduct.brandName || 'FrameYaad'}</p>
                 <h1 className="mt-1 text-2xl font-black sm:text-3xl">{currentProduct.name}</h1>
-                <div className="mt-2 flex items-center gap-3 text-[11px]"><span className="text-amber-500">★ 4.8</span><span className="text-black/45">Premium custom frame</span><span className={`inline-flex items-center gap-1 ${getStockStatus(selectedVariant?.stockQuantity).textClass}`}><span className={`h-1.5 w-1.5 rounded-full ${getStockStatus(selectedVariant?.stockQuantity).dotClass}`} />{getStockStatus(selectedVariant?.stockQuantity).label}</span></div>
+                <div className="mt-2 flex items-center gap-3 text-[11px]"><ProductRating productId={currentProduct.id} /><span className="text-black/45">Premium custom frame</span><span className={`inline-flex items-center gap-1 ${getStockStatus(selectedVariant?.stockQuantity).textClass}`}><span className={`h-1.5 w-1.5 rounded-full ${getStockStatus(selectedVariant?.stockQuantity).dotClass}`} />{getStockStatus(selectedVariant?.stockQuantity).label}</span></div>
               </div>
             </div>
 
@@ -331,6 +334,7 @@ const CustomerProductDetailsPage: React.FC = () => {
           <p className="mt-3 max-w-5xl text-sm leading-7 text-black/60">{currentProduct.description || 'A premium FrameYaad frame designed to preserve and display your favorite memories beautifully.'}</p>
         </section>
 
+        <ProductReviews key={currentProduct.id} productId={currentProduct.id} initiallyOpen={new URLSearchParams(reviewLocation.search).get("writeReview") === "1"} />
         <Link to="/products" className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-black hover:underline"><ArrowLeft className="h-4 w-4" /> Back to all frames</Link>
       </div>
 

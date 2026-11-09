@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { notificationService } from '../../services/notification.service';
@@ -135,7 +136,7 @@ export const NotificationsPage: React.FC = () => {
               <div className="flex-grow">
                 <div className="flex justify-between items-start gap-2">
                   <h4 className={`font-semibold ${notification.read ? 'text-on-surface' : 'text-primary'}`}>
-                    {notification.title}
+                    {notification.actionUrl ? <Link to={notification.actionUrl} onClick={() => toggleNotificationRead(notification.id)} className="underline-offset-4 hover:underline">{notification.title}</Link> : notification.title}
                   </h4>
                   <span className="text-xs text-on-surface-variant whitespace-nowrap">
                     {new Date(notification.date).toLocaleDateString()}

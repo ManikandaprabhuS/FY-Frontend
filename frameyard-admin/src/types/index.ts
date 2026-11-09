@@ -241,6 +241,7 @@ export interface NotificationReader {
 }
 
 export interface Notification {
+  actionUrl?: string;
   id: string;
   title: string;
   message: string;

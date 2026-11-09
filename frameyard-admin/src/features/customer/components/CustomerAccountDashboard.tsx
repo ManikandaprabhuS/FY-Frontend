@@ -1,3 +1,4 @@
+import ProductRating from "../../../components/reviews/ProductRating";
 import { normalizeStock } from "../../../utils/stock";
 import React, { useEffect, useState } from 'react';
 import StatusBadge from '../../../components/ui/StatusBadge';
@@ -254,6 +255,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
                           <div className="min-w-0"><Link to={`/product/${item.product.id}`} className="block truncate text-sm font-black hover:underline">{item.product.productName}</Link><p className="mt-1 truncate text-[10px] text-black/45">{item.product.material?.material || 'Frame'}{activeVariants[0]?.frameSize ? ` · ${activeVariants[0].frameSize}` : ''}</p></div>
                           <button type="button" onClick={() => void removeWishlistItem(item.productIdentifier)} aria-label={`Remove ${item.product.productName} from wishlist`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 text-black/55 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
+                        <ProductRating productId={item.product.id} />
                         <div className="mt-3 flex items-center justify-between gap-3">
                           {price > 0 ? <p className="text-base font-black">₹{price.toLocaleString('en-IN')}</p> : <span />}
                           <button type="button" disabled={!canMoveToCart} onClick={() => void moveWishlistItemToCart(item)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-black px-3 text-[10px] font-bold text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:bg-black/25"><ShoppingBag className="h-3.5 w-3.5" />Move to Cart</button>
@@ -327,7 +329,7 @@ const CustomerOrderCard: React.FC<{ order: Order }> = ({ order }) => {
         <div><span className="text-black/45">Amount</span><strong className="mt-1 block text-xs">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.totalAmount)}</strong></div>
       </div>
       <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end"><StatusBadge status={order.orderStatus} className="text-[9px]" /><Link to="/orders" className="rounded-lg bg-black px-4 py-2 text-[10px] font-bold text-white">View Details</Link></div>
-      <div className="col-span-full space-y-3 border-t border-black/10 pt-3">{order.orderItems.map(orderItem => <div key={orderItem.id}><p className="text-xs font-bold">{orderItem.productName}</p><OrderItemOptions item={orderItem} /><p className="mt-1 text-[11px]">Qty: {orderItem.quantity} · ₹{Number(orderItem.price).toLocaleString("en-IN")}</p></div>)}</div>
+      <div className="col-span-full space-y-3 border-t border-black/10 pt-3">{order.orderItems.map(orderItem => <div key={orderItem.id}><p className="text-xs font-bold">{orderItem.productName}</p><OrderItemOptions item={orderItem} /><p className="mt-1 text-[11px]">Qty: {orderItem.quantity} · ₹{Number(orderItem.price).toLocaleString("en-IN")}</p>{orderItem.productId && orderItem.productId !== "-" && <Link to={`/product/${encodeURIComponent(orderItem.productId)}?writeReview=1#reviews`} className="mt-2 inline-flex min-h-11 items-center text-xs font-bold underline">Write a review</Link>}</div>)}</div>
     </article>
   );
 };

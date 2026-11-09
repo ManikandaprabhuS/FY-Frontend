@@ -1,4 +1,5 @@
 import React from 'react';
+import ProductRating from '../../../components/reviews/ProductRating';
 import { Heart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -100,6 +101,7 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
             {product.name}
           </Link>
         </h2>
+        <ProductRating productId={product.id} />
         <p className="mt-1 truncate text-[13px] text-mute">{details || 'Frame'}</p>
 
         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">

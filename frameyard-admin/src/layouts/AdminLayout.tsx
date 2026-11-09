@@ -25,6 +25,7 @@ import {
   BadgePercent,
   Mail,
   CalendarDays,
+  Star,
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -63,6 +64,7 @@ export const AdminLayout: React.FC = () => {
     { name: 'Orders', path: '/admin/orders', icon: ShoppingCart },
     { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Wishlists', path: '/admin/wishlists', icon: Heart },
+    { name: 'Reviews & Ratings', path: '/admin/reviews', icon: Star },
     { name: 'Coupons', path: '/admin/marketing/coupons', icon: TicketPercent, adminOnly: true },
     { name: 'Product Discounts', path: '/admin/marketing/product-discounts', icon: BadgePercent, adminOnly: true },
     { name: 'Newsletter', path: '/admin/newsletter', icon: Mail },
@@ -296,6 +298,7 @@ export const AdminLayout: React.FC = () => {
                             onClick={() => {
                               toggleNotificationRead(notif.id);
                               setNotifDropdownOpen(false);
+                              if (notif.actionUrl?.startsWith("/admin/reviews")) navigate(notif.actionUrl);
                             }}
                             className={`p-3 text-left hover:bg-surface transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
                           >

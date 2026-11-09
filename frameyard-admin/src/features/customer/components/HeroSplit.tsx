@@ -1,5 +1,6 @@
+import ProductRating from '../../../components/reviews/ProductRating';
 import React, { useMemo } from 'react';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import heroImage from '../../../assets/hero.png';
 import { Product } from '../../../types';
@@ -96,12 +97,7 @@ const HeroSplit: React.FC<HeroSplitProps> = ({ products, loading = false, error 
               <div className="fy-backend-product-tile__details">
                 <p className="fy-backend-product-tile__label">Bestseller</p>
                 <h2>{productName}</h2>
-                <div className="fy-backend-product-tile__rating" aria-label="5 star rating">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="h-4 w-4 fill-black text-black" aria-hidden="true" />
-                  ))}
-                  <span>(128)</span>
-                </div>
+                {featuredProduct && <ProductRating productId={featuredProduct.id} />}
                 <div className="fy-backend-product-tile__price">
                   <strong>{formatCurrency(currentPrice)}</strong>
                   {originalPrice && <span>{formatCurrency(originalPrice)}</span>}

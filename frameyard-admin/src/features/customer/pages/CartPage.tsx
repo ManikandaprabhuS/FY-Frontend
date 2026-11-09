@@ -1,5 +1,5 @@
 import { cartStockIssue } from '../../../utils/stock';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -25,6 +25,7 @@ const CartPage: React.FC = () => {
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<{ signature: string; result: CouponValidationResult } | null>(null);
   const [removalChoiceKey, setRemovalChoiceKey] = useState<string | null>(null);
+  const moveInFlight = useRef(new Set<string>());
   const [movingToWishlistKey, setMovingToWishlistKey] = useState<string | null>(null);
   const activePromo = appliedPromo?.signature === cartSignature ? appliedPromo.result : null;
   const finalTotal = activePromo?.total ?? subtotal;
@@ -70,6 +71,7 @@ const CartPage: React.FC = () => {
   };
 
   const moveToWishlist = async (item: (typeof items)[number]) => {
+    if (moveInFlight.current.has(item.key)) return;
     if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
     const verified = useAuthStore.getState();
     if (verified.status === 'checking') return;
@@ -83,17 +85,27 @@ const CartPage: React.FC = () => {
       return;
     }
 
+    if (useCustomerCommerceStore.getState().wishlistPending[item.productIdentifier]) return;
+    moveInFlight.current.add(item.key);
+    const toastId = 'cart-move:' + item.key;
+    const alreadySaved = Boolean(useCustomerCommerceStore.getState().wishlistByProductIdentifier[item.productIdentifier]);
     setMovingToWishlistKey(item.key);
     try {
-      const moved = await moveCartItemToWishlist(item.key, item.productIdentifier);
-      if (!moved) return;
-      setRemovalChoiceKey(null);
-      if (moved === 'exists') showWarning('Already in your wishlist. Removed from cart.');
-      else showSuccess('Moved to wishlist');
+      // The store applies the optimistic state before its first await.
+      const request = moveCartItemToWishlist(item.key, item.productIdentifier);
+      if (!useCustomerCommerceStore.getState().cartItems.some(row => row.key === item.key)) {
+        setRemovalChoiceKey(null);
+        if (alreadySaved) showWarning('Already in your wishlist. Removed from cart.', { id: toastId });
+        else showSuccess('Moved to wishlist', { id: toastId });
+      }
+      const moved = await request;
+      if (moved === 'exists' && !alreadySaved) showWarning('Already in your wishlist. Removed from cart.', { id: toastId });
     } catch {
-      showError('Product could not be moved to the wishlist. Please try again.');
+      // Store rollback restores the cart and counts before this replacement.
+      showError('Could not move to wishlist. Please try again.', { id: toastId });
     } finally {
-      setMovingToWishlistKey(null);
+      moveInFlight.current.delete(item.key);
+      setMovingToWishlistKey(current => current === item.key ? null : current);
     }
   };
 
