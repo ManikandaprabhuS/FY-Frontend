@@ -20,7 +20,7 @@ test("offers use backend amounts, replacement selection, loading/error and doubl
  assert.match(source,/Save \{money\(offer.discountAmount\)\}/);assert.match(source,/selected\?\.total\?\?quote.subtotal/);
  assert.match(source,/setCode\(offer.code\)/);assert.match(source,/setCode\(undefined\)/);
  assert.match(source,/data.bigOrderRemovalMessage/);assert.match(source,/saveLock.current/);
- assert.match(source,/350/);assert.match(source,/Checking available offers/);assert.match(source,/Retry loading offers/);
+ assert.match(source,/},0\);/);assert.match(source,/Checking available offers/);assert.match(source,/Retry loading offers/);
  assert.doesNotMatch(source,/5000|5001|\.05|\.10|discountAmount\s*:/);
 });
 test("cart has no code input, old management routes are absent, checkout stays customer-only",async()=>{

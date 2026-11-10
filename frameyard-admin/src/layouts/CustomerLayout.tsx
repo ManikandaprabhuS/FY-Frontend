@@ -6,6 +6,7 @@ import MobileDock from '../features/customer/components/MobileDock';
 import { isDockRoute, STUDIO_PATH } from '../features/customer/navigation';
 import '../features/customer/styles/storefront.css';
 import { useAuthStore } from '../store/authStore';
+import {customerOrdersPage} from '../services/customer-orders.service';
 import { useCustomerCommerceStore } from '../store/customerCommerceStore';
 
 const CustomerLayout: React.FC = () => {
@@ -19,7 +20,7 @@ const CustomerLayout: React.FC = () => {
 
 
   useEffect(() => {
-    if (userId) void loadWishlist(userId);
+    if (userId) {void loadWishlist(userId);void customerOrdersPage(userId).catch(()=>undefined);}
   }, [loadWishlist, userId]);
 
   return (

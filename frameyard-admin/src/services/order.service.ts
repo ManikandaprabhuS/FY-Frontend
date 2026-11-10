@@ -25,6 +25,7 @@ type BackendOrder = {
   userAddressId: string;
   totalPrice: number | string;
   status: OrderStatus;
+  statusHistory?: unknown;
   remark?: string | null;
   couponId?: string | null;
   couponCode?: string | null; couponTitle?: string | null; discountPercent?: number|string|null;
@@ -99,7 +100,14 @@ const normalizeOrderItem = (item: BackendOrderItem, order: BackendOrder): OrderI
   imageUrl: item.product.images?.[0]?.imageUrl ?? null,
 });
 
+const historyFrom=(value:unknown):NonNullable<Order["statusHistory"]>=>Array.isArray(value)?value.flatMap(entry=>{
+ if(!entry||typeof entry!=="object")return[];
+ const e=entry as Record<string,unknown>,by=e.changedBy;
+ if(typeof e.status!=="string"||typeof e.changedAt!=="string"||!by||typeof by!=="object"||!("id" in by)||typeof by.id!=="string"||!("role" in by)||typeof by.role!=="string")return[];
+ return[{status:e.status,changedAt:e.changedAt,changedBy:{id:by.id,role:by.role},...(typeof e.note==="string"?{note:e.note}:{}),...(typeof e.previousStatus==="string"?{previousStatus:e.previousStatus}:{})}];
+}):[];
 export const normalizeOrder = (order: BackendOrder): Order => ({
+  statusHistory:historyFrom(order.statusHistory),
   id: order.id,
   userId: order.userId,
   userAddressId: order.userAddressId,
@@ -175,15 +183,20 @@ export const orderService = {
   },
 
   getOrderById: async (id: string): Promise<Order> => {
-    const response = await api.get<ApiEnvelope<{ order: BackendOrder }>>(`/orders/${id}`);
+    const response = await api.get<ApiEnvelope<{ order: BackendOrder }>>(`/orders/${id}`,{timeout:20000});
     return normalizeOrder(response.data.data.order);
   },
 
-  updateOrderStatus: async (id: string, status: OrderStatus): Promise<Order> => {
-    const response = await api.patch<ApiEnvelope<{ order: BackendOrder }>>(`/orders/${id}/status`, { status });
+  updateOrderStatus: async (id: string, status: OrderStatus, expectedStatus?:OrderStatus): Promise<Order> => {
+    const response = await api.patch<ApiEnvelope<{ order: BackendOrder }>>(`/orders/${id}/status`, { status, expectedStatus });
     return normalizeOrder(response.data.data.order);
   },
 
+  cancelOrder:async(id:string,note?:string,expectedStatus?:OrderStatus):Promise<Order>=>{
+    const response=await api.post<ApiEnvelope<{order:BackendOrder}>>('/orders/'+id+'/cancel',{note,expectedStatus},{timeout:20000});
+    if(typeof window!=="undefined")window.dispatchEvent(new Event("fy:customer-orders-changed"));
+    return normalizeOrder(response.data.data.order);
+  },
   exportOrders: async (params: Omit<OrderQueryParams, 'page' | 'limit'> = {}): Promise<Blob> => {
     const { orders } = await orderService.getOrders({ ...params, page: 1, limit: 100 });
     const rows = [

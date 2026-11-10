@@ -132,7 +132,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   changeOrderStatus: async (id, status) => {
     try {
-      const updatedOrder = await orderService.updateOrderStatus(id, status);
+      const updatedOrder = await orderService.updateOrderStatus(id, status, get().orders.find(order=>order.id===id)?.orderStatus);
       set((state) => ({
         orders: state.orders.map((o) => (o.id === id ? updatedOrder : o)),
       }));
@@ -144,10 +144,10 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         lastQuery: get().lastQuery,
       };
       writeOrderCache(nextState);
-      await get().fetchOrders(get().lastQuery, { silent: true });
+      void get().fetchOrders(get().lastQuery, { silent: true });
       return true;
     } catch (err: any) {
-      set({ error: err.response?.data?.message || 'Failed to update order status' });
+      set({ error: err.response?.data?.error?.message || err.response?.data?.message || 'Failed to update order status' });
       return false;
     }
   },

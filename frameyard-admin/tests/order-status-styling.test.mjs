@@ -49,7 +49,7 @@ test('All Statuses filter uses light scheme and readable options', () => {
   assert.equal((html.match(/<option[^>]*background-color:#ffffff;color:#111827/g) ?? []).length, 8);
 });
 test('admin table/mobile/details, overview and customer history share StatusBadge', async () => {
-  for (const file of ['pages/orders/OrdersPage.tsx', 'pages/overview/OverviewPage.tsx', 'features/customer/components/CustomerAccountDashboard.tsx']) {
+  for (const file of ['pages/orders/OrdersPage.tsx', 'pages/overview/OverviewPage.tsx', 'features/customer/components/CustomerOrderSummaries.tsx']) {
     const text = await readFile(new URL('../src/' + file, import.meta.url), 'utf8');
     assert.match(text, /<StatusBadge/);
     assert.doesNotMatch(text, /getDropdownStyles|const statusStyle:|getOrderStatusBadge/);

@@ -9,6 +9,7 @@ import { showWarning } from '../../../utils/toast';
 import { BRAND_NAME, primaryNavLinks } from '../navigation';
 import CustomerMenuDrawer from './CustomerMenuDrawer';
 import CustomerWishlistDrawer from './CustomerWishlistDrawer';
+import CustomerNotificationBell from './CustomerNotificationBell';
 
 const iconButton =
   'relative grid h-11 w-11 place-items-center rounded-full text-ink transition-[background-color,transform] duration-300 hover:bg-mat active:scale-90';
@@ -102,6 +103,7 @@ const CustomerNavbar: React.FC = () => {
           </nav>
 
           <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+            {customerLoggedIn&&<CustomerNotificationBell key={user.id}/>}
             <Link to="/products" aria-label="Search frames" className={iconButton}>
               <Search className="h-5 w-5" strokeWidth={1.6} />
             </Link>

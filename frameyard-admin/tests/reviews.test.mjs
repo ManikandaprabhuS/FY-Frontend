@@ -65,7 +65,7 @@ test('review status colors share the status badge map without changing order sta
 test('integration points cover cards, wishlist, both order histories and staff route',async()=>{
  const read=path=>readFile(new URL('../src/'+path,import.meta.url),'utf8');
  for(const path of ['features/customer/components/ProductCatalogCard.tsx','features/customer/components/CustomerWishlistDrawer.tsx','features/customer/components/CustomerAccountDashboard.tsx'])assert.match(await read(path),/ProductRating/);
- for(const path of ['features/customer/components/CustomerAccountDashboard.tsx','features/customer/pages/CustomerOrdersPage.tsx'])assert.match(await read(path),/writeReview=1#reviews/);
+ for(const path of ['features/customer/components/CustomerOrderSummaries.tsx','features/customer/pages/CustomerOrdersPage.tsx'])assert.match(await read(path),/writeReview=1#reviews/);
  assert.match(await read('routes/index.tsx'),/path: 'reviews'/);assert.match(await read('layouts/AdminLayout.tsx'),/Reviews & Ratings/);
  assert.doesNotMatch(await read('components/reviews/ProductReviews.tsx'),/dangerouslySetInnerHTML/);
 });

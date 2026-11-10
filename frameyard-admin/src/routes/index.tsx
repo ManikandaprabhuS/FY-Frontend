@@ -40,6 +40,7 @@ const CustomerProductDetailsPage = lazy(() => import('../features/customer/pages
 const CartPage = lazy(() => import('../features/customer/pages/CartPage'));
 const CheckoutPage = lazy(() => import('../features/customer/pages/CheckoutPage'));
 const CustomerProfilePage = lazy(() => import('../features/customer/pages/CustomerProfilePage'));
+const CustomerOrderDetailsPage=lazy(()=>import('../features/customer/pages/CustomerOrderDetailsPage'));
 const CustomerOrdersPage = lazy(() => import('../features/customer/pages/CustomerOrdersPage'));
 const BookAppointmentPage = lazy(() => import('../features/customer/pages/BookAppointmentPage'));
 const ContactUsPage = lazy(() => import('../features/customer/pages/ContactUsPage'));
@@ -60,6 +61,8 @@ export const router = createBrowserRouter([
       { path: '/checkout', element: <CustomerProtectedRoute><CheckoutPage /></CustomerProtectedRoute> },
       { path: '/profile', element: <CustomerProfilePage /> },
       { path: '/orders', element: <CustomerProtectedRoute><CustomerOrdersPage /></CustomerProtectedRoute> },
+      { path: '/orders/:id', element: <CustomerProtectedRoute><ResourceRoute apiRoot="/orders"><CustomerOrderDetailsPage /></ResourceRoute></CustomerProtectedRoute> },
+      { path: '/notifications',element:<CustomerProtectedRoute><NotificationsPage /></CustomerProtectedRoute> },
       { path: '/book-appointment', element: <BookAppointmentPage /> },
       { path: '/contact-us', element: <ContactUsPage /> },
       { path: '/studio', element: <StudioPage /> },

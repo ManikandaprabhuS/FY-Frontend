@@ -16,6 +16,7 @@ test("checkout offer cards render the applied backend quote without client price
   "react-router-dom":{Link:({to,children,...props})=>createElement("a",{...props,href:to},children)},
   "../../../store/customerCommerceStore":{useCustomerCommerceStore:selector=>selector({cartItems:items})},
   "../../../services/checkout.service":{checkoutService:{}},
+  "./CheckoutAddressForm":{default:()=>null},
   "../../../utils/toast":{},
  };
  const source=await readFile(new URL("../src/features/customer/components/CheckoutOffers.tsx",import.meta.url),"utf8"),module={exports:{}};

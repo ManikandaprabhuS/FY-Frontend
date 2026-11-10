@@ -1,9 +1,11 @@
-import OrderOfferDetails from "../../../components/ui/OrderOfferDetails";
+
+
 import ProductRating from "../../../components/reviews/ProductRating";
+import CustomerOrderSummaries from "./CustomerOrderSummaries";
 import { normalizeStock } from "../../../utils/stock";
 import React, { useEffect, useState } from 'react';
-import StatusBadge from '../../../components/ui/StatusBadge';
-import OrderItemOptions from '../../../components/orders/OrderItemOptions';
+
+
 import { getLowestVariantPricing, getVariantPricing } from '../utils/product-pricing';
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
 import { Link, useLocation } from 'react-router-dom';
@@ -27,9 +29,9 @@ import {
 
 import femaleCustomerAvatar from '../../../assets/customer-avatar-female.svg';
 import maleCustomerAvatar from '../../../assets/customer-avatar-male.svg';
-import { orderService } from '../../../services/order.service';
+
 import type { CustomerWishlistItem } from '../../../services/customer-wishlist.service';
-import type { Order, User } from '../../../types';
+import type { User } from '../../../types';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import { showError, showSuccess, showWarning } from '../../../utils/toast';
 
@@ -67,9 +69,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
     defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
   });
   const [editingProfile, setEditingProfile] = useState(false);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(true);
-  const [ordersError, setOrdersError] = useState<string | null>(null);
+
   const wishlistItems = useCustomerCommerceStore((state) => state.wishlistItems);
   const wishlistLoading = useCustomerCommerceStore((state) => state.wishlistLoading);
   const loadWishlist = useCustomerCommerceStore((state) => state.loadWishlist);
@@ -96,24 +96,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
     });
   }, [resetProfileForm, user.addressLine, user.cityName, user.countryName, user.email, user.name, user.phoneNumber, user.postalCode, user.stateName]);
 
-  useEffect(() => {
-    let active = true;
-    void orderService.getOrders({ page: 1, limit: 4 })
-      .then((result) => {
-        if (!active) return;
-        setOrders(result.orders);
-        setOrdersError(null);
-      })
-      .catch(() => {
-        if (active) setOrdersError('Your orders could not be loaded.');
-      })
-      .finally(() => {
-        if (active) setOrdersLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+
 
   useEffect(() => {
     void loadWishlist(user.id);
@@ -211,12 +194,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
               <Link to="/orders" className="inline-flex items-center gap-1 text-[10px] font-bold underline underline-offset-4">View All Orders <ArrowRight className="h-3 w-3" /></Link>
             </div>
             <div className="space-y-3">
-              {ordersLoading && Array.from({ length: 3 }, (_, index) => <OrderSkeleton key={index} />)}
-              {!ordersLoading && ordersError && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-700">{ordersError}</div>}
-              {!ordersLoading && !ordersError && orders.length === 0 && (
-                <div className="rounded-xl border border-black/10 bg-white p-8 text-center"><ShoppingBag className="mx-auto h-7 w-7 text-black/35" /><p className="mt-3 text-sm font-bold">No orders yet</p><Link to="/products" className="mt-3 inline-flex rounded-lg bg-black px-4 py-2 text-xs font-bold text-white">Shop frames</Link></div>
-              )}
-              {!ordersLoading && orders.map((order) => <CustomerOrderCard key={order.id} order={order} />)}
+              <CustomerOrderSummaries key={user.id} userId={user.id}/>
             </div>
           </section>
 
@@ -318,27 +296,12 @@ const AccountNavLink: React.FC<{ href?: string; icon: React.ReactNode; label: st
 
 
 
-const CustomerOrderCard: React.FC<{ order: Order }> = ({ order }) => {
-  const item = order.orderItems[0];
-  const extraItems = Math.max(order.orderItems.length - 1, 0);
-  return (
-    <article className="grid gap-4 rounded-2xl border border-black/10 bg-white p-3 shadow-[0_8px_28px_rgba(0,0,0,0.03)] sm:grid-cols-[82px_1fr_auto] sm:items-center sm:p-4">
-      {item?.imageUrl ? <img src={item.imageUrl} alt={item.productName} className="h-20 w-full rounded-xl bg-[#f4f1ed] object-cover sm:w-20" /> : <div className="grid h-20 w-full place-items-center rounded-xl bg-[#f4f1ed] text-black/25 sm:w-20"><ShoppingBag className="h-6 w-6" /></div>}
-      <div className="grid min-w-0 gap-3 text-[10px] sm:grid-cols-3">
-        <div><span className="text-black/45">Order ID</span><strong className="mt-1 block text-xs">#{order.orderNumber}</strong><span className="mt-2 block text-black/45">Placed on</span><strong className="mt-1 block">{new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(order.createdAt))}</strong></div>
-        <div className="min-w-0"><span className="text-black/45">Items</span><strong className="mt-1 block truncate text-xs">{item?.productName ?? 'Frame order'}</strong><span className="mt-1 block truncate text-black/50">{item ? item.frameSize : '-'}</span><span className="mt-1 block text-black/50">Qty: {item?.quantity ?? 0}{extraItems > 0 ? ` · +${extraItems} more` : ''}</span></div>
-        <div><OrderOfferDetails order={order} /><span className="text-black/45">Amount</span><strong className="mt-1 block text-xs">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.totalAmount)}</strong></div>
-      </div>
-      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end"><StatusBadge status={order.orderStatus} className="text-[9px]" /><Link to="/orders" className="rounded-lg bg-black px-4 py-2 text-[10px] font-bold text-white">View Details</Link></div>
-      <div className="col-span-full space-y-3 border-t border-black/10 pt-3">{order.orderItems.map(orderItem => <div key={orderItem.id}><p className="text-xs font-bold">{orderItem.productName}</p><OrderItemOptions item={orderItem} /><p className="mt-1 text-[11px]">Qty: {orderItem.quantity} · ₹{Number(orderItem.price).toLocaleString("en-IN")}</p>{orderItem.productId && orderItem.productId !== "-" && <Link to={`/product/${encodeURIComponent(orderItem.productId)}?writeReview=1#reviews`} className="mt-2 inline-flex min-h-11 items-center text-xs font-bold underline">Write a review</Link>}</div>)}</div>
-    </article>
-  );
-};
+
 
 const DashboardInput: React.FC<{ label: string; type?: string; icon?: React.ReactNode; disabled?: boolean; error?: string; registration: UseFormRegisterReturn }> = ({ label, type = 'text', icon, disabled, error, registration }) => (
   <label className="block text-[10px] font-bold text-black/65">{label}<span className="relative mt-1.5 block">{icon && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/35 [&>svg]:h-4 [&>svg]:w-4">{icon}</span>}<input {...registration} type={type} disabled={disabled} aria-invalid={Boolean(error)} className={`h-10 w-full rounded-lg border bg-[#fafafa] pr-3 text-xs outline-none transition focus:border-black focus:ring-2 focus:ring-black/10 disabled:cursor-default disabled:bg-white disabled:text-black/75 ${icon ? 'pl-10' : 'pl-3'} ${error ? 'border-red-500' : 'border-black/15'}`} /></span>{error && <span className="mt-1 block text-[10px] font-semibold text-red-600">{error}</span>}</label>
 );
 
-const OrderSkeleton = () => <div className="h-28 animate-pulse rounded-2xl border border-black/5 bg-black/[0.04]" />;
+
 
 export default CustomerAccountDashboard;

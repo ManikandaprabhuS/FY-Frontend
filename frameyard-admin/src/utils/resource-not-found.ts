@@ -10,7 +10,7 @@ export const subscribeToMissingResources = (listener: Listener) => { listeners.a
 export const reportMissingResource = (url: string) => { const path = resourcePath(url); listeners.forEach(listener => listener(path)); };
 export const resourceResponseKey = (url: string): string | undefined => {
   const path = resourcePath(url);
-  if (path === '/products/public') return undefined;
+  if (path === '/products/public' || path === '/orders/status-flow') return undefined;
   if (/^\/products\/(?:public\/)?[^/]+$/.test(path)) return 'product';
   const match = path.match(/^\/(users|orders|appointments|employees)\/[^/]+$/);
   return match ? ({ users:'user', orders:'order', appointments:'appointment', employees:'employee' } as Record<string,string>)[match[1]] : undefined;

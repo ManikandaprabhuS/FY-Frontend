@@ -11,6 +11,9 @@ import OrderItemOptions from '../../components/orders/OrderItemOptions';
 import { dismissToast, showError, showLoading, showSuccess, showWarning } from '../../utils/toast';
 import { orderService } from '../../services/order.service';
 import brandLogo from '../../assets/fy-logo-icon.jpeg';
+import {useOrderFlow} from '../../store/orderFlowStore';
+import {useOrderStore} from '../../store/orderStore';
+import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
 
 const getSearchTermFromQueryString = (search: string) => {
   const params = new URLSearchParams(search);
@@ -26,6 +29,10 @@ const getStatusFilterFromQueryString = (search: string): 'all' | OrderStatus => 
 
 export const OrdersPage: React.FC = () => {
   const location = useLocation();
+  const {flow,error:flowError,retry:retryFlow}=useOrderFlow();
+  const statusLocks=useRef(new Set<string>());
+  const [statusBusy,setStatusBusy]=useState<string[]>([]);
+  const [statusConfirmation,setStatusConfirmation]=useState<{id:string;status:OrderStatus}|null>(null);
   const exportLock = useRef(false);
   const [exporting, setExporting] = useState(false);
   const { orders, loading, refreshing, fetchOrders, changeOrderStatus, pagination, summary } = useOrders(false);
@@ -79,13 +86,21 @@ export const OrdersPage: React.FC = () => {
     });
   }, [currentPage, dateFilter, debouncedSearchTerm, fetchOrders, itemsPerPage, statusFilter]);
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
-    const updated = await changeOrderStatus(orderId, newStatus);
-    if (updated) {
-      showSuccess('Order status updated successfully');
-    } else {
-      showError('Failed to update order status');
-    }
+  const applyStatus=async(orderId:string,newStatus:OrderStatus)=>{
+    if(statusLocks.current.has(orderId))return;
+    statusLocks.current.add(orderId);setStatusBusy(values=>[...values,orderId]);
+    const id="order-status:"+orderId;
+    showLoading("Please wait, the order status is being updated...",id);
+    try{
+      const updated=await changeOrderStatus(orderId,newStatus);
+      if(updated){setSelectedOrder(current=>current?.id===orderId?useOrderStore.getState().orders.find(o=>o.id===orderId)??current:current);showSuccess("Order status updated successfully",{id});}
+      else showError(useOrderStore.getState().error??"Failed to update order status",{id});
+    }finally{statusLocks.current.delete(orderId);setStatusBusy(values=>values.filter(value=>value!==orderId));}
+  };
+  const handleStatusChange=(orderId:string,newStatus:OrderStatus)=>{
+    if(statusLocks.current.has(orderId))return;
+    if(newStatus==="SHIPPED"||newStatus==="DELIVERED")setStatusConfirmation({id:orderId,status:newStatus});
+    else void applyStatus(orderId,newStatus);
   };
 
   const openOrderDetails = (order: Order) => {
@@ -168,7 +183,7 @@ export const OrdersPage: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-4 border-b border-outline-variant/60 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-on-surface">Orders Management</h2>
+          <h2 className="text-3xl font-bold text-on-surface">Orders Management</h2>{flowError&&<button type="button" onClick={()=>void retryFlow()} className="min-h-11 text-xs font-bold underline">Retry loading status options</button>}
           <p className="mt-1 text-sm text-secondary">View, track, and manage all customer orders.</p>
         </div>
 
@@ -302,7 +317,7 @@ export const OrdersPage: React.FC = () => {
               <td className="px-6 py-4 text-right font-medium">{getItemsCount(order)}</td>
               <td className="px-6 py-4 text-right font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</td>
               <td className="px-6 py-4">
-                <StatusBadge status={order.orderStatus} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
+                <StatusBadge status={order.orderStatus} disabled={!flow||statusBusy.includes(order.id)} options={[order.orderStatus,...(flow?.transitions[order.orderStatus]??[])]} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{new Date(order.createdAt).toLocaleDateString()}</td>
               <td className="px-6 py-4 text-right">
@@ -328,7 +343,7 @@ export const OrdersPage: React.FC = () => {
                   </button>
                   <div className="mt-1 text-sm font-semibold text-on-surface">{getCustomerName(order)}</div>
                 </div>
-                <StatusBadge status={order.orderStatus} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
+                <StatusBadge status={order.orderStatus} disabled={!flow||statusBusy.includes(order.id)} options={[order.orderStatus,...(flow?.transitions[order.orderStatus]??[])]} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1 text-xs text-on-surface-variant">
@@ -415,6 +430,7 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
+      <ConfirmDialog isOpen={Boolean(statusConfirmation)} onClose={()=>setStatusConfirmation(null)} onConfirm={()=>{if(statusConfirmation)void applyStatus(statusConfirmation.id,statusConfirmation.status);}} title="Update order status" message={"Move this order to "+(statusConfirmation?.status.replaceAll("_"," ")??"")+"?"} confirmText="Confirm status" type="info"/>
       <Modal
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}

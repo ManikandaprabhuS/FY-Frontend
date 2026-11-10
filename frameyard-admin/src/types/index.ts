@@ -111,7 +111,9 @@ export interface OrderItem {
   imageUrl?: string | null;
 }
 
+export interface OrderStatusHistoryEntry {status:string;changedAt:string;changedBy:{id:string;role:string};note?:string;previousStatus?:string}
 export interface Order {
+  statusHistory?: OrderStatusHistoryEntry[];
   id: string;
   userId: string;
   userAddressId?: string | null;

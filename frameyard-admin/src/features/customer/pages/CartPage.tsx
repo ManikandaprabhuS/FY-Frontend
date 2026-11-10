@@ -9,6 +9,14 @@ import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import { showError, showSuccess, showWarning } from '../../../utils/toast';
 
 import ColorSwatch from '../components/ColorSwatch';
+import {checkoutService} from "../../../services/checkout.service";
+const prefetchCheckout=()=>{
+ const auth=useAuthStore.getState();
+ if(!auth.isAuthenticated||auth.user?.role!=="CUSTOMER")return;
+ const items=useCustomerCommerceStore.getState().cartItems;
+ if(!items.length)return;
+ void checkoutService.offers(items.map(i=>({productIdentifier:i.productIdentifier??"",variantId:i.variantId,quantity:i.quantity,...(i.colorName?{colorName:i.colorName}:{}),...(i.colorHex?{colorHex:i.colorHex}:{})}))).catch(()=>undefined);
+};
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,7 +48,7 @@ const CartPage: React.FC = () => {
     if (verified.isAuthenticated && verified.user?.role === 'CUSTOMER') {
       const issue = cartStockIssue(useCustomerCommerceStore.getState().cartItems);
       if (issue) { showWarning(issue, { id: 'cart-stock' }); return; }
-      return navigate('/checkout');
+      prefetchCheckout();return navigate('/checkout');
     }
     showWarning('Please login to continue to checkout');
     navigate('/profile', { state: { returnTo: '/checkout' } });
@@ -129,7 +137,7 @@ const CartPage: React.FC = () => {
 
 
           <div className="flex items-center justify-between py-4"><span className="font-bold">Total</span><strong className="text-xl">₹{subtotal.toLocaleString('en-IN')}</strong></div>
-          <button type="button" onClick={checkout} className="h-12 w-full rounded-lg bg-black text-sm font-black text-white hover:bg-black/80">Checkout</button>
+          <button type="button" onMouseEnter={prefetchCheckout} onFocus={prefetchCheckout} onPointerDown={prefetchCheckout} onClick={checkout} className="h-12 w-full rounded-lg bg-black text-sm font-black text-white hover:bg-black/80">Checkout</button>
           <Link to="/products" className="mt-3 flex justify-center text-xs font-bold text-black/55 underline underline-offset-4">Continue shopping</Link>
         </aside>
       </div>
