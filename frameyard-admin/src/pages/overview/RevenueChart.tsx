@@ -15,7 +15,7 @@ type RevenueChartProps = {
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => (
   <ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+    <AreaChart data={data} margin={{ top: 10, right: 10, left: 8, bottom: 0 }}>
       <defs>
         <linearGradient id="revenueGreenFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#111827" stopOpacity={0.34} />
@@ -25,14 +25,15 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => (
       </defs>
       <CartesianGrid strokeDasharray="0" vertical stroke="rgba(15,23,42,0.08)" />
       <XAxis dataKey="day" tickLine={false} axisLine={false} style={{ fontSize: '12px', fill: '#6b7280', fontWeight: 700 }} />
-      <YAxis tickLine={false} axisLine={false} style={{ fontSize: '12px', fill: '#6b7280', fontWeight: 700 }} tickFormatter={(value) => `₹${value}`} />
+      <YAxis width={88} tickMargin={8} domain={[0,"auto"]} allowDataOverflow tickLine={false} axisLine={false} style={{ fontSize: "12px", fill: "#6b7280", fontWeight: 700 }} tickFormatter={(value) => "₹"+Number(value).toLocaleString("en-IN")} />
       <Tooltip
         contentStyle={{ background: '#fff', border: '1px solid #c3c6d7', borderRadius: '10px', color: '#111827', fontSize: '12px' }}
         labelStyle={{ color: '#111827', fontWeight: 700 }}
-        formatter={(value) => [`₹${value}`, 'Revenue']}
+        formatter={(value) => ["₹"+Number(value).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}), "Revenue"]}
       />
       <Area
-        type="natural"
+        type="monotone"
+        baseValue={0}
         dataKey="revenue"
         stroke="#111827"
         strokeWidth={3.2}

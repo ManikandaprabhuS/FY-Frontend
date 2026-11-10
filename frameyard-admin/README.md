@@ -592,5 +592,14 @@ Background notification retries are in-process, not a durable queue: an abrupt p
 ### Customer notification history visibility
 Fixed an empty customer drawer caused by older order events remaining in the legacy notifications table. Customer list/count/read operations now idempotently import only that customer's recent legacy order events, resolving order links against owned orders. Original read/unread state and event timestamps are preserved; existing new-inbox rows, legacy records and orders are not modified. Reads and unread events remain visible together, newest first. Cards now show an explicit Read/Unread label, full local date/time with timezone, and relative time. The compatibility import is batched, concurrent calls are shared, and checks are cached for five minutes. No schema changes.
 
+### Revenue chart calendar and curve fix
+- Root causes: full current-week/month/year endpoints, a ceil-plus-one daily bucket calculation (adding an extra date), browser-local date grouping, natural spline overshoot, and a negative chart left margin.
+- The Overview chart now uses explicit Asia/Calcutta calendar boundaries and buckets for backend UTC timestamps. Current periods end at the current instant (daily points through today, yearly buckets through this month, hourly Today points through the current hour). Past custom ranges remain complete; missing past buckets are zero-filled. Summary/PDF range filtering and chart buckets use the same selected orders. Revenue amount and cancellation inclusion rules are unchanged.
+- This chart is aggregated in the frontend; no backend date aggregation, APIs, database rows or schema were changed. UTC order instants are converted to the same explicit India-time calendar, independent of server/browser timezone.
+- Clock boundaries recalculate every 30 seconds and on focus/visibility changes; orders refetch when the India calendar day changes.
+- The area now uses monotone interpolation and a zero baseline/domain, preserving stroke, dots and gradient. Positive left margin, explicit y-axis width and rupee number formatting prevent clipped labels.
+- Tests: November 10 cutoff, first/last month day, India midnight, current week/year/hour cutoff, past/future custom periods, ranges over 31 days, cancellation/summary consistency, and chart baseline/spacing. Browser fixture: tests/fixtures/revenue-chart.html (test data only; no API writes).
+- Verification: 201 frontend tests pass; production build and scoped chart lint pass. Browser fixture checked at desktop, 768 px and 360 px: correct current/past range endpoints, readable rupee labels, no horizontal overflow or negative spike overshoot, and no console errors. No backend/API/schema or order-data changes.
+
 
 

@@ -19,6 +19,7 @@ import {
   Download
 } from 'lucide-react';
 
+import {revenueDateParts,revenueDateRange,revenueChartData,revenueOrdersInRange,type RevenueRange as ReportRange} from "./revenue-calendar";
 const RevenueChart = lazy(() => import('./RevenueChart'));
 
 export const OverviewPage: React.FC = () => {
@@ -28,13 +29,20 @@ export const OverviewPage: React.FC = () => {
   const { products, pagination: productPagination, fetchProducts } = useProducts(false);
   const { orders, pagination: orderPagination, summary: orderSummary, fetchOrders } = useOrders(false);
   const { total: customerTotal, fetchCustomers } = useCustomers(false);
-  const today = new Date();
-  type ReportRange = 'today' | 'week' | 'month' | 'year' | 'custom';
+  const [clock,setClock]=useState(()=>new Date());
+  const today=revenueDateParts(clock);
+  useEffect(()=>{
+    const refresh=()=>setClock(new Date());
+    const timer=window.setInterval(refresh,30000);
+    window.addEventListener("focus",refresh);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh);};
+  },[]);
   const [reportRange, setReportRange] = useState<ReportRange>('month');
   const [reportFromDate, setReportFromDate] = useState(
-    new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10)
+    today.key.slice(0,7)+"-01"
   );
-  const [reportToDate, setReportToDate] = useState(today.toISOString().slice(0, 10));
+  const [reportToDate, setReportToDate] = useState(today.key);
 
   useEffect(() => {
     if (products.length === 0) {
@@ -44,7 +52,7 @@ export const OverviewPage: React.FC = () => {
 
   useEffect(() => {
     fetchOrders({ page: 1, limit: 100, dateFilter: 'all' }, { silent: useOrderStore.getState().orders.length > 0 });
-  }, [fetchOrders]);
+  }, [fetchOrders,today.key]);
 
   useEffect(() => {
     if (customerTotal === 0) {
@@ -52,76 +60,8 @@ export const OverviewPage: React.FC = () => {
     }
   }, [customerTotal, fetchCustomers]);
 
-  const reportDateRange = useMemo(() => {
-    const now = new Date();
-
-    if (reportRange === 'today') {
-      return {
-        from: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-        to: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999),
-        label: 'Today',
-      };
-    }
-
-    if (reportRange === 'week') {
-      const dayOfWeek = now.getDay();
-      const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
-      const weekEnd = new Date(
-        weekStart.getFullYear(),
-        weekStart.getMonth(),
-        weekStart.getDate() + 6,
-        23,
-        59,
-        59,
-        999
-      );
-
-      return {
-        from: weekStart,
-        to: weekEnd,
-        label: 'This Week',
-      };
-    }
-
-    if (reportRange === 'year') {
-      return {
-        from: new Date(now.getFullYear(), 0, 1),
-        to: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999),
-        label: `This Year (${now.getFullYear()})`,
-      };
-    }
-
-    if (reportRange === 'month') {
-      return {
-        from: new Date(now.getFullYear(), now.getMonth(), 1),
-        to: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999),
-        label: 'This Month',
-      };
-    }
-
-    const from = reportFromDate ? new Date(`${reportFromDate}T00:00:00`) : new Date(0);
-    const to = reportToDate ? new Date(`${reportToDate}T23:59:59.999`) : now;
-
-    return {
-      from,
-      to,
-      label: `${from.toLocaleDateString('en-IN')} - ${to.toLocaleDateString('en-IN')}`,
-    };
-  }, [reportFromDate, reportRange, reportToDate]);
-
-  const reportOrders = useMemo(
-    () =>
-      orders.filter((order) => {
-        const createdAt = new Date(order.createdAt);
-        return (
-          order.orderStatus !== 'CANCELLED' &&
-          createdAt >= reportDateRange.from &&
-          createdAt <= reportDateRange.to
-        );
-      }),
-    [orders, reportDateRange]
-  );
+  const reportDateRange=useMemo(()=>revenueDateRange(reportRange,clock,reportFromDate,reportToDate),[reportRange,clock,reportFromDate,reportToDate]);
+  const reportOrders=useMemo(()=>revenueOrdersInRange(orders,reportDateRange),[orders,reportDateRange]);
 
   const calculatedRevenue = orders.reduce(
     (sum, o) => (o.orderStatus !== 'CANCELLED' ? sum + Number(o.totalAmount || 0) : sum),
@@ -131,65 +71,7 @@ export const OverviewPage: React.FC = () => {
   const calculatedCustomers = customerTotal;
   const calculatedProducts = productPagination.total;
 
-  const chartData = useMemo(() => {
-    const formatDateKey = (date: Date) =>
-      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-    const bucketByKey = reportOrders.reduce<Record<string, number>>((acc, order) => {
-      const createdAt = new Date(order.createdAt);
-      const key =
-        reportRange === 'today'
-          ? `${formatDateKey(createdAt)}-${String(createdAt.getHours()).padStart(2, '0')}`
-          : reportRange === 'year'
-          ? `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`
-          : formatDateKey(createdAt);
-
-      acc[key] = (acc[key] || 0) + Number(order.totalAmount || 0);
-      return acc;
-    }, {});
-
-    if (reportRange === 'year') {
-      return Array.from({ length: 12 }, (_, monthIndex) => {
-        const date = new Date(reportDateRange.from.getFullYear(), monthIndex, 1);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-        return {
-          day: date.toLocaleDateString('en-US', { month: 'short' }),
-          revenue: bucketByKey[key] || 0,
-        };
-      });
-    }
-
-    if (reportRange === 'today') {
-      return Array.from({ length: 24 }, (_, hourIndex) => {
-        const key = `${formatDateKey(reportDateRange.from)}-${String(hourIndex).padStart(2, '0')}`;
-
-        return {
-          day: hourIndex % 3 === 0 ? `${hourIndex}:00` : '',
-          revenue: bucketByKey[key] || 0,
-        };
-      });
-    }
-
-    const daysInRange = Math.max(
-      1,
-      Math.ceil((reportDateRange.to.getTime() - reportDateRange.from.getTime()) / (24 * 60 * 60 * 1000)) + 1
-    );
-
-    return Array.from({ length: Math.min(daysInRange, 31) }, (_, dayIndex) => {
-      const date = new Date(reportDateRange.from);
-      date.setDate(reportDateRange.from.getDate() + dayIndex);
-      const key = formatDateKey(date);
-
-      return {
-        day: date.toLocaleDateString('en-US', {
-          day: '2-digit',
-          month: 'short',
-        }),
-        revenue: bucketByKey[key] || 0,
-      };
-    });
-  }, [reportDateRange, reportOrders, reportRange]);
+  const chartData=useMemo(()=>revenueChartData(reportOrders,reportRange,reportDateRange),[reportOrders,reportRange,reportDateRange]);
 
   const reportRevenue = reportOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
 
