@@ -100,6 +100,7 @@ type ProductApi = {
     productIdentifier?: string | null;
     imageUrl: string;
     isPrimary?: boolean;
+    isHeroImage?: boolean;
     displayOrder?: number | string;
   }>;
   [key: string]: unknown;
@@ -157,6 +158,7 @@ const normalizeProduct = (product: ProductApi): Product => {
       imageUrl: image.imageUrl,
       color: image.color ?? null,
       isPrimary: image.isPrimary ?? false,
+      isHeroImage: image.isHeroImage ?? false,
       displayOrder: Number(image.displayOrder ?? 1),
     }))
     : [],

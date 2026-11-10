@@ -1,207 +1,372 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { heroSlides, type HeroSlide } from '../data/heroSlides';
-import { STUDIO_PATH } from '../navigation';
-import { ButtonLink } from '../ui/Button';
-import FramedPhoto from './FramedPhoto';
+import useProducts from '../../../hooks/useProducts';
+import {
+  fallbackHeroPhotos as defaultFallbackPhotos,
+  HERO_BIRD_OF_PARADISE,
+  HERO_MONEY_PLANT,
+  HERO_MONSTERA,
+  HERO_PLANT,
+  wallFrames,
+  type HeroPhoto,
+} from '../data/heroShowcase';
+import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
+import { backendHeroPhotos } from '../utils/heroFrames';
+import { useFramePhotosStore } from '../store/framePhotosStore';
+import PhotoToggle from './PhotoToggle';
 import '../styles/hero.css';
 
-const AUTOPLAY_MS = 4000;
-const SWIPE_THRESHOLD = 45;
-
-type Direction = 'next' | 'prev';
-type SlideState = { index: number; previous: number | null; direction: Direction };
-
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const SlidePhoto: React.FC<{ slide: HeroSlide; priority: boolean }> = ({ slide, priority }) => (
-  <FramedPhoto
-    photo={slide.photo}
-    srcSet={slide.photoSrcSet}
-    sizes="(min-width: 1024px) 450px, (min-width: 640px) 52vw, 70vw"
-    alt={slide.alt}
-    finish={slide.finish}
-    priority={priority}
-  />
-);
+/** A photo inside a frame's opening; it appears when the toggle is on. */
+const FramePhoto: React.FC<{ photo: HeroPhoto; visible: boolean; priority: boolean; onBroken: (src: string) => void }> = ({ photo, visible, priority, onBroken }) => {
+  const [broken, setBroken] = useState(false);
+  if (broken) return null;
+  return (
+    <img
+      src={photo.src}
+      srcSet={photo.srcSet}
+      sizes="(min-width: 1024px) 230px, 21vw"
+      alt={visible ? photo.alt : ''}
+      aria-hidden={!visible}
+      decoding="async"
+      fetchPriority={priority ? 'high' : 'low'}
+      draggable={false}
+      onError={() => {
+        setBroken(true);
+        onBroken(photo.src);
+      }}
+      className="fy-wphoto"
+      data-visible={visible}
+    />
+  );
+};
 
 interface HeroSectionProps {
-  slides?: HeroSlide[];
+  /** Dummy photos used until the admin marks hero photos. Pass [] once they are no longer wanted. */
+  fallbackPhotos?: HeroPhoto[];
 }
 
 /**
- * Homepage hero: headline and actions beside a framed photograph that swaps
- * against a changing wall tone. Slides come from data so they can later be
- * served by the backend.
+ * Slide 1 of the hero: a white gallery wall with four frames (black, grey, walnut, red)
+ * under track spotlights, a plant on the left and a console with a plant on the right.
+ * The toggle lights the frames and shows the photos, or dims the wall and leaves them
+ * empty. Photos come from product images the admin marks as hero photos, with dummy
+ * photos until there are any.
  */
-const HeroSection: React.FC<HeroSectionProps> = ({ slides = heroSlides }) => {
-  const [state, setState] = useState<SlideState>({ index: 0, previous: null, direction: 'next' });
+const FrameWallSlide: React.FC<HeroSectionProps & { replayKey?: number }> = ({ fallbackPhotos = defaultFallbackPhotos, replayKey = 0 }) => {
+  const { products } = useProducts(false);
+  // Starts off: empty frames first; switching on lights them and reveals the photos.
+  // Shared with the collections section: switching here switches every frame on the page.
+  const photosOn = useFramePhotosStore((state) => state.photosOn);
+  const [brokenUrls, setBrokenUrls] = useState<ReadonlySet<string>>(() => new Set());
+
+  const adminPhotos = useMemo(() => backendHeroPhotos(products, brokenUrls), [brokenUrls, products]);
+  // Admin-marked photos win whenever there are any; dummy photos are never mixed in with them.
+  const photos = adminPhotos.length > 0 ? adminPhotos : fallbackPhotos;
+  const photoSource = adminPhotos.length > 0 ? 'backend' : 'fallback';
+
+  const markBroken = useCallback((src: string) => {
+    setBrokenUrls((current) => new Set(current).add(src));
+  }, []);
+
+  return (
+    <div
+      className="fy-wall"
+      data-lights={photosOn ? 'on' : 'off'}
+      data-photo-source={photoSource}
+    >
+      {/* The room: window light across the wall, the floor, and the shade when the lights are off. */}
+      <span className="fy-wall__window" aria-hidden="true" />
+      <span className="fy-wall__floor" aria-hidden="true" />
+      <span className="fy-wall__dim" aria-hidden="true" />
+
+      <img className="fy-wall__plant" src={HERO_PLANT} alt="" aria-hidden="true" decoding="async" draggable={false} />
+      {/* Desktop only: a tall bird of paradise on the floor each side, and a small monstera in front of the left palm. */}
+      <img className="fy-wall__plant fy-wall__plant--extra fy-wall__plant--bird-left" src={HERO_BIRD_OF_PARADISE} alt="" aria-hidden="true" decoding="async" draggable={false} />
+      <img className="fy-wall__plant fy-wall__plant--extra fy-wall__plant--monstera-left" src={HERO_MONSTERA} alt="" aria-hidden="true" decoding="async" draggable={false} />
+      <img className="fy-wall__plant fy-wall__plant--extra fy-wall__plant--bird-right" src={HERO_BIRD_OF_PARADISE} alt="" aria-hidden="true" decoding="async" draggable={false} />
+
+      <div className="fy-wall__console" aria-hidden="true">
+        <img className="fy-wall__console-plant" src={HERO_PLANT} alt="" decoding="async" draggable={false} />
+        <img className="fy-wall__console-monstera" src={HERO_MONSTERA} alt="" decoding="async" draggable={false} />
+        {/* Desktop: a trailing money plant on the book stack, in place of the palm. */}
+        <img className="fy-wall__console-pothos" src={HERO_MONEY_PLANT} alt="" decoding="async" draggable={false} />
+        <span className="fy-wall__books">
+          <span /><span /><span />
+        </span>
+        <span className="fy-wall__console-top" />
+        <span className="fy-wall__console-body" />
+      </div>
+
+      <div className="fy-wall__hang">
+        <span className="fy-wall__track" aria-hidden="true" />
+        <ul className="fy-wall__frames">
+          {wallFrames.map((frame, index) => {
+            const photo = photos.length > 0 ? photos[index % photos.length] : null;
+            return (
+              <li key={frame.id} className="fy-wslot">
+                <span className="fy-spot" aria-hidden="true">
+                  <span className="fy-spot__head"><span className="fy-spot__lens" /></span>
+                </span>
+                <span className="fy-spot__beam" aria-hidden="true" />
+                <span className="fy-spot__pool" aria-hidden="true" />
+                <div className={`fy-wframe fy-wframe--${frame.finish}`} role="img" aria-label={frame.label}>
+                  <div className="fy-wframe__mat">
+                    <span className="fy-wframe__opening">
+                      {photo && (
+                        <FramePhoto
+                          key={photo.src}
+                          photo={photo}
+                          visible={photosOn}
+                          priority={index < 2}
+                          onBroken={photoSource === 'backend' ? markBroken : () => undefined}
+                        />
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="fy-wall__brand">
+        {/* Letters rise in one after another, left to right; the tagline then slides up. */}
+        <h1 key={`title-${replayKey}`} id="fy-hero-title" className="fy-wall__title" aria-label="FrameYaad">
+          {Array.from('FrameYaad', (letter, index) => (
+            <span key={index} className="fy-wall__letter" style={{ '--i': index } as React.CSSProperties} aria-hidden="true">{letter}</span>
+          ))}
+        </h1>
+        <p key={`tagline-${replayKey}`} className="fy-wall__tagline">
+          <span className="fy-wall__tagline-mask"><span className="fy-wall__tagline-text">Preserve your memories</span></span>
+        </p>
+
+        <PhotoToggle />
+      </div>
+    </div>
+  );
+};
+
+/** How long each slide shows; the active indicator's ring fills over this time. */
+const SLIDE_MS = 5000;
+/** A horizontal swipe longer than this changes slide on touch screens. */
+const SWIPE_PX = 50;
+
+/**
+ * Slide positions: the current slide, the one that just left (and the direction it left
+ * in). Each move parks the incoming slide off the side it enters from, then slides it in
+ * while the outgoing slide leaves the other way, so it loops endlessly in either
+ * direction without duplicating any slide.
+ */
+type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times the frame wall has come into view; replays its text animation. */ wallVisits: number };
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+
+/** Slide 2: the video set in the admin (Settings → Homepage). Plays, looping, only while showing. */
+const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onFailed: () => void }> = ({ video, playing, onFailed }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    if (playing) {
+      element.currentTime = 0;
+      element.play().catch(() => undefined);
+    } else {
+      element.pause();
+    }
+  }, [playing]);
+
+  return (
+    <video
+      ref={ref}
+      className="fy-hero__video"
+      src={video.url}
+      muted
+      playsInline
+      loop
+      preload="metadata"
+      onError={onFailed}
+      aria-label="FrameYaad frames at home"
+    />
+  );
+};
+
+/**
+ * The active slide's indicator: a ring that fills clockwise over SLIDE_MS. Its animation
+ * is the carousel's only timer: when the fill finishes, the carousel moves on. Pausing
+ * freezes the animation where it is (animation-play-state), so it resumes from there.
+ * It is keyed by slide, so every slide change starts a fresh ring.
+ */
+const ProgressRing: React.FC<{ onComplete: () => void }> = ({ onComplete }) => (
+  <svg className="fy-hero__ring" viewBox="0 0 20 20" aria-hidden="true">
+    <circle className="fy-hero__ring-track" cx="10" cy="10" r="9.15" />
+    <circle
+      className="fy-hero__ring-fill"
+      cx="10"
+      cy="10"
+      r="9.15"
+      pathLength={1}
+      onAnimationEnd={(event) => {
+        if (event.animationName === 'fy-hero-ring') onComplete();
+      }}
+    />
+  </svg>
+);
+
+/**
+ * Homepage hero carousel. Slide 1 is the frame wall with its toggle; slide 2 is the
+ * homepage video managed in the admin. Without a video it is just the frame wall.
+ * Indicators sit at the bottom right: the active slide's ring fills, then the carousel
+ * moves on. It pauses while hovered, keyboard-focused, off screen or in a hidden tab;
+ * the dots jump to a slide, and swiping works on touch screens.
+ */
+const HeroSection: React.FC<HeroSectionProps> = (props) => {
+  const rootRef = useRef<HTMLElement>(null);
+  const [video, setVideo] = useState<HeroVideo | null>(null);
+  const [motion, setMotion] = useState<Motion>({ current: 0, previous: null, dir: 1, wallVisits: 0 });
+  const motionRef = useRef<Motion>(motion);
   const [hovered, setHovered] = useState(false);
-  const [tabHidden, setTabHidden] = useState(false);
-  const paused = hovered || tabHidden;
-  const [autoplay] = useState(() => !prefersReducedMotion() && slides.length > 1);
-  const pointerStart = useRef<number | null>(null);
+  const [focused, setFocused] = useState(false);
+  const [inView, setInView] = useState(true);
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
+  const [reducedMotion] = useState(prefersReducedMotion);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
-  const slide = slides[state.index];
-  const count = slides.length;
+  const slideCount = video ? 2 : 1;
+  const current = Math.min(motion.current, slideCount - 1);
+  const paused = hovered || focused || !inView || !pageVisible;
 
-  const goTo = useCallback((index: number, direction: Direction) => {
-    setState((current) => (current.index === index ? current : { index, previous: current.index, direction }));
+  // Tells the transparent homepage navbar whether it sits on the light wall or the video.
+  useEffect(() => {
+    document.documentElement.dataset.heroTone = current === 1 ? 'dark' : 'light';
+    return () => { delete document.documentElement.dataset.heroTone; };
+  }, [current]);
+
+  useEffect(() => {
+    let active = true;
+    siteMediaService.getHeroVideo()
+      .then((configured) => { if (active) setVideo(configured); })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, []);
 
-  const step = useCallback((direction: Direction) => {
-    setState((current) => {
-      const index = (current.index + (direction === 'next' ? 1 : -1) + count) % count;
-      return { index, previous: current.index, direction };
-    });
-  }, [count]);
-
-  // One timer at a time. Every slide change (automatic or manual) resets the full
-  // interval; pausing (mouse over the image, or a hidden tab) keeps the time left so
-  // the progress bar and the timer stay in step.
-  const remaining = useRef(AUTOPLAY_MS);
-
   useEffect(() => {
-    remaining.current = AUTOPLAY_MS;
-  }, [state]);
-
-  useEffect(() => {
-    if (!autoplay || paused) return;
-    const startedAt = performance.now();
-    const timer = window.setTimeout(() => step('next'), remaining.current);
-    return () => {
-      window.clearTimeout(timer);
-      remaining.current = Math.max(0, remaining.current - (performance.now() - startedAt));
-    };
-  }, [autoplay, paused, state, step]);
-
-  useEffect(() => {
-    const onVisibility = () => setTabHidden(document.hidden);
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    const root = rootRef.current;
+    if (!root || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.35 });
+    observer.observe(root);
+    return () => observer.disconnect();
   }, []);
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'ArrowLeft') step('prev');
-    if (event.key === 'ArrowRight') step('next');
+  useEffect(() => {
+    const update = () => setPageVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+
+  useEffect(() => {
+    motionRef.current = motion;
+  }, [motion]);
+
+  const goTo = useCallback((to: number, dir: 1 | -1) => {
+    const from = Math.min(motionRef.current.current, slideCount - 1);
+    if (slideCount < 2 || to === from) return;
+    // Park the incoming slide just off the side it enters from, with no transition, and
+    // make the browser apply that (reading offsetWidth does). Then let it slide in.
+    const incoming = rootRef.current?.querySelector<HTMLElement>(`[data-slide-index="${to}"]`);
+    if (incoming) {
+      incoming.style.transition = 'none';
+      incoming.style.visibility = 'visible';
+      incoming.style.transform = `translateX(${dir * 100}%)`;
+      void incoming.offsetWidth;
+      incoming.style.transition = '';
+    }
+    const next: Motion = { current: to, previous: from, dir, wallVisits: motionRef.current.wallVisits + (to === 0 ? 1 : 0) };
+    motionRef.current = next;
+    setMotion(next);
+  }, [slideCount]);
+
+  const step = useCallback((dir: 1 | -1) => {
+    const from = Math.min(motionRef.current.current, slideCount - 1);
+    goTo((from + dir + slideCount) % slideCount, dir);
+  }, [goTo, slideCount]);
+
+  const slideStyle = (index: number): React.CSSProperties => {
+    if (index === current) return { transform: 'translateX(0)' };
+    if (index === motion.previous) return { transform: `translateX(${motion.dir * -100}%)` };
+    return { transform: 'translateX(100%)', transition: 'none', visibility: 'hidden' };
   };
 
-  const onPointerUp = (event: React.PointerEvent) => {
-    if (pointerStart.current === null) return;
-    const distance = event.clientX - pointerStart.current;
-    pointerStart.current = null;
-    if (Math.abs(distance) > SWIPE_THRESHOLD) step(distance < 0 ? 'next' : 'prev');
-  };
-
-  const dark = slide.dark;
-  const muted = dark ? 'text-white/70' : 'text-ink/65';
-  const control = `grid h-10 w-10 place-items-center rounded-full border transition-[background-color,color,border-color,transform] duration-300 active:scale-90 ${dark ? 'border-white/35 text-white hover:bg-white hover:text-ink' : 'border-ink/20 text-ink hover:bg-ink hover:text-white'}`;
+  const slideProps = (index: number) => ({
+    'data-slide-index': index,
+    className: `fy-hero__slide${index === 1 ? ' fy-hero__slide--video' : ''}`,
+    style: slideStyle(index),
+    role: slideCount > 1 ? 'group' : undefined,
+    'aria-roledescription': slideCount > 1 ? 'slide' : undefined,
+    'aria-label': slideCount > 1 ? `${index + 1} of ${slideCount}` : undefined,
+    'aria-hidden': index !== current || undefined,
+    inert: index !== current,
+  });
 
   return (
     <section
-      className={`fy-hero relative overflow-hidden ${dark ? 'text-white' : 'text-ink'}`}
-      style={{ backgroundColor: slide.tone }}
-      data-dark={dark}
+      ref={rootRef}
+      className="fy-hero"
       aria-labelledby="fy-hero-title"
+      aria-roledescription={slideCount > 1 ? 'carousel' : undefined}
+      data-slide={current}
+      data-paused={paused || undefined}
+      style={{ '--fy-slide-ms': `${SLIDE_MS}ms` } as React.CSSProperties}
+      onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
+      onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false); }}
+      // Only keyboard focus pauses; a tap or click on the toggle or a dot does not.
+      onFocus={(event) => { if (event.target.matches(':focus-visible')) setFocused(true); }}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}
+      onPointerDown={(event) => {
+        if (event.pointerType !== 'mouse') swipeStart.current = { x: event.clientX, y: event.clientY };
+      }}
+      onPointerUp={(event) => {
+        const start = swipeStart.current;
+        swipeStart.current = null;
+        if (!start || slideCount < 2) return;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+      }}
+      onPointerCancel={() => { swipeStart.current = null; }}
     >
-      <div className="mx-auto grid w-full max-w-[1440px] gap-9 px-5 pb-10 pt-6 sm:px-8 sm:pt-12 lg:min-h-[clamp(540px,calc(100svh-180px),720px)] lg:max-w-[1280px] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-12 lg:px-10 lg:py-12">
-        <div className="max-w-[620px]">
-          {count > 1 && (
-            <div className="fy-hero-rise mb-6 flex items-center gap-4 lg:mb-8" style={{ animationDelay: '60ms' }}>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => step('prev')} aria-label="Previous frame" className={control}>
-                  <ChevronLeft className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                </button>
-                <button type="button" onClick={() => step('next')} aria-label="Next frame" className={control}>
-                  <ChevronRight className="h-[18px] w-[18px]" strokeWidth={1.6} />
-                </button>
-              </div>
-              <div className="flex gap-1.5" role="group" aria-label="Choose a frame">
-                {slides.map((item, index) => {
-                  const active = index === state.index;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => goTo(index, index > state.index ? 'next' : 'prev')}
-                      aria-label={`Show frame ${index + 1} of ${count}`}
-                      aria-current={active ? 'true' : undefined}
-                      className="flex h-10 items-center"
-                    >
-                      <span className={`relative block h-[2px] w-7 overflow-hidden rounded-full ${dark ? 'bg-white/25' : 'bg-ink/15'}`}>
-                        {active && (
-                          <span
-                            key={state.index}
-                            className={`absolute inset-0 ${dark ? 'bg-white' : 'bg-ink'} ${autoplay ? 'fy-hero-progress' : ''}`}
-                            style={autoplay ? { animationDuration: `${AUTOPLAY_MS}ms`, animationPlayState: paused ? 'paused' : 'running' } : undefined}
-                          />
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <h1 id="fy-hero-title" className="fy-display text-[44px] leading-[1.02] sm:text-[60px] lg:text-[clamp(56px,5vw,76px)]">
-            <span className="fy-hero-rise block" style={{ animationDelay: '120ms' }}>Your Memories.</span>
-            <span className="fy-hero-rise block" style={{ animationDelay: '220ms' }}>Beautifully Framed.</span>
-          </h1>
-
-          <p className={`fy-hero-rise mt-5 max-w-[36ch] text-[16px] leading-7 transition-colors duration-500 lg:mt-6 lg:text-[18px] lg:leading-8 ${muted}`} style={{ animationDelay: '320ms' }}>
-            Custom frames. Premium quality. A more beautiful way to cherish your memories.
-          </p>
-
-          <div className="fy-hero-rise mt-7 grid gap-3 min-[420px]:flex min-[420px]:flex-wrap lg:mt-8" style={{ animationDelay: '420ms' }}>
-            <ButtonLink to={STUDIO_PATH} variant={dark ? 'primaryOnDark' : 'primary'} className="w-full min-[420px]:w-auto">
-              Customize Your Frame
-            </ButtonLink>
-            <ButtonLink to="/products" variant={dark ? 'secondaryOnDark' : 'secondary'} className="w-full min-[420px]:w-auto">
-              Explore Collection
-            </ButtonLink>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <div
-            className="fy-hero-stage"
-            data-direction={state.direction}
-            role="group"
-            aria-roledescription="carousel"
-            aria-label="Framed photographs"
-            tabIndex={0}
-            onKeyDown={onKeyDown}
-            onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
-            onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false); }}
-            onPointerDown={(event) => { pointerStart.current = event.clientX; }}
-            onPointerUp={onPointerUp}
-            onPointerCancel={() => { pointerStart.current = null; }}
-          >
-            {slides.map((item, index) => {
-              const status = index === state.index ? 'is-active' : index === state.previous ? 'is-leaving' : '';
-              return (
-                <div
-                  key={item.id}
-                  className={`fy-hero-slide ${status}`}
-                  role="group"
-                  aria-roledescription="slide"
-                  aria-label={`${index + 1} of ${count}`}
-                  aria-hidden={index !== state.index}
-                >
-                  <SlidePhoto slide={item} priority={index === 0} />
-                </div>
-              );
-            })}
-          </div>
-          <div key={state.index} className="fy-hero-shadow" aria-hidden="true" />
-          <p className={`mt-5 text-center text-[14px] transition-colors duration-500 ${muted}`} aria-live="polite">
-            {slide.caption}
-          </p>
-        </div>
+      <div {...slideProps(0)}>
+        <FrameWallSlide {...props} replayKey={motion.wallVisits} />
       </div>
+
+      {video && (
+        <div {...slideProps(1)}>
+          <VideoSlide
+            key={video.url}
+            video={video}
+            playing={current === 1 && inView && pageVisible}
+            onFailed={() => setVideo(null)}
+          />
+        </div>
+      )}
+
+      {slideCount > 1 && (
+        <div className="fy-hero__dots" data-static={reducedMotion || undefined}>
+          {Array.from({ length: slideCount }, (_, index) =>
+            index === current ? (
+              <button key={index} type="button" className="fy-hero__dot fy-hero__dot--active" aria-label={`Go to slide ${index + 1}`} aria-current="true">
+                <ProgressRing key={current} onComplete={() => step(1)} />
+              </button>
+            ) : (
+              <button key={index} type="button" className="fy-hero__dot" aria-label={`Go to slide ${index + 1}`} onClick={() => goTo(index, index > current ? 1 : -1)}>
+                <span className="fy-hero__dot-mark" />
+              </button>
+            ),
+          )}
+        </div>
+      )}
     </section>
   );
 };

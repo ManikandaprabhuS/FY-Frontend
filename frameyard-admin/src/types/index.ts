@@ -58,6 +58,8 @@ export interface ProductImage {
   productIdentifier?: string | null;
   imageUrl: string;
   isPrimary?: boolean;
+  /** Marked by the admin to appear inside the homepage hero frames (pending backend support). */
+  isHeroImage?: boolean;
   displayOrder: number;
 }
 export interface Product {

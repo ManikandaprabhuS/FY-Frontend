@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import AnnouncementBar from '../features/customer/components/AnnouncementBar';
 import CustomerNavbar from '../features/customer/components/CustomerNavbar';
 import Footer from '../features/customer/components/Footer';
 import MobileDock from '../features/customer/components/MobileDock';
@@ -25,6 +26,7 @@ const CustomerLayout: React.FC = () => {
 
   return (
     <div className="fy-store min-h-screen" data-dock={showDock ? 'visible' : 'hidden'}>
+      <AnnouncementBar />
       <CustomerNavbar />
 
       <main>
