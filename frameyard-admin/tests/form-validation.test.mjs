@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validatePerson, validatePhone, validateVariant, validateProductBasics, validateCouponFields, validateProductFiles } from '../src/utils/form-validation.ts';
+import { validatePerson, validatePhone, validateVariant, validateProductBasics, validateProductFiles } from '../src/utils/form-validation.ts';
 
 const variant = { frameSize: '5x5', mountType: 'NONE', glassType: 'NONE', price: 100, stockQuantity: 0 };
-const coupon = { code: 'TEST', couponType: 'PERCENTAGE', discountType: 'PERCENTAGE', discountValue: 10, minimumOrderValue: 0, startDate: '2027-01-01', endDate: '2027-12-31', expiresAt: '2027-12-31' };
+
 test('person fields reject blanks, markup, long strings and malformed formats', () => {
   assert.equal(validatePerson({ name: 'Example', email: 'test@example.com', phoneNumber: '+91 9876543210' }), null);
   for (const name of ['', '   ', '<script>bad</script>', 'x'.repeat(121)]) assert.ok(validatePerson({ name }));
@@ -26,10 +26,7 @@ test('product basics enforce lengths and normalized unique colors', () => {
   assert.ok(validateProductBasics({ ...product, availableColors: [] }));
   assert.ok(validateProductBasics({ ...product, description: 'x'.repeat(2001) }));
 });
-test('coupon fields validate basic ranges and formats', () => {
-  assert.equal(validateCouponFields(coupon), null);
-  for (const patch of [{ code: ' ' }, { discountValue: 101 }, { discountValue: -1 }, { discountValue: 0 }, { usageLimit: -1 }, { usagePerUser: 0.5 }, { startDate: '' }, { endDate: 'not-a-date' }, { discountType: 'other' }]) assert.ok(validateCouponFields({ ...coupon, ...patch }));
-});
+
 test('file inputs reject unsupported, empty and oversized files', () => {
   assert.equal(validateProductFiles([{ type: 'image/png', size: 1024 }]), null);
   for (const file of [{ type: 'text/html', size: 50 }, { type: 'image/png', size: 0 }, { type: 'image/png', size: 11 * 1024 * 1024 }]) assert.ok(validateProductFiles([file]));

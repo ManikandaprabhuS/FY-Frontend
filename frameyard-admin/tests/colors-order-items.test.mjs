@@ -62,5 +62,5 @@ test('product forms share one picker and keep optional image controls', async ()
   assert.doesNotMatch(source, /setColors\(\['#0f172a'/);
   assert.match(source, /OptionalImageUpload/);
   const checkout = await readFile(new URL('../src/features/customer/pages/CheckoutPage.tsx', import.meta.url), 'utf8');
-  assert.match(checkout, /Checkout will continue through the existing order flow/);
+  assert.match(checkout, /<CheckoutOffers/);
 });

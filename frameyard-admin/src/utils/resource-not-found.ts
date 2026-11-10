@@ -12,8 +12,8 @@ export const resourceResponseKey = (url: string): string | undefined => {
   const path = resourcePath(url);
   if (path === '/products/public') return undefined;
   if (/^\/products\/(?:public\/)?[^/]+$/.test(path)) return 'product';
-  const match = path.match(/^\/(users|orders|coupons|product-discounts|appointments|employees)\/[^/]+$/);
-  return match ? ({ users:'user', orders:'order', coupons:'coupon', 'product-discounts':'assignment', appointments:'appointment', employees:'employee' } as Record<string,string>)[match[1]] : undefined;
+  const match = path.match(/^\/(users|orders|appointments|employees)\/[^/]+$/);
+  return match ? ({ users:'user', orders:'order', appointments:'appointment', employees:'employee' } as Record<string,string>)[match[1]] : undefined;
 };
 export const isEmptyResourceResponse = (url: string, body: unknown): boolean => {
   const key = resourceResponseKey(url);

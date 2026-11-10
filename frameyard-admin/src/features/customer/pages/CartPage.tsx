@@ -1,17 +1,18 @@
 import { cartStockIssue } from '../../../utils/stock';
 import React, { useMemo, useRef, useState } from 'react';
-import axios from 'axios';
+
 import { Heart, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '../../../store/authStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
-import { showError, showSuccess, showWarning, showApiError } from '../../../utils/toast';
-import { couponService, type CouponValidationResult } from '../../../services/coupon.service';
+import { showError, showSuccess, showWarning } from '../../../utils/toast';
+
 import ColorSwatch from '../components/ColorSwatch';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
+  const customerLoggedIn=useAuthStore(state=>state.isAuthenticated&&state.user?.role==="CUSTOMER");
 
   const items = useCustomerCommerceStore((state) => state.cartItems);
   const updateQuantity = useCustomerCommerceStore((state) => state.updateCartQuantity);
@@ -19,43 +20,18 @@ const CartPage: React.FC = () => {
   const moveCartItemToWishlist = useCustomerCommerceStore((state) => state.moveCartItemToWishlist);
   const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [items]);
   const itemCount = useMemo(() => items.reduce((total, item) => total + item.quantity, 0), [items]);
-  const cartSignature = useMemo(() => items.map((item) => `${item.key}:${item.quantity}:${item.unitPrice}`).sort().join('|'), [items]);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoError, setPromoError] = useState('');
-  const [applyingPromo, setApplyingPromo] = useState(false);
-  const [appliedPromo, setAppliedPromo] = useState<{ signature: string; result: CouponValidationResult } | null>(null);
+
+
+
+
+
   const [removalChoiceKey, setRemovalChoiceKey] = useState<string | null>(null);
   const moveInFlight = useRef(new Set<string>());
   const [movingToWishlistKey, setMovingToWishlistKey] = useState<string | null>(null);
-  const activePromo = appliedPromo?.signature === cartSignature ? appliedPromo.result : null;
-  const finalTotal = activePromo?.total ?? subtotal;
 
-  const applyPromoCode = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const code = promoCode.trim().toUpperCase();
-    if (!code) {
-      setPromoError('Enter a promo code');
-      showWarning('Enter a promo code');
-      return;
-    }
-    setApplyingPromo(true);
-    setPromoError('');
-    try {
-      const result = await couponService.validate({
-        code,
-        items: items.map((item) => ({ productVariantId: item.variantId, unitPrice: item.unitPrice, quantity: item.quantity })),
-      });
-      setPromoCode(result.coupon.code);
-      setAppliedPromo({ signature: cartSignature, result });
-    } catch (error: unknown) {
-      setAppliedPromo(null);
-      const message = axios.isAxiosError(error) ? error.response?.data?.error?.message ?? error.response?.data?.message ?? 'Promo code could not be applied' : 'Promo code could not be applied';
-      setPromoError(message);
-      showApiError(error, message);
-    } finally {
-      setApplyingPromo(false);
-    }
-  };
+
+
+
 
   const checkout = async () => {
     if (useAuthStore.getState().status === 'checking') await useAuthStore.getState().checkAuth();
@@ -148,18 +124,11 @@ const CartPage: React.FC = () => {
         ))}</div>
         <aside className="h-fit rounded-xl border border-black/10 bg-white p-5 shadow-sm lg:sticky lg:top-24">
           <h2 className="text-lg font-black">Order summary</h2>
+          {!customerLoggedIn&&<p className="mt-3 text-xs text-black/60"><Link to="/profile" state={{returnTo:"/checkout"}} className="font-bold underline">Log in</Link> to check your first-order offer and claim eligible checkout offers.</p>}
           <div className="mt-5 flex items-center justify-between border-b border-black/10 pb-4 text-sm"><span className="text-black/55">Subtotal</span><strong>₹{subtotal.toLocaleString('en-IN')}</strong></div>
-          <form onSubmit={applyPromoCode} className="border-b border-black/10 py-4" noValidate>
-            <label htmlFor="cart-promo-code" className="text-xs font-black">Promo Code</label>
-            <div className="mt-2 flex gap-2">
-              <input id="cart-promo-code" value={promoCode} onChange={(event) => { setPromoCode(event.target.value.toUpperCase()); setPromoError(''); setAppliedPromo(null); }} placeholder="Enter promo code" autoComplete="off" aria-invalid={Boolean(promoError)} aria-describedby={promoError ? 'cart-promo-error' : undefined} className={`h-10 min-w-0 flex-1 rounded-lg border bg-white px-3 text-xs font-bold uppercase outline-none transition focus:border-black focus:ring-2 focus:ring-black/10 ${promoError ? 'border-red-500' : 'border-black/15'}`} />
-              <button type="submit" disabled={applyingPromo} className="h-10 rounded-lg bg-black px-4 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50">{applyingPromo ? 'Applying…' : 'Apply'}</button>
-            </div>
-            {promoError && <p id="cart-promo-error" role="alert" className="mt-2 text-[11px] font-semibold text-red-600">{promoError}</p>}
-            {activePromo && <div className="mt-2 flex items-center justify-between gap-3 text-[11px] font-semibold text-emerald-700"><span>{activePromo.coupon.code} applied</span><button type="button" onClick={() => { setAppliedPromo(null); setPromoCode(''); }} className="font-bold underline underline-offset-2">Remove</button></div>}
-          </form>
-          {activePromo && <div className="flex items-center justify-between border-b border-black/10 py-4 text-sm"><span className="text-emerald-700">Discount</span><strong className="text-emerald-700">−₹{activePromo.discountAmount.toLocaleString('en-IN')}</strong></div>}
-          <div className="flex items-center justify-between py-4"><span className="font-bold">Total</span><strong className="text-xl">₹{finalTotal.toLocaleString('en-IN')}</strong></div>
+
+
+          <div className="flex items-center justify-between py-4"><span className="font-bold">Total</span><strong className="text-xl">₹{subtotal.toLocaleString('en-IN')}</strong></div>
           <button type="button" onClick={checkout} className="h-12 w-full rounded-lg bg-black text-sm font-black text-white hover:bg-black/80">Checkout</button>
           <Link to="/products" className="mt-3 flex justify-center text-xs font-bold text-black/55 underline underline-offset-4">Continue shopping</Link>
         </aside>

@@ -27,6 +27,8 @@ type BackendOrder = {
   status: OrderStatus;
   remark?: string | null;
   couponId?: string | null;
+  couponCode?: string | null; couponTitle?: string | null; discountPercent?: number|string|null;
+  discountAmount?: number|string|null; subtotal?: number|string|null;
   createdAt: string;
   updatedAt: string;
   user: { name: string; email: string; phoneNumber?: string | null };
@@ -102,6 +104,12 @@ export const normalizeOrder = (order: BackendOrder): Order => ({
   userId: order.userId,
   userAddressId: order.userAddressId,
   couponId: order.couponId ?? null,
+  couponCode: order.couponCode ?? null, couponTitle: order.couponTitle ?? null,
+  exportCoupon: order.couponTitle ? order.couponTitle + (Number(order.discountPercent)>0 ? " ("+Number(order.discountPercent)+"%)" : "") : order.couponId ?? "-",
+  discount: order.discountAmount==null?undefined:Number(order.discountAmount),
+  discountPercent: order.discountPercent==null?null:Number(order.discountPercent),
+  discountAmount: order.discountAmount==null?null:Number(order.discountAmount),
+  subtotal: order.subtotal==null?undefined:Number(order.subtotal),
   orderNumber: order.orderNumber,
   totalAmount: Number(order.totalPrice),
   orderStatus: order.status,
@@ -120,7 +128,7 @@ export const normalizeOrder = (order: BackendOrder): Order => ({
     phoneNumber: order.user.phoneNumber ?? order.userAddress.contactNumber,
   },
   userAddress: normalizeAddress(order),
-  coupon: null,
+  coupon: order.couponId ? {id:order.couponId,couponCode:order.couponId} : null,
   orderItems: order.items.map((item) => normalizeOrderItem(item, order)),
   incidents: [],
 });

@@ -1,3 +1,4 @@
+import OrderOfferDetails from "../../../components/ui/OrderOfferDetails";
 import ProductRating from "../../../components/reviews/ProductRating";
 import { normalizeStock } from "../../../utils/stock";
 import React, { useEffect, useState } from 'react';
@@ -326,7 +327,7 @@ const CustomerOrderCard: React.FC<{ order: Order }> = ({ order }) => {
       <div className="grid min-w-0 gap-3 text-[10px] sm:grid-cols-3">
         <div><span className="text-black/45">Order ID</span><strong className="mt-1 block text-xs">#{order.orderNumber}</strong><span className="mt-2 block text-black/45">Placed on</span><strong className="mt-1 block">{new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(order.createdAt))}</strong></div>
         <div className="min-w-0"><span className="text-black/45">Items</span><strong className="mt-1 block truncate text-xs">{item?.productName ?? 'Frame order'}</strong><span className="mt-1 block truncate text-black/50">{item ? item.frameSize : '-'}</span><span className="mt-1 block text-black/50">Qty: {item?.quantity ?? 0}{extraItems > 0 ? ` · +${extraItems} more` : ''}</span></div>
-        <div><span className="text-black/45">Amount</span><strong className="mt-1 block text-xs">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.totalAmount)}</strong></div>
+        <div><OrderOfferDetails order={order} /><span className="text-black/45">Amount</span><strong className="mt-1 block text-xs">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(order.totalAmount)}</strong></div>
       </div>
       <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end"><StatusBadge status={order.orderStatus} className="text-[9px]" /><Link to="/orders" className="rounded-lg bg-black px-4 py-2 text-[10px] font-bold text-white">View Details</Link></div>
       <div className="col-span-full space-y-3 border-t border-black/10 pt-3">{order.orderItems.map(orderItem => <div key={orderItem.id}><p className="text-xs font-bold">{orderItem.productName}</p><OrderItemOptions item={orderItem} /><p className="mt-1 text-[11px]">Qty: {orderItem.quantity} · ₹{Number(orderItem.price).toLocaleString("en-IN")}</p>{orderItem.productId && orderItem.productId !== "-" && <Link to={`/product/${encodeURIComponent(orderItem.productId)}?writeReview=1#reviews`} className="mt-2 inline-flex min-h-11 items-center text-xs font-bold underline">Write a review</Link>}</div>)}</div>

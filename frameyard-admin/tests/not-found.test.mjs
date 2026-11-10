@@ -8,7 +8,7 @@ test('malformed, undefined, encoded, injected and long IDs never load a resource
   assert.equal(isResourceId(id),true);
   for (const value of [undefined,'undefined','abc123xyz','%3Cscript%3E','<script>alert(1)</script>','x'.repeat(5000),'../orders','%E0%A4%A']) assert.equal(isResourceId(value),false);
 });
-for (const [root,key] of [['/products/public','product'],['/products','product'],['/users','user'],['/orders','order'],['/coupons','coupon'],['/product-discounts','assignment'],['/appointments','appointment'],['/employees','employee']]) {
+for (const [root,key] of [['/products/public','product'],['/products','product'],['/users','user'],['/orders','order'],['/appointments','appointment'],['/employees','employee']]) {
   test(`${root} recognizes missing/empty details without treating valid data as 404`, () => {
     const path = `${root}/${id}`;
     assert.equal(resourceResponseKey(path),key);
@@ -50,7 +50,7 @@ test('404 preserves copy with positive spacing, responsive image and viewport ce
 });
 test('route guards cover customer/admin details and admin catch-all remains inside ProtectedRoute', () => {
   const source = readFileSync(new URL('../src/routes/index.tsx',import.meta.url),'utf8');
-  for (const root of ['/products/public','/products','/users','/coupons','/product-discounts','/appointments']) assert.ok(source.includes(`apiRoot="${root}"`));
+  for (const root of ['/products/public','/products','/users','/appointments']) assert.ok(source.includes(`apiRoot="${root}"`));
   assert.ok(source.includes("path: '/admin',element: <ProtectedRoute />"));
   assert.ok(source.includes('element: <NotFoundRoute />'));
   assert.ok(!source.includes('homePath="/admin/overview"'));

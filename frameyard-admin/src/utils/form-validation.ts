@@ -37,24 +37,7 @@ export const validateProductBasics = (input: { name: string; brandName: string; 
   if (new Set(input.availableColors.map(color => color.trim().toLowerCase())).size !== input.availableColors.length) return 'Frame colors must not contain duplicates.';
   return null;
 };
-export const validateCouponFields = (input: { code: string; description?: string | null; couponType: string; discountType: string; discountValue: number | string; minimumOrderValue: number | string; usageLimit?: number | null; usagePerUser?: number | null; startDate: string; endDate: string; expiresAt: string }): string | null => {
-  if (!/^[A-Za-z0-9_-]{3,40}$/.test(input.code.trim())) return 'Coupon code must contain 3–40 letters, numbers, hyphens or underscores.';
-  if ((input.description?.trim().length ?? 0) > 2000) return 'Description must be 2,000 characters or fewer.';
-  if (!['PERCENTAGE', 'FLAT', 'LIMITED_COUNT', 'ORDER_PRICE_ABOVE', 'ONCE_PER_USER', 'NEW_USER', 'FESTIVAL', 'BUY_ONE_GET_ONE', 'BUY_TWO_GET_ONE'].includes(input.couponType)) return 'Select a valid coupon type.';
-  if (!['PERCENTAGE', 'FLAT', 'NONE'].includes(input.discountType)) return 'Select a valid discount type.';
-  const value = Number(input.discountValue);
-  if (!String(input.discountValue).trim() || !Number.isFinite(value) || value < 0 || value > 9_999_999_999.99 || (input.discountType !== 'NONE' && value === 0)) return 'Enter a valid positive discount value.';
-  if (input.discountType === 'PERCENTAGE' && value > 100) return 'Percentage must not exceed 100.';
-  const minimum = Number(input.minimumOrderValue);
-  if (!String(input.minimumOrderValue).trim() || !Number.isFinite(minimum) || minimum < 0 || minimum > 9_999_999_999.99) return 'Minimum order value must be zero or positive.';
-  for (const [label, limit] of [['Usage limit', input.usageLimit], ['Usage per user', input.usagePerUser]] as const) {
-    if (limit != null && (!Number.isSafeInteger(limit) || limit <= 0 || limit > 2_147_483_647)) return `${label} must be a positive whole number.`;
-  }
-  for (const [label, value] of [['Start date', input.startDate], ['End date', input.endDate], ['Expiry', input.expiresAt]]) {
-    if (!value?.trim() || !Number.isFinite(Date.parse(value))) return `${label} must be a valid date.`;
-  }
-  return null;
-};
+
 export const validateProductFiles = (files: File[]): string | null => {
   if (files.length > 10) return 'Upload at most 10 files at a time.';
   if (files.some(file => !['image/jpeg', 'image/png', 'image/webp', 'video/mp4'].includes(file.type))) return 'Choose JPG, PNG, WebP or MP4 files.';

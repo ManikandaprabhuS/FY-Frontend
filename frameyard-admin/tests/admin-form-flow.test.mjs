@@ -50,7 +50,7 @@ test('upload/save status is bold, polite and disappears when finished', () => {
   assert.equal(renderToStaticMarkup(createElement(FormStatus, { busy: false })), '');
 });
 test('active admin forms use live guarded actions and have no duplicated summary error bar', async () => {
-  for (const path of ['products/ProductDetailsPage.tsx', 'marketing/coupon/CouponDynamicWizard.tsx', 'marketing/product-discount/ProductDiscountPages.tsx']) {
+  for (const path of ['products/ProductDetailsPage.tsx']) {
     const code = await readFile(new URL('../src/pages/' + path, import.meta.url), 'utf8');
     assert.match(code, /FormAction/); assert.match(code, /FormStatus/);
     assert.doesNotMatch(code, /\{(?:wizardError|imageError|error) && <p/);

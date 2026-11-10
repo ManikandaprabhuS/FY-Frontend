@@ -78,47 +78,10 @@ export interface Product {
 
   variants: ProductVariant[];
   images?: ProductImage[];
-  discounts?: ProductDiscount[];
+
 }
 
-export type CouponType =
-  | 'LIMITED_COUNT'
-  | 'ONE_PER_USER'
-  | 'ORDER_PRICE_ABOVE'
-  | 'NEW_USER'
-  | 'FESTIVE_DAYS'
-  | 'BUY_1_GET_1'
-  | 'BUY_2_GET_1'
-  | 'PERCENT_OFFER';
-
-export type DiscountType =
-  | 'FLAT_OFFER'
-  | 'PERCENTAGE_OFFER';
-
-export interface Coupon {
-  id: string;
-  couponType?: CouponType | null;
-  discountType?: DiscountType | null;
-  description?: string | null;
-  couponCode: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy?: string | null;
-  expiresAt?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  discountValue?: number | null;
-}
-
-export interface ProductDiscount {
-  id: string;
-  productId: string;
-  couponId?: string | null;
-  expiresAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  coupon?: Coupon | null;
-}
+export interface LegacyCoupon { id: string; couponCode: string; }
 export type OrderStatus =
   | 'PLACED'
   | 'CONFIRMED'
@@ -153,6 +116,13 @@ export interface Order {
   userId: string;
   userAddressId?: string | null;
   couponId?: string | null;
+  couponCode?: string | null;
+  couponTitle?: string | null;
+  exportCoupon?: string;
+  discount?: number;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
+  subtotal?: number;
   orderNumber: string;
   totalAmount: number;
   orderStatus: OrderStatus;
@@ -167,7 +137,7 @@ export interface Order {
   updatedAt: string;
   user?: Pick<User, 'name' | 'email' | 'phoneNumber'>;
   userAddress?: UserAddress | null;
-  coupon?: Coupon | null;
+  coupon?: LegacyCoupon | null;
   orderItems: OrderItem[];
   incidents?: CustomerIncident[];
 }

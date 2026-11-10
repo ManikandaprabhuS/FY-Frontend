@@ -21,11 +21,12 @@ import {
   ChevronRight,
   IdCard,
   Heart,
-  TicketPercent,
-  BadgePercent,
+
+
   Mail,
   CalendarDays,
   Star,
+  BadgePercent,
 } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
@@ -65,8 +66,9 @@ export const AdminLayout: React.FC = () => {
     { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Wishlists', path: '/admin/wishlists', icon: Heart },
     { name: 'Reviews & Ratings', path: '/admin/reviews', icon: Star },
-    { name: 'Coupons', path: '/admin/marketing/coupons', icon: TicketPercent, adminOnly: true },
-    { name: 'Product Discounts', path: '/admin/marketing/product-discounts', icon: BadgePercent, adminOnly: true },
+    { name: 'Offers', path: '/admin/offers', icon: BadgePercent },
+
+
     { name: 'Newsletter', path: '/admin/newsletter', icon: Mail },
     { name: 'Appointments', path: '/admin/appointments', icon: CalendarDays },
     { name: 'Notifications', path: '/admin/notifications', icon: Bell },

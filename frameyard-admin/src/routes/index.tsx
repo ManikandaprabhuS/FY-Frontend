@@ -18,6 +18,7 @@ const ProductDetailsPage = lazy(() => import('../pages/products/ProductDetailsPa
 const OrdersPage = lazy(() => import('../pages/orders/OrdersPage'));
 const CustomersPage = lazy(() => import('../pages/customers/CustomersPage'));
 const CustomerDetailsPage = lazy(() => import('../pages/customers/CustomerDetailsPage'));
+const OffersPage = lazy(() => import("../pages/offers/OffersPage"));
 const ReviewsPage = lazy(() => import("../pages/reviews/ReviewsPage"));
 const NotificationsPage = lazy(() => import('../pages/notifications/NotificationsPage'));
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage'));
@@ -27,12 +28,12 @@ const WishlistAnalyticsPage = lazy(() => import('../pages/wishlist/WishlistAnaly
 const NewsletterSubscribersPage = lazy(() => import('../pages/newsletter/NewsletterSubscribersPage'));
 const AppointmentsPage = lazy(() => import('../pages/appointments/AppointmentsPage'));
 const AppointmentDetailsPage = lazy(() => import('../pages/appointments/AppointmentDetailsPage'));
-const CouponsPage = lazy(() => import('../pages/marketing/coupon/CouponReferencePages').then(module => ({ default: module.CouponReferenceList })));
-const CouponDetails = lazy(() => import('../pages/marketing/coupon/CouponReferencePages').then(module => ({ default: module.CouponReferenceDetails })));
-const CouponDynamicWizard = lazy(() => import('../pages/marketing/coupon/CouponDynamicWizard').then(module => ({ default: module.CouponDynamicWizard })));
-const ProductDiscountsPage = lazy(() => import('../pages/marketing/product-discount/ProductDiscountPages').then(module => ({ default: module.ProductDiscountsPage })));
-const ProductDiscountWizard = lazy(() => import('../pages/marketing/product-discount/ProductDiscountPages').then(module => ({ default: module.ProductDiscountWizard })));
-const ProductDiscountDetails = lazy(() => import('../pages/marketing/product-discount/ProductDiscountPages').then(module => ({ default: module.ProductDiscountDetails })));
+
+
+
+
+
+
 const CustomerHomePage = lazy(() => import('../features/customer/pages/CustomerHomePage'));
 const CustomerProductsPage = lazy(() => import('../features/customer/pages/CustomerProductsPage'));
 const CustomerProductDetailsPage = lazy(() => import('../features/customer/pages/CustomerProductDetailsPage'));
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
             path: 'wishlists',
             element: <WishlistAnalyticsPage />,
           },
+          { path: 'offers', element: <OffersPage /> },
           {
             path: 'reviews',
             element: <ReviewsPage />,
@@ -136,14 +138,14 @@ export const router = createBrowserRouter([
                 path: 'employees',
                 element: <EmployeesPage />,
               },
-              { path: 'marketing/coupons', element: <CouponsPage /> },
-              { path: 'marketing/coupons/new', element: <CouponDynamicWizard /> },
-              { path: 'marketing/coupons/:id', element: <ResourceRoute apiRoot="/coupons"><CouponDetails /></ResourceRoute> },
-              { path: 'marketing/coupons/:id/edit', element: <ResourceRoute apiRoot="/coupons"><CouponDynamicWizard /></ResourceRoute> },
-              { path: 'marketing/product-discounts', element: <ProductDiscountsPage /> },
-              { path: 'marketing/product-discounts/new', element: <ProductDiscountWizard /> },
-              { path: 'marketing/product-discounts/:id', element: <ResourceRoute apiRoot="/product-discounts"><ProductDiscountDetails /></ResourceRoute> },
-              { path: 'marketing/product-discounts/:id/edit', element: <ResourceRoute apiRoot="/product-discounts"><ProductDiscountWizard /></ResourceRoute> },
+
+
+
+
+
+
+
+
             ],
           },
           {

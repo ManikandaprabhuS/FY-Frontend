@@ -41,7 +41,7 @@ export const showApiError = (failure: unknown, message: string, options?: Option
     [400, 413, 415, 422].includes(response?.status ?? 0) ||
     (response?.status === 404 && code === 'RECOVERY_ACCOUNT_NOT_FOUND') ||
     (response?.status === 429 && ['PASSWORD_RESET_RATE_LIMITED', 'OTP_ATTEMPTS_EXCEEDED', 'REVIEW_RATE_LIMITED'].includes(code)) ||
-    (response?.status === 409 && ['DUPLICATE_RECORD', 'ACCOUNT_ALREADY_EXISTS', 'INSUFFICIENT_STOCK', 'QUANTITY_LIMIT_EXCEEDED', 'REVIEW_DUPLICATE', 'WISHLIST_UPDATE_CONFLICT'].includes(code)) ||
+    (response?.status === 409 && ['DUPLICATE_RECORD', 'ACCOUNT_ALREADY_EXISTS', 'INSUFFICIENT_STOCK', 'QUANTITY_LIMIT_EXCEEDED', 'REVIEW_DUPLICATE', 'WISHLIST_UPDATE_CONFLICT', 'OFFER_UNAVAILABLE', 'OFFER_CONFLICT'].includes(code)) ||
     (response?.status === 410 && /OTP|RESET_TOKEN|RECOVERY_CODE/.test(code)));
   return correctable ? showWarning(message, options) : showError(message, options);
 };
