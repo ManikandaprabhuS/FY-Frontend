@@ -1,0 +1,408 @@
+/*
+ * Homepage collections: four small rooms, each with a frame leaning on a ledge. The frames
+ * use the hero's proportions (portrait, same moulding and mount) and
+ * fill most of the card: --fw, the frame width, is a share of the card's own width, so the
+ * frame stays big from a phone card to a desktop column. Type is Inter, as in the admin console.
+ */
+
+.fy-col { font-family: var(--font-sans); }
+
+/* ---------- Heading ---------- */
+
+.fy-col__title {
+  font-size: clamp(30px, 4.2vw, 52px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #111111;
+}
+
+.fy-col__lead {
+  max-width: 40ch;
+  margin: 8px auto 0;
+  font-size: clamp(15px, 1.3vw, 17px);
+  line-height: 1.5;
+  color: var(--color-mute);
+}
+
+/* ---------- The row: four across on desktop, two on tablets, stacked on phones ---------- */
+
+.fy-col__list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 1023.98px) {
+  .fy-col__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+}
+
+
+/* ---------- The card ---------- */
+
+/*
+ * A soft black shadow at rest. On hover the card lifts up and to the left, and its shadow
+ * deepens only to the right and below, as if lit from the top left.
+ */
+.fy-col__card {
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #eeedea;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    4px 8px 18px -10px rgba(0, 0, 0, 0.45);
+  transition: transform 380ms var(--fy-ease-out), box-shadow 380ms var(--fy-ease-out);
+}
+
+@media (hover: hover) {
+  .fy-col__card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow:
+      2px 3px 0 rgba(0, 0, 0, 0.05),
+      12px 16px 26px -8px rgba(0, 0, 0, 0.55);
+  }
+
+  .fy-col__card:hover .fy-col__photo[data-visible='true'] { transform: scale(1.03); }
+  .fy-col__card:hover .fy-col__shop { color: #111111; background: #ffffff; }
+}
+
+/* Touch: the same lift while pressed. */
+.fy-col__card:active {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 12px 20px -8px rgba(0, 0, 0, 0.5);
+}
+
+.fy-col__card:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 3px;
+}
+
+/* The room: a softly lit wall and a pale ledge, tall enough for a hero-sized frame. */
+.fy-col__scene {
+  position: relative;
+  display: block;
+  --fw: 64cqw;
+  height: calc(var(--fw) * 1.55);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 20%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #e9e8e4, #e2e0dc);
+}
+
+.fy-col__ledge {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--fw) * 0.2);
+  background: linear-gradient(180deg, #f8f7f5 0, #f8f7f5 9%, #efedea 10%, #e7e5e1 100%);
+  box-shadow: 0 -1px 0 rgba(17, 17, 17, 0.06);
+}
+
+/* ---------- The frame: the hero's proportions, leaning on the ledge ---------- */
+
+.fy-col__frame {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--fw) * 0.15);
+  z-index: 2;
+  display: block;
+  width: var(--fw);
+  aspect-ratio: 0.777;
+  padding: 8.5%;
+  transform: translateX(-50%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 max(1px, calc(var(--fw) * 0.012)) 0 rgba(255, 255, 255, 0.24),
+    inset 0 calc(var(--fw) * -0.012) 0 rgba(0, 0, 0, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    calc(var(--fw) * 0.05) calc(var(--fw) * 0.08) calc(var(--fw) * 0.1) calc(var(--fw) * -0.03) rgba(30, 24, 16, 0.38);
+}
+
+/* The shadow it casts on the ledge. */
+.fy-col__frame::after {
+  content: '';
+  position: absolute;
+  inset: auto 4% calc(var(--fw) * -0.06);
+  z-index: -1;
+  height: calc(var(--fw) * 0.08);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0) 70%);
+}
+
+.fy-col__frame--classic { background: linear-gradient(135deg, #2e2e2e 0%, #0e0e0e 45%, #1c1c1c 100%); }
+
+.fy-col__frame--metal {
+  padding: 6%;
+  background: linear-gradient(135deg, #d9dbdd 0%, #9a9da1 30%, #e6e7e8 52%, #8c8f93 76%, #c4c6c9 100%);
+}
+
+.fy-col__frame--wooden {
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.07) 0 2px, transparent 2px 6px),
+    linear-gradient(135deg, #8d4b22 0%, #5a2b10 45%, #7b3d1a 100%);
+}
+
+.fy-col__frame--premium {
+  padding: 10%;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(135deg, #d8bf86 0%, #a8864a 40%, #e2cf9f 62%, #9c7a40 100%);
+}
+
+.fy-col__mat {
+  display: block;
+  height: 100%;
+  padding: 14%;
+  background: #fbfbfa;
+  box-shadow: inset 0 calc(var(--fw) * 0.03) calc(var(--fw) * 0.035) rgba(0, 0, 0, 0.18);
+}
+
+.fy-col__opening {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  background: #f2f2f0;
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 2px rgba(0, 0, 0, 0.06), inset 1px 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* The photo follows the hero's switch; each card's appears a beat after the last. */
+.fy-col__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  filter: brightness(0.7);
+  transform: scale(1.06);
+  transition:
+    opacity 650ms var(--fy-ease-out) calc(var(--i, 0) * 90ms),
+    filter 800ms var(--fy-ease-out) calc(var(--i, 0) * 90ms),
+    transform 900ms var(--fy-ease-out);
+}
+
+.fy-col__photo[data-visible='true'] {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+/* ---------- Name and button ---------- */
+
+.fy-col__bar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 14px 18px;
+  background: #e7e5e1;
+}
+
+.fy-col__name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #111111;
+}
+
+.fy-col__shop {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #111111;
+  border: 1px solid #111111;
+  border-radius: 999px;
+  transition: color 250ms, background-color 250ms, transform 150ms;
+}
+
+.fy-col__card:active .fy-col__shop { transform: scale(0.96); }
+
+/* Touch screens have no hover: the button gives the same white flip, and a press, on tap. */
+@media (hover: none) {
+  .fy-col__card { -webkit-tap-highlight-color: transparent; }
+
+  .fy-col__card:active .fy-col__shop {
+    color: #111111;
+    background: #ffffff;
+    transition-duration: 80ms;
+  }
+
+  .fy-col__card:active .fy-col__photo[data-visible='true'] { transform: scale(1.03); }
+}
+
+/*
+ * Phones: one card at a time, swiped left to right, each snapping to the centre with the
+ * next one peeking in. As a card travels, it eases down in scale and the frame inside it
+ * drifts slightly, so the card has depth; a thin bar below tracks the
+ * swipe. The motion is driven by the scroll itself (no script); browsers without
+ * scroll-driven animation simply show the cards still.
+ */
+.fy-col__progress { display: none; }
+
+@media (max-width: 639.98px) {
+  .fy-col { timeline-scope: --fy-col-row; }
+
+  .fy-col__list {
+    display: flex;
+    gap: 14px;
+    margin: 26px -20px 0;
+    padding: 6px 10vw 18px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    scroll-timeline: --fy-col-row inline;
+  }
+
+  .fy-col__list::-webkit-scrollbar { display: none; }
+
+  .fy-col__item {
+    flex: 0 0 80vw;
+    scroll-snap-align: center;
+    view-timeline: --fy-col-card inline;
+  }
+
+  .fy-col__name { font-size: 16px; }
+
+  @supports (animation-timeline: view()) {
+    .fy-col__card {
+      animation: fy-col-focus linear both;
+      animation-timeline: --fy-col-card;
+    }
+
+    .fy-col__frame {
+      animation: fy-col-drift linear both;
+      animation-timeline: --fy-col-card;
+    }
+
+
+    .fy-col__progress {
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin: 2px auto 0;
+      overflow: hidden;
+      border-radius: 3px;
+      background: #e2e0dc;
+    }
+
+    .fy-col__progress > span {
+      display: block;
+      height: 100%;
+      background: #111111;
+      transform-origin: left;
+      animation: fy-col-progress linear both;
+      animation-timeline: --fy-col-row;
+    }
+  }
+}
+
+/* Centre of the screen: full size and full light; towards the edges: a touch smaller and softer. */
+@keyframes fy-col-focus {
+  0%, 100% { transform: scale(0.9); opacity: 0.55; }
+  50% { transform: none; opacity: 1; }
+}
+
+/* The frame drifts a little against the swipe, so the card has depth. */
+@keyframes fy-col-drift {
+  from { translate: 10% 0; }
+  to { translate: -10% 0; }
+}
+
+
+@keyframes fy-col-progress {
+  from { transform: scaleX(0.25); }
+  to { transform: scaleX(1); }
+}
+
+/* ---------- Store promises ---------- */
+
+.fy-col__promises {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 20px 0 0;
+  padding: 18px 8px;
+  list-style: none;
+  background: #f4f3f1;
+  border-radius: 18px;
+}
+
+.fy-col__promise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 12px;
+}
+
+.fy-col__promise + .fy-col__promise { border-left: 1px solid #dddbd6; }
+
+.fy-col__promise-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #111111;
+}
+
+.fy-col__promise-detail {
+  display: block;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-mute);
+}
+
+.fy-col__promise-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: #111111;
+  border: 1px solid #d6d3cd;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+@media (max-width: 1023.98px) {
+  .fy-col__promises { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
+  .fy-col__promise { justify-content: flex-start; }
+  .fy-col__promise:nth-child(3) { border-left: 0; }
+}
+
+/* Phones: icon above its two lines, centred, so the 2 × 2 grid stays roomy. */
+@media (max-width: 639.98px) {
+  .fy-col__promises { padding: 16px 4px; row-gap: 18px; }
+
+  .fy-col__promise {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 2px 8px;
+    text-align: center;
+  }
+
+  .fy-col__promise-icon { width: 36px; height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-col__card,
+  .fy-col__photo { transition-duration: 1ms; transition-delay: 0ms; }
+
+  .fy-col__card,
+  .fy-col__frame { animation: none !important; }
+}

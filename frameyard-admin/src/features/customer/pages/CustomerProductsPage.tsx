@@ -1,5 +1,6 @@
 import { totalVariantStock } from '../../../utils/stock';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 import {
   ChevronDown,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import ProductCatalogCard from '../components/ProductCatalogCard';
+import { materialsForCollection } from '../data/frameCollections';
 import { getCatalogPricing, type CatalogPricing } from '../utils/catalog-product';
 import { useProductStore } from '../../../store/productStore';
 import type { Product } from '../../../types';
@@ -33,7 +35,25 @@ const CustomerProductsPage: React.FC = () => {
   const fetchProducts = useProductStore((state) => state.fetchProducts);
   const pagination = useProductStore(state => state.pagination);
   const facets = useProductStore(state => state.facets);
-  const [materials, setMaterials] = useState<string[]>([]);
+  // `?collection=wooden` (from the homepage collections) pre-selects that collection's
+  // materials once the material list is known; any change the shopper makes then wins.
+  const [searchParams] = useSearchParams();
+  const collectionId = searchParams.get('collection');
+  // Keyed on the matched names, so a fresh facets object with the same materials keeps the
+  // same array and does not trigger another fetch.
+  const collectionMaterialsKey = materialsForCollection(collectionId, facets?.materials.map((item) => item.value) ?? []).join('\n');
+  const collectionMaterials = useMemo(
+    () => (collectionMaterialsKey ? collectionMaterialsKey.split('\n') : []),
+    [collectionMaterialsKey],
+  );
+  const [materialChoice, setMaterialChoice] = useState<string[] | null>(null);
+  const materials = materialChoice ?? collectionMaterials;
+  const setMaterials = useCallback((next: string[] | ((current: string[]) => string[])) => {
+    setMaterialChoice((previous) => {
+      const base = previous ?? collectionMaterials;
+      return typeof next === 'function' ? next(base) : next;
+    });
+  }, [collectionMaterials]);
   const [sizes, setSizes] = useState<string[]>([]);
   const [availability, setAvailability] = useState<AvailabilityFilter[]>([]);
   const [saleOnly, setSaleOnly] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Heart, Menu, Search, ShoppingBag, UserRound } from 'lucide-react';
+import { Heart, Menu, ShoppingBag, UserRound } from 'lucide-react';
 
 import fyLogoIcon from '../../../assets/fy-logo-icon.jpeg';
 import { useAuthStore } from '../../../store/authStore';
@@ -58,10 +58,78 @@ const CustomerNavbar: React.FC = () => {
   const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
     `group relative py-2 text-[14px] font-medium transition-colors duration-200 ${isActive ? 'text-ink' : 'text-ink/60 hover:text-ink'}`;
 
+  // Homepage, before scrolling: a transparent bar laid over the hero (logo, centred name,
+  // three icons). Once scrolled, or on any other page, the regular white bar.
+  const isHome = location.pathname === '/';
+  const overlay = isHome && !scrolled;
+
+  if (overlay) {
+    const overlayIcon = 'fy-nav-overlay__icon relative grid h-9 w-9 place-items-center rounded-full transition-[background-color,transform] duration-300 active:scale-90 sm:h-11 sm:w-11';
+    return (
+      <>
+        {/* Sticky with a negative bottom margin: it overlays the hero, and sticks at the top once the announcement bar scrolls away. */}
+        <header className="fy-nav-overlay sticky top-0 z-[100] -mb-[60px] lg:-mb-[76px]">
+          {/* Equal side columns keep the centre exactly mid-screen, whatever is on either side. */}
+          <div className="mx-auto grid h-[60px] w-full max-w-[1440px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-2.5 sm:gap-3 sm:px-6 lg:h-[76px] lg:px-10">
+            <div className="flex items-center justify-self-start">
+              {/* Opens the same slide-in menu as on other pages. */}
+              <button
+                ref={menuButton}
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Open menu"
+                aria-expanded={menuOpen}
+                className={`${overlayIcon} lg:hidden`}
+              >
+                <Menu className="h-[22px] w-[22px]" strokeWidth={1.6} />
+              </button>
+              <Link to="/" aria-label={`${BRAND_NAME} home`} className="hidden items-center lg:flex">
+                <img src={fyLogoIcon} alt="" className="h-9 w-9 rounded-full object-contain" />
+              </Link>
+            </div>
+
+            {/* Phones: logo and name together in the centre. Desktop: the name alone. */}
+            <Link to="/" aria-label={`${BRAND_NAME} home`} className="flex items-center gap-1.5">
+              <img src={fyLogoIcon} alt="" className="fy-nav-overlay__mark h-6 w-6 rounded-full object-contain lg:hidden" />
+              <span className="fy-display fy-nav-overlay__name text-[clamp(17px,5.2vw,21px)] leading-none lg:text-[26px]">{BRAND_NAME}</span>
+            </Link>
+
+            {/* Phones get cart, wishlist and account from the bottom dock, so the bar keeps only the menu and name. */}
+            <div className="hidden items-center justify-end sm:gap-1 lg:flex">
+              <button type="button" onClick={openWishlist} aria-label={wishlistCount ? `Wishlist, ${wishlistCount} saved` : 'Wishlist'} className={overlayIcon}>
+                <Heart className={`h-5 w-5 ${wishlistCount ? 'fill-current' : ''}`} strokeWidth={1.6} />
+              </button>
+              <Link to="/profile" aria-label={firstName ? 'Your account' : accountLabel} className={overlayIcon}>
+                <UserRound className="h-5 w-5" strokeWidth={1.6} />
+              </Link>
+              <Link to="/cart" aria-label={`Bag, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`} className={overlayIcon}>
+                <ShoppingBag className="h-5 w-5" strokeWidth={1.6} />
+                {cartCount > 0 && (
+                  <span className="fy-nav-overlay__badge absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-semibold leading-none sm:right-1 sm:top-1">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+          </div>
+        </header>
+        <CustomerMenuDrawer
+          open={menuOpen}
+          onClose={closeMenu}
+          onOpenWishlist={openWishlist}
+          wishlistCount={wishlistCount}
+          customerName={firstName}
+          returnFocusTo={menuButton}
+        />
+        <CustomerWishlistDrawer open={wishlistOpen} onClose={() => setWishlistOpen(false)} />
+      </>
+    );
+  }
+
   return (
     <>
       <header
-        className={`sticky top-0 z-[100] border-b bg-white/90 backdrop-blur-xl transition-[border-color] duration-300 ${scrolled ? 'border-rule' : 'border-transparent'}`}
+        className={`${isHome ? 'fy-nav-solid -mb-[60px] lg:-mb-[76px]' : ''} sticky top-0 z-[100] border-b bg-white/90 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ${scrolled ? 'border-rule shadow-[0_1px_14px_rgba(17,17,17,0.06)]' : 'border-transparent'}`}
       >
         <div className="mx-auto grid h-[60px] w-full max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 sm:px-6 lg:h-[76px] lg:grid-cols-[1fr_auto_1fr] lg:px-10">
           <div className="flex items-center">
@@ -102,11 +170,9 @@ const CustomerNavbar: React.FC = () => {
             ))}
           </nav>
 
-          <div className="flex items-center justify-end gap-0.5 sm:gap-1">
-            {customerLoggedIn&&<CustomerNotificationBell key={user.id}/>}
-            <Link to="/products" aria-label="Search frames" className={iconButton}>
-              <Search className="h-5 w-5" strokeWidth={1.6} />
-            </Link>
+          {/* Desktop only (phones use the bottom dock); no search icon. The bell comes from main. */}
+          <div className="hidden items-center justify-end gap-0.5 sm:gap-1 lg:flex">
+            {customerLoggedIn && <CustomerNotificationBell key={user.id} />}
 
             <button
               type="button"

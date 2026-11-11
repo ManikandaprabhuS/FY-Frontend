@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import useProducts from '../../../hooks/useProducts';
-import FrameTypesCarousel from '../components/FrameTypesCarousel';
+import BestSellersSection from '../components/BestSellersSection';
+import FrameCollectionsSection from '../components/FrameCollectionsSection';
 import HeroSection from '../components/HeroSection';
-import HowItWorksSection from '../components/HowItWorksSection';
+import PhotoToFrameSection from '../components/PhotoToFrameSection';
 
 const CustomerHomePage: React.FC = () => {
   const { fetchProducts } = useProducts(false);
@@ -14,8 +15,9 @@ const CustomerHomePage: React.FC = () => {
   return (
     <div className="bg-white text-black">
       <HeroSection />
-      <FrameTypesCarousel />
-      <HowItWorksSection />
+      <FrameCollectionsSection />
+      <PhotoToFrameSection />
+      <BestSellersSection />
     </div>
   );
 };

@@ -1,0 +1,576 @@
+/*
+ * Homepage "How it works": one frame, three moments. A stage on the right tells the story
+ * (sized in cqw, the stage's width, so it scales as one picture); the step list on the left
+ * drives it. Each step only changes data-step on the stage; everything else is transitions.
+ * Inter, as in the collections section.
+ */
+
+.fy-story { font-family: var(--font-sans); }
+
+.fy-story__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  align-items: center;
+  gap: clamp(36px, 5vw, 80px);
+}
+
+/* ---------- Heading and steps ---------- */
+
+.fy-story__eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-mute);
+}
+
+.fy-story__title {
+  margin-top: 6px;
+  font-size: clamp(30px, 4.2vw, 52px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #111111;
+}
+
+.fy-story__lead {
+  margin-top: 8px;
+  font-size: clamp(15px, 1.3vw, 17px);
+  line-height: 1.5;
+  color: var(--color-mute);
+}
+
+.fy-story__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: clamp(24px, 3vw, 40px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fy-story__step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 16px;
+  width: 100%;
+  padding: 14px 0 0;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fy-story__num {
+  padding-top: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b3b0aa;
+  transition: color 300ms;
+}
+
+.fy-story__step-title {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #a19e98;
+  transition: color 300ms;
+}
+
+/* Only the current step shows its line of detail. */
+.fy-story__step-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-mute);
+  opacity: 0;
+  transition: grid-template-rows 450ms var(--fy-ease-out), opacity 350ms;
+}
+
+.fy-story__step-detail > span { min-height: 0; overflow: hidden; }
+
+.fy-story__step[aria-current='step'] .fy-story__num,
+.fy-story__step[aria-current='step'] .fy-story__step-title { color: #111111; }
+
+.fy-story__step[aria-current='step'] .fy-story__step-detail {
+  grid-template-rows: 1fr;
+  margin-top: 4px;
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .fy-story__step:hover .fy-story__step-title { color: #111111; }
+}
+
+.fy-story__step:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Each step's line; the current one fills over the step's time, then the story moves on. */
+.fy-story__progress {
+  grid-column: 1 / -1;
+  display: block;
+  height: 2px;
+  margin-top: 14px;
+  overflow: hidden;
+  background: #e6e4e0;
+}
+
+.fy-story__fill {
+  display: block;
+  height: 100%;
+  background: #111111;
+  transform-origin: left;
+  animation: fy-story-fill var(--step-ms, 4200ms) linear both;
+}
+
+.fy-story[data-paused] .fy-story__fill,
+.fy-story[data-paused] .fy-story__stage * { animation-play-state: paused; }
+
+.fy-story__fill[data-long] { animation-duration: var(--ship-ms, 6400ms); }
+.fy-story[data-static] .fy-story__fill { animation: none; }
+
+@keyframes fy-story-fill {
+  from { transform: scaleX(0); }
+}
+
+/* ---------- The stage ---------- */
+
+.fy-story__stage {
+  --t: 700ms;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border-radius: 28px;
+  container-type: inline-size;
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #ebeae6, #e1dfdb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 6px 14px 30px -18px rgba(0, 0, 0, 0.45);
+}
+
+/* Step three: a spotlight and a floor turn the stage into a room. */
+.fy-story__glow,
+.fy-story__floor,
+.fy-story__tag { opacity: 0; transition: opacity var(--t) var(--fy-ease-out), transform var(--t) var(--fy-ease-out); }
+
+.fy-story__glow {
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  width: 70cqw;
+  height: 70cqw;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 50% 30%, rgba(255, 248, 228, 0.95), rgba(255, 246, 222, 0.35) 40%, rgba(255, 246, 222, 0) 68%);
+  pointer-events: none;
+}
+
+.fy-story__floor {
+  position: absolute;
+  inset: auto 0 0;
+  height: 16%;
+  background: linear-gradient(180deg, #f6f5f2 0, #f6f5f2 6%, #e9e7e3 7%, #e3e1dc 100%);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05);
+}
+
+
+.fy-story__stage[data-step='2'] .fy-story__glow,
+.fy-story__stage[data-step='2'] .fy-story__floor { opacity: 1; }
+
+
+/* ---------- The frame: one object moving through the story ---------- */
+
+.fy-story__frame {
+  --dx: 0cqw;
+  --dy: 0cqw;
+  --s: 1;
+  position: absolute;
+  top: 11%;
+  left: 50%;
+  z-index: 2;
+  width: 34cqw;
+  aspect-ratio: 0.777;
+  padding: 2.5cqw;
+  transform: translateX(-50%) translate(var(--dx), var(--dy)) scale(var(--s));
+  transition:
+    transform 900ms cubic-bezier(0.65, 0, 0.25, 1),
+    background 500ms ease,
+    box-shadow var(--t) var(--fy-ease-out);
+  box-shadow:
+    inset 0 0.3cqw 0 rgba(255, 255, 255, 0.18),
+    inset 0 -0.3cqw 0 rgba(0, 0, 0, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    1.2cqw 2.4cqw 3.2cqw -1cqw rgba(30, 24, 16, 0.35);
+}
+
+.fy-story__frame--black { background: linear-gradient(135deg, #2e2e2e 0%, #0e0e0e 45%, #1c1c1c 100%); }
+.fy-story__frame--walnut {
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.07) 0 2px, transparent 2px 6px),
+    linear-gradient(135deg, #8d4b22 0%, #5a2b10 45%, #7b3d1a 100%);
+}
+.fy-story__frame--grey { background: linear-gradient(135deg, #8d8d8d 0%, #5f5f5f 45%, #777777 100%); }
+.fy-story__frame--sandal {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(135deg, #d8bf86 0%, #a8864a 40%, #e2cf9f 62%, #9c7a40 100%);
+}
+
+/* Step two: the frame steps left to make room for the phone. */
+.fy-story__stage[data-step='1'] .fy-story__frame { --dx: -16cqw; }
+
+/* Step three: it hangs a little higher and larger, lit from above. */
+.fy-story__stage[data-step='2'] .fy-story__frame {
+  --dy: -1cqw;
+  --s: 1.08;
+  box-shadow:
+    inset 0 0.3cqw 0 rgba(255, 250, 235, 0.3),
+    inset 0 -0.3cqw 0 rgba(0, 0, 0, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 3cqw 3.6cqw -1.2cqw rgba(30, 24, 16, 0.42);
+}
+
+.fy-story__mat {
+  display: block;
+  height: 100%;
+  padding: 13%;
+  background: #fbfbfa;
+  box-shadow: inset 0 0.8cqw 1cqw rgba(0, 0, 0, 0.16);
+}
+
+.fy-story__opening {
+  position: relative;
+  display: block;
+  height: 100%;
+  background: #f1f0ee;
+}
+
+/* Step one: an empty opening waiting for a photo. */
+.fy-story__plus {
+  position: absolute;
+  inset: 10%;
+  border: 1.5px dashed #c9c6c0;
+  transition: opacity 400ms;
+}
+
+.fy-story__plus::before,
+.fy-story__plus::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3cqw;
+  height: 1.5px;
+  background: #b7b4ae;
+  transform: translate(-50%, -50%);
+}
+
+.fy-story__plus::after { transform: translate(-50%, -50%) rotate(90deg); }
+
+/* Step two: the photo flies in from the phone, shrunk and tilted, and settles in the mount. */
+.fy-story__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: translate(48cqw, 6cqw) scale(0.42) rotate(8deg);
+  transition:
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1) 420ms,
+    opacity 300ms ease 420ms;
+}
+
+.fy-story__stage:not([data-step='0']) .fy-story__plus { opacity: 0; }
+.fy-story__stage:not([data-step='0']) .fy-story__photo { opacity: 1; transform: none; }
+
+/* Step one: size guides along the top and left. */
+.fy-story__dim {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-size: max(10px, 1.6cqw);
+  font-weight: 600;
+  color: #6f6c66;
+  opacity: 0;
+  transition: opacity 400ms;
+}
+
+.fy-story__dim > span { padding: 0 0.8cqw; background: #ebeae6; }
+
+.fy-story__dim--w {
+  left: 0;
+  right: 0;
+  top: -4.5cqw;
+  height: 2cqw;
+  border-inline: 1px solid #9c9993;
+  background: linear-gradient(#9c9993, #9c9993) center / 100% 1px no-repeat;
+}
+
+.fy-story__dim--h {
+  top: 0;
+  bottom: 0;
+  left: -4.5cqw;
+  width: 2cqw;
+  border-block: 1px solid #9c9993;
+  background: linear-gradient(#9c9993, #9c9993) center / 1px 100% no-repeat;
+}
+
+.fy-story__dim--h > span { transform: rotate(-90deg); white-space: nowrap; }
+
+.fy-story__stage[data-step='0'] .fy-story__dim { opacity: 1; transition-delay: 300ms; }
+
+/* Step one: the finishes being tried on, the current one ringed. */
+.fy-story__swatches {
+  position: absolute;
+  bottom: 4%;
+  left: 50%;
+  display: flex;
+  gap: 1.6cqw;
+  padding: 1.2cqw 1.8cqw;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1cqw 2.4cqw -1.2cqw rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
+  transition: opacity 400ms, transform 500ms var(--fy-ease-out);
+}
+
+.fy-story__stage:not([data-step='0']) .fy-story__swatches { opacity: 0; transform: translate(-50%, 3cqw); }
+
+.fy-story__swatch {
+  width: 3.4cqw;
+  height: 3.4cqw;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 2px transparent;
+  transition: box-shadow 250ms;
+}
+
+.fy-story__swatch[data-on] { box-shadow: 0 0 0 2px #ffffff, 0 0 0 3.5px #111111; }
+
+.fy-story__swatch--black { background: #151515; }
+.fy-story__swatch--walnut { background: #6e3516; }
+.fy-story__swatch--grey { background: #747474; }
+.fy-story__swatch--sandal { background: linear-gradient(135deg, #e2cf9f, #a8864a); }
+
+/* Step two: a phone with a few photos, the chosen one ringed. */
+.fy-story__phone {
+  position: absolute;
+  top: 8%;
+  right: 8cqw;
+  z-index: 3;
+  width: 22cqw;
+  aspect-ratio: 0.5;
+  padding: 1.1cqw;
+  border-radius: 4cqw;
+  background: #111111;
+  box-shadow: 0 2.4cqw 4cqw -1.6cqw rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateX(40cqw) rotate(8deg);
+  transition: transform 800ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms;
+}
+
+.fy-story__screen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 1cqw;
+  height: 100%;
+  padding: 5cqw 1.4cqw 1.4cqw;
+  overflow: hidden;
+  border-radius: 3cqw;
+  background: #fafaf9;
+}
+
+.fy-story__screen img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 1cqw;
+}
+
+.fy-story__screen img[data-picked] { box-shadow: 0 0 0 0.5cqw #ffffff, 0 0 0 0.9cqw #111111; }
+
+.fy-story__stage[data-step='1'] .fy-story__phone { opacity: 1; transform: none; }
+
+/* Step three: ready to order. */
+.fy-story__tag {
+  position: absolute;
+  right: 5%;
+  bottom: 6%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 10px;
+  font-size: max(12px, 1.8cqw);
+  font-weight: 600;
+  color: #111111;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.45);
+  transform: translateY(2cqw);
+}
+
+.fy-story__tag svg {
+  padding: 2px;
+  color: #ffffff;
+  background: #111111;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+}
+
+
+/* ---------- Step three: shown, packed, shipped ---------- */
+
+/*
+ * One timeline (--ship-ms) restarted each time step three begins:
+ *   0-28%   the framed photo hangs, lit, "Ready to order"
+ *   28-38%  a kraft box closes over it
+ *   42-58%  a truck drives in along the floor
+ *   54-70%  the box shrinks onto the truck bed
+ *   74-96%  the truck drives off with it, "Packed & shipped"
+ * --box-*: the box at the frame's size and place; --bed-*: on the truck bed.
+ */
+.fy-story__stage {
+  --box-l: 30cqw;
+  --box-w: 40cqw;
+  --box-b: 14%;
+  --box-h: 82%;
+  --bed-l: 34.5cqw;
+  --bed-w: 13cqw;
+  --bed-b: calc(2% + 6.6cqw);
+  --bed-h: 10cqw;
+}
+
+.fy-story__box {
+  position: absolute;
+  left: var(--bed-l);
+  bottom: var(--bed-b);
+  z-index: 4;
+  width: var(--bed-w);
+  height: var(--bed-h);
+  overflow: hidden;
+  border-radius: 0.6cqw;
+  background: linear-gradient(180deg, #d6b98f 0%, #c5a273 100%);
+  box-shadow: inset 0 0 0 1px rgba(80, 55, 25, 0.25), 0 1.4cqw 2.4cqw -1cqw rgba(30, 24, 16, 0.45);
+  opacity: 0;
+}
+
+/* The lid's seam and the tape running over it. */
+.fy-story__box::before {
+  content: '';
+  position: absolute;
+  inset: 16% 0 auto;
+  border-top: 1px solid rgba(80, 55, 25, 0.28);
+}
+
+.fy-story__box-tape {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 16%;
+  transform: translateX(-50%);
+  background: rgba(238, 222, 188, 0.75);
+}
+
+.fy-story__box-label {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  padding: 0.4cqw 1cqw;
+  font-size: max(7px, 1.3cqw);
+  font-weight: 700;
+  white-space: nowrap;
+  color: #111111;
+  background: rgba(255, 255, 255, 0.82);
+  transform: translateX(-50%);
+}
+
+.fy-story__truck {
+  position: absolute;
+  left: 29cqw;
+  bottom: 2%;
+  z-index: 3;
+  width: 34cqw;
+  height: auto;
+  transform: translateX(-80cqw);
+}
+
+.fy-story__tag--shipped { opacity: 0; }
+
+.fy-story__stage[data-step='2'] .fy-story__frame { animation: fy-ship-frame var(--ship-ms) linear both; }
+.fy-story__stage[data-step='2'] .fy-story__glow { animation: fy-ship-glow var(--ship-ms) linear both; }
+.fy-story__stage[data-step='2'] .fy-story__box { animation: fy-ship-box var(--ship-ms) cubic-bezier(0.45, 0, 0.25, 1) both; }
+.fy-story__stage[data-step='2'] .fy-story__truck { animation: fy-ship-truck var(--ship-ms) cubic-bezier(0.45, 0, 0.25, 1) both; }
+.fy-story__stage[data-step='2'] .fy-story__tag--ready { animation: fy-ship-ready var(--ship-ms) linear both; }
+.fy-story__stage[data-step='2'] .fy-story__tag--shipped { animation: fy-ship-shipped var(--ship-ms) linear both; }
+
+@keyframes fy-ship-frame {
+  0%, 30% { opacity: 1; }
+  38%, 100% { opacity: 0; }
+}
+
+@keyframes fy-ship-glow {
+  0% { opacity: 0; }
+  8%, 28% { opacity: 1; }
+  40%, 100% { opacity: 0.25; }
+}
+
+@keyframes fy-ship-box {
+  0%, 27% { opacity: 0; left: var(--box-l); bottom: var(--box-b); width: var(--box-w); height: var(--box-h); transform: scale(1.05); }
+  37%, 54% { opacity: 1; left: var(--box-l); bottom: var(--box-b); width: var(--box-w); height: var(--box-h); transform: none; }
+  68%, 74% { opacity: 1; left: var(--bed-l); bottom: var(--bed-b); width: var(--bed-w); height: var(--bed-h); transform: none; }
+  96%, 100% { opacity: 1; left: var(--bed-l); bottom: var(--bed-b); width: var(--bed-w); height: var(--bed-h); transform: translateX(80cqw); }
+}
+
+@keyframes fy-ship-truck {
+  0%, 42% { transform: translateX(-80cqw); }
+  56% { transform: translateX(1.2cqw); }
+  60%, 74% { transform: none; }
+  96%, 100% { transform: translateX(80cqw); }
+}
+
+@keyframes fy-ship-ready {
+  0% { opacity: 0; transform: translateY(2cqw); }
+  6%, 28% { opacity: 1; transform: none; }
+  34%, 100% { opacity: 0; transform: none; }
+}
+
+@keyframes fy-ship-shipped {
+  0%, 66% { opacity: 0; transform: translateY(2cqw); }
+  74%, 100% { opacity: 1; transform: none; }
+}
+
+/* ---------- Tablets and phones: heading, the stage, then the steps ---------- */
+
+@media (max-width: 1023.98px) {
+  .fy-story__layout { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  .fy-story__intro { display: contents; }
+  .fy-story__eyebrow, .fy-story__title, .fy-story__lead { text-align: center; }
+  .fy-story__stage { order: 1; width: 100%; max-width: 620px; margin: 24px auto 0; }
+  .fy-story__steps { order: 2; width: 100%; max-width: 620px; margin: 8px auto 0; }
+}
+
+@media (max-width: 639.98px) {
+  .fy-story__stage { aspect-ratio: 1 / 0.84; border-radius: 22px; }
+  .fy-story__frame { width: 40cqw; top: 9%; }
+  .fy-story__stage[data-step='1'] .fy-story__frame { --dx: -18cqw; }
+  .fy-story__phone { width: 26cqw; right: 5cqw; top: 9%; }
+  .fy-story__stage { --box-l: 26cqw; --box-w: 48cqw; --box-b: 26%; --box-h: 70%; --bed-l: 33.5cqw; --bed-w: 15cqw; --bed-h: 11.5cqw; }
+  .fy-story__truck { left: 27cqw; width: 38cqw; }
+  .fy-story__step-title { font-size: 17px; }
+  .fy-story__step-detail { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-story__stage[data-step='2'] * { animation: none !important; }
+  .fy-story__stage[data-step='2'] .fy-story__tag--ready { opacity: 1; }
+
+  .fy-story__stage *,
+  .fy-story__step-detail { transition-duration: 1ms !important; transition-delay: 0ms !important; }
+}

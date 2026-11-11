@@ -1,155 +1,927 @@
-/* Homepage hero: a framed photograph that swaps against a changing wall tone. */
+/*
+ * Homepage hero: a white gallery wall drawn in CSS. A ceiling track with four spotlights,
+ * four frames beneath them, the FrameYaad wordmark, the light toggle, a potted plant on
+ * the left and a black console with books and a plant on the right.
+ *
+ * Everything is sized from one value, --fw (the width of one frame), so the whole scene
+ * keeps its proportions from phones to wide screens.
+ */
 
-.fy-hero {
-  transition: background-color 800ms var(--fy-ease-out), color 500ms var(--fy-ease-out);
+.fy-wall {
+  --fw: min(18vw, 20svh, 230px);
+  --gap: calc(var(--fw) * 0.2);
+  --lamps: calc(var(--fw) * 0.44);
+  --floor: calc(var(--fw) * 0.34);
+  --u: calc(var(--fw) / 20.5);
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  /* --fy-nav-h: room for the transparent navbar laid over the top of the hero. */
+  padding: calc(var(--fy-nav-h, 0px) + var(--fw) * 0.12) 0 calc(var(--floor) + var(--fw) * 0.2);
+  background:
+    radial-gradient(ellipse 58% 55% at 50% 40%, rgba(246, 245, 242, 0.7) 0%, rgba(246, 245, 242, 0) 72%),
+    linear-gradient(90deg, #dcdad6 0%, #e8e7e3 20%, #ecebe8 50%, #e7e6e2 80%, #d8d6d2 100%);
 }
 
-/* ---------- Stage and slide transitions ---------- */
+/* ---------- Room: window light, floor, shade ---------- */
 
-.fy-hero-stage {
-  position: relative;
-  width: min(66vw, 290px);
-  aspect-ratio: 4 / 5;
-  touch-action: pan-y;
+/* Daylight from a window on the left: soft bright shafts split by the window's mullions. */
+.fy-wall__window {
+  position: absolute;
+  inset: -4% auto -4% -6%;
+  z-index: 0;
+  width: 62%;
+  background: linear-gradient(112deg,
+    rgba(255, 255, 255, 0) 0 6%,
+    rgba(255, 255, 255, 0.8) 6% 15%,
+    rgba(120, 112, 100, 0.07) 15% 17.5%,
+    rgba(255, 255, 255, 0.8) 17.5% 27%,
+    rgba(120, 112, 100, 0.07) 27% 29%,
+    rgba(255, 255, 255, 0.6) 29% 37%,
+    rgba(255, 255, 255, 0) 37%);
+  filter: blur(calc(var(--fw) * 0.05));
+  mask-image: linear-gradient(90deg, #000 0%, #000 35%, transparent 85%);
+  pointer-events: none;
+}
+
+.fy-wall__floor {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 0;
+  height: var(--floor);
+  background: linear-gradient(180deg, #d6d3ce 0%, #e2dfda 35%, #ebe9e5 100%);
+}
+
+/* Skirting board where the wall meets the floor. */
+.fy-wall__floor::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: max(3px, calc(var(--fw) * 0.035));
+  background: linear-gradient(180deg, #fbfaf8, #e9e7e3);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.07);
+}
+
+/* Lights off: the wall falls into shade. */
+.fy-wall__dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(ellipse 75% 70% at 50% 30%, rgba(24, 22, 18, 0.14), rgba(24, 22, 18, 0.3));
+  opacity: 0;
+  transition: opacity 700ms var(--fy-ease-out);
+  pointer-events: none;
+}
+
+.fy-wall[data-lights='off'] .fy-wall__dim { opacity: 1; }
+
+/* ---------- Plants and console ---------- */
+
+.fy-wall__plant,
+.fy-wall__console {
+  position: absolute;
+  bottom: calc(var(--floor) * 0.32);
+  z-index: 2;
+  transition: filter 700ms var(--fy-ease-out);
+}
+
+.fy-wall__plant {
+  left: calc(var(--fw) * -0.06);
+  width: auto;
+  height: calc(var(--fw) * 2.05);
+  filter: drop-shadow(calc(var(--fw) * 0.12) calc(var(--fw) * 0.03) calc(var(--fw) * 0.06) rgba(40, 34, 26, 0.18));
   user-select: none;
 }
 
-@media (min-width: 640px) {
-  .fy-hero-stage { width: min(52vw, 360px); }
+.fy-wall__console {
+  right: calc(var(--fw) * -0.16);
+  width: calc(var(--fw) * 1.35);
+  height: calc(var(--fw) * 0.62);
 }
 
-@media (min-width: 1024px) {
-  .fy-hero-stage { width: clamp(300px, 26vw, 400px); }
-}
-
-.fy-hero-slide {
+/* Soft contact shadow on the floor beneath the console. */
+.fy-wall__console::after {
+  content: '';
   position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  will-change: transform, opacity;
+  inset: auto -4% calc(var(--fw) * -0.05);
+  height: calc(var(--fw) * 0.09);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0) 70%);
 }
 
-.fy-hero-slide.is-active {
-  visibility: visible;
-  opacity: 1;
-  animation: fy-frame-in-next 1000ms var(--fy-ease-spring) both;
+.fy-wall__console-top {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: calc(var(--fw) * 0.055);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #353535, #0d0d0d);
+  box-shadow: 0 calc(var(--fw) * 0.03) calc(var(--fw) * 0.07) rgba(0, 0, 0, 0.28);
 }
 
-.fy-hero-slide.is-leaving {
-  visibility: visible;
-  animation: fy-frame-out-next 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+/* Black sides and an open shelf. */
+.fy-wall__console-body {
+  position: absolute;
+  inset: calc(var(--fw) * 0.05) 4% 0;
+  border-inline: calc(var(--fw) * 0.045) solid #141414;
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.08) 0 52%,
+    #1b1b1b 52% 60%,
+    #0b0b0b 60% 62%,
+    rgba(0, 0, 0, 0.12) 62% 100%);
 }
 
-.fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-active { animation-name: fy-frame-in-prev; }
-.fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-leaving { animation-name: fy-frame-out-prev; }
-
-/* Next: the new frame swings in from the lower right, the old one leaves to the upper left. */
-@keyframes fy-frame-in-next {
-  0% { opacity: 0; transform: translate3d(22%, 16%, 0) rotate(8deg) scale(0.88); }
-  35% { opacity: 1; }
-  100% { opacity: 1; transform: none; }
+.fy-wall__books {
+  position: absolute;
+  bottom: calc(100% - 1px);
+  left: 8%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-@keyframes fy-frame-out-next {
-  from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate3d(-20%, -14%, 0) rotate(-7deg) scale(0.9); }
+.fy-wall__books > span {
+  height: calc(var(--fw) * 0.05);
+  border-radius: 1px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
-@keyframes fy-frame-in-prev {
-  0% { opacity: 0; transform: translate3d(-22%, -14%, 0) rotate(-7deg) scale(0.88); }
-  35% { opacity: 1; }
-  100% { opacity: 1; transform: none; }
+.fy-wall__books > span:nth-child(1) { width: calc(var(--fw) * 0.38); margin-left: calc(var(--fw) * 0.03); background: #ebe6dc; }
+.fy-wall__books > span:nth-child(2) { width: calc(var(--fw) * 0.44); background: #2f3944; }
+.fy-wall__books > span:nth-child(3) { width: calc(var(--fw) * 0.41); margin-left: calc(var(--fw) * 0.015); background: #bda98a; }
+
+.fy-wall__console-plant {
+  position: absolute;
+  right: 10%;
+  bottom: calc(100% - 2px);
+  width: auto;
+  height: calc(var(--fw) * 1.35);
+  transform: scaleX(-1);
+  filter: drop-shadow(calc(var(--fw) * -0.08) calc(var(--fw) * 0.02) calc(var(--fw) * 0.05) rgba(40, 34, 26, 0.18));
+  user-select: none;
 }
 
-@keyframes fy-frame-out-prev {
-  from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate3d(20%, 16%, 0) rotate(8deg) scale(0.9); }
+.fy-wall[data-lights='off'] .fy-wall__plant,
+.fy-wall[data-lights='off'] .fy-wall__console { filter: brightness(0.78); }
+
+/* ---------- Track, spotlights, frames ---------- */
+
+.fy-wall__hang {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.fy-wall__track {
+  position: absolute;
+  top: 0;
+  left: 4%;
+  right: 4%;
+  height: max(3px, calc(var(--fw) * 0.035));
+  border-radius: 3px;
+  background: linear-gradient(180deg, #333, #0a0a0a);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.fy-wall__frames {
+  display: flex;
+  justify-content: center;
+  gap: var(--gap);
+  margin: 0;
+  padding: var(--lamps) 0 0;
+  list-style: none;
+}
+
+.fy-wslot { position: relative; }
+
+/* Spotlight: a short mount under the track and a black cylinder with a lens. */
+.fy-spot {
+  position: absolute;
+  top: calc(var(--lamps) * -1 + max(3px, var(--fw) * 0.035));
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+
+.fy-spot::before {
+  content: '';
+  width: calc(var(--fw) * 0.06);
+  height: calc(var(--fw) * 0.035);
+  background: #151515;
+}
+
+.fy-spot__head {
+  position: relative;
+  width: calc(var(--fw) * 0.1);
+  height: calc(var(--fw) * 0.15);
+  border-radius: calc(var(--fw) * 0.012) calc(var(--fw) * 0.012) calc(var(--fw) * 0.022) calc(var(--fw) * 0.022);
+  background: linear-gradient(90deg, #0c0c0c 0%, #3d3d3d 38%, #1a1a1a 62%, #080808 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.fy-spot__lens {
+  position: absolute;
+  bottom: calc(var(--fw) * -0.008);
+  left: 50%;
+  width: 80%;
+  height: calc(var(--fw) * 0.025);
+  border-radius: 50%;
+  background: #2b2b2b;
+  transform: translateX(-50%);
+  transition: background-color 400ms, box-shadow 600ms var(--fy-ease-out);
+}
+
+.fy-wall[data-lights='on'] .fy-spot__lens {
+  background: #fffaf0;
+  box-shadow: 0 0 calc(var(--u) * 1) calc(var(--u) * 0.4) #fff6dc, 0 0 calc(var(--u) * 4) calc(var(--u) * 1.5) rgba(255, 236, 190, 0.75);
 }
 
 /*
- * Desktop: as in the reference, the incoming frame starts small at the lower-right
- * corner and grows into place; the outgoing frame shrinks away towards the upper left.
- * Transforms only, so the layout never shifts. Mobile keeps the swing above.
+ * Each spotlight lights only its own frame: a narrow cone from the lens that widens to
+ * the frame's width, a halo on the wall that hugs the frame, a warm wash across the frame
+ * that falls off towards the bottom, and the shadow the frame casts down the wall.
  */
-@media (min-width: 1024px) {
-  .fy-hero-slide.is-active {
-    animation: fy-frame-grow-in-next 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+.fy-spot__beam {
+  position: absolute;
+  top: calc(var(--lamps) * -1 + var(--fw) * 0.19);
+  left: 50%;
+  z-index: 0;
+  width: 128%;
+  height: calc(var(--lamps) - var(--fw) * 0.19);
+  background: linear-gradient(180deg, rgba(255, 249, 232, 0.9), rgba(255, 246, 222, 0.5) 50%, rgba(255, 246, 222, 0) 100%);
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  filter: blur(calc(var(--fw) * 0.03));
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 650ms var(--fy-ease-out);
+  pointer-events: none;
+}
+
+/* Halo on the wall, just around this frame: brightest at the top, gone before the next frame. */
+.fy-spot__pool {
+  position: absolute;
+  top: calc(var(--fw) * -0.2);
+  left: 50%;
+  z-index: 0;
+  width: 140%;
+  height: 128%;
+  background: radial-gradient(ellipse 50% 50% at 50% 30%, rgba(255, 252, 242, 0.95), rgba(255, 248, 232, 0.5) 55%, rgba(255, 248, 232, 0) 100%);
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 650ms var(--fy-ease-out);
+  pointer-events: none;
+}
+
+.fy-wall[data-lights='on'] .fy-spot__beam,
+.fy-wall[data-lights='on'] .fy-spot__pool { opacity: 1; }
+
+.fy-wframe {
+  position: relative;
+  z-index: 1;
+  width: var(--fw);
+  aspect-ratio: 0.777;
+  padding: 8.5%;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.1),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.18),
+    calc(var(--u) * 0.4) calc(var(--u) * 1.2) calc(var(--u) * 2) calc(var(--u) * -0.4) rgba(0, 0, 0, 0.3),
+    1px 2px 3px rgba(0, 0, 0, 0.2);
+  filter: brightness(0.86) saturate(0.92);
+  transition: box-shadow 700ms var(--fy-ease-out), filter 700ms var(--fy-ease-out);
+}
+
+/*
+ * Lit from directly above: a highlight along the top of the moulding, a dark lower edge,
+ * and the frame's shadow cast down the wall (longer and softer further from the wall).
+ */
+.fy-wall[data-lights='on'] .fy-wframe {
+  filter: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 max(1px, calc(var(--fw) * 0.012)) 0 rgba(255, 250, 235, 0.32),
+    inset 0 calc(var(--fw) * -0.012) 0 rgba(0, 0, 0, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 calc(var(--fw) * 0.035) calc(var(--fw) * 0.035) calc(var(--fw) * -0.01) rgba(0, 0, 0, 0.3),
+    0 calc(var(--fw) * 0.1) calc(var(--fw) * 0.1) calc(var(--fw) * -0.04) rgba(0, 0, 0, 0.32);
+}
+
+/* Warm light across the frame, fading towards the bottom where the light falls off. */
+.fy-wframe::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0%, rgba(255, 246, 222, 0.3), rgba(255, 246, 222, 0) 75%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 50%, rgba(20, 14, 6, 0.16) 100%);
+  opacity: 0;
+  transition: opacity 650ms var(--fy-ease-out);
+  pointer-events: none;
+}
+
+.fy-wall[data-lights='on'] .fy-wframe::after { opacity: 1; }
+
+.fy-wframe--black { background: linear-gradient(135deg, #2d2d2d 0%, #0d0d0d 45%, #1b1b1b 100%); }
+.fy-wframe--grey { background: linear-gradient(135deg, #8d8d8d 0%, #5f5f5f 45%, #777 100%); }
+.fy-wframe--walnut {
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.07) 0 2px, transparent 2px 6px),
+    linear-gradient(135deg, #8d4b22 0%, #5a2b10 45%, #7b3d1a 100%);
+}
+.fy-wframe--red { background: linear-gradient(135deg, #d82c31 0%, #a6111a 45%, #c41c22 100%); }
+
+/* Thick white mat with a bevelled opening. */
+.fy-wframe__mat {
+  height: 100%;
+  padding: 14%;
+  background: #fbfbfa;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.22);
+}
+
+.fy-wframe__opening {
+  position: relative;
+  display: block;
+  height: 100%;
+  overflow: hidden;
+  background: #f4f4f2;
+  box-shadow:
+    0 0 0 1px #ffffff,
+    0 0 0 2px rgba(0, 0, 0, 0.07),
+    inset 1px 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+/* Lit: the top moulding casts a soft shadow onto the mat. */
+.fy-wall[data-lights='on'] .fy-wframe__mat {
+  box-shadow:
+    inset 0 calc(var(--fw) * 0.03) calc(var(--fw) * 0.035) rgba(0, 0, 0, 0.2),
+    inset 1px 0 2px rgba(0, 0, 0, 0.08);
+}
+
+/* The photo fills the opening without overflow and appears with the lights. */
+.fy-wphoto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  filter: brightness(0.6);
+  transform: scale(1.04);
+  transition: opacity 700ms var(--fy-ease-out) 120ms, filter 900ms var(--fy-ease-out) 120ms, transform 900ms var(--fy-ease-out) 120ms;
+}
+
+.fy-wphoto[data-visible='true'] {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+/* ---------- Wordmark, tagline, toggle ---------- */
+
+.fy-wall__brand {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: calc(var(--fw) * 0.22);
+  text-align: center;
+}
+
+.fy-wall__title {
+  font-family: 'Inter', var(--font-body), system-ui, sans-serif;
+  font-size: calc(var(--fw) * 0.5);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #141414;
+  /* Raised lettering lit from above: a tight contact shadow and a soft cast shadow. */
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6),
+    0 calc(var(--fw) * 0.012) calc(var(--fw) * 0.012) rgba(0, 0, 0, 0.18),
+    0 calc(var(--fw) * 0.05) calc(var(--fw) * 0.09) rgba(0, 0, 0, 0.2);
+}
+
+.fy-wall__tagline {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  margin-top: calc(var(--fw) * 0.08);
+  font-size: max(10px, calc(var(--fw) * 0.068));
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: #2a2a2a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.fy-wall__tagline::before,
+.fy-wall__tagline::after {
+  content: '';
+  width: calc(var(--fw) * 0.36);
+  height: 1px;
+  background: currentColor;
+}
+
+/* Cancel the letter spacing after the last letter so the rules sit evenly. */
+.fy-wall__tagline::after { margin-left: -0.42em; }
+
+/*
+ * Light switch: a glossy ball that rolls along its track (after the Dribbble "Toggle
+ * Button Micro-Interaction"). On: black track, white ball, ball at the left. Off: white
+ * track, black ball, ball at the right. The ball's lettering turns with the roll, and the
+ * ball squashes slightly as it sets off.
+ *
+ * The roll angle is the travel divided by the ball's circumference (travel / (π × ball)).
+ */
+.fy-toggle {
+  --tw: 58px;
+  --th: 30px;
+  --kb: 24px;
+  --roll: 134deg;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin-top: max(16px, calc(var(--fw) * 0.16));
+  padding: 4px 4px 4px 15px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-ink);
+  background: #ffffff;
+  border-radius: 999px;
+  position: relative;
+  /* Soft black shadow, with a faint dark edge so it also holds on dark backgrounds. */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 10px 24px -8px rgba(0, 0, 0, 0.32);
+  transition: transform 200ms, box-shadow 350ms var(--fy-ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fy-toggle:active { transform: scale(0.97); }
+
+@media (hover: hover) {
+  .fy-toggle:hover {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 3px 6px rgba(0, 0, 0, 0.14),
+      0 16px 34px -10px rgba(0, 0, 0, 0.45);
   }
-
-  .fy-hero-slide.is-leaving {
-    animation: fy-frame-shrink-out-next 700ms cubic-bezier(0.5, 0, 0.75, 0) both;
-  }
-
-  .fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-active { animation-name: fy-frame-grow-in-prev; }
-  .fy-hero-stage[data-direction='prev'] .fy-hero-slide.is-leaving { animation-name: fy-frame-shrink-out-prev; }
-
-  .fy-hero-shadow {
-    animation-duration: 1100ms;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  }
 }
 
-@keyframes fy-frame-grow-in-next {
-  0% { opacity: 0; transform: translate3d(52%, 38%, 0) scale(0.3); }
-  30% { opacity: 1; }
-  100% { opacity: 1; transform: none; }
+/* Every few seconds a deeper shadow breathes in and out beneath the button. */
+.fy-toggle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.5), 0 0 0 5px rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  animation: fy-toggle-pulse 4.5s ease-in-out 2s infinite;
+  pointer-events: none;
 }
 
-@keyframes fy-frame-shrink-out-next {
-  from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate3d(-34%, -28%, 0) scale(0.5); }
+.fy-toggle:hover::after { animation-play-state: paused; }
+
+@keyframes fy-toggle-pulse {
+  0%, 60%, 100% { opacity: 0; }
+  78% { opacity: 1; }
+}
+/* Wide enough for either label, so the pill keeps its size when the text changes. */
+.fy-toggle__label { min-width: 82px; text-align: left; }
+
+/* Off: a white, slightly recessed track. */
+.fy-toggle__track {
+  position: relative;
+  flex: none;
+  width: var(--tw);
+  height: var(--th);
+  border-radius: 999px;
+  background: #f7f7f6;
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.16),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  transition: background-color 450ms var(--fy-ease-out), box-shadow 450ms var(--fy-ease-out);
 }
 
-@keyframes fy-frame-grow-in-prev {
-  0% { opacity: 0; transform: translate3d(-34%, -28%, 0) scale(0.3); }
-  30% { opacity: 1; }
-  100% { opacity: 1; transform: none; }
+/* On: a black track. */
+.fy-toggle[aria-checked='true'] .fy-toggle__track {
+  background: #111111;
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.7),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.5);
 }
 
-@keyframes fy-frame-shrink-out-prev {
-  from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate3d(52%, 38%, 0) scale(0.5); }
-}
-
-/* Soft contact shadow under the floating frame; it settles as each frame lands. */
-.fy-hero-shadow {
-  width: 78%;
-  height: 22px;
-  margin-top: 26px;
+/* The ball. Off: black, at the right end of the track. */
+.fy-toggle__knob {
+  position: absolute;
+  top: calc((var(--th) - var(--kb)) / 2);
+  left: calc((var(--th) - var(--kb)) / 2);
+  width: var(--kb);
+  height: var(--kb);
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0));
-  filter: blur(4px);
-  animation: fy-shadow-settle 1000ms var(--fy-ease-spring) both;
+  background: radial-gradient(circle at 32% 28%, #727272 0%, #2c2c2c 34%, #0d0d0d 72%, #000000 100%);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.38), inset 0 -2px 3px rgba(0, 0, 0, 0.5);
+  translate: calc(var(--tw) - var(--kb) - (var(--th) - var(--kb))) 0;
+  transition: translate 560ms var(--fy-ease-spring);
+  animation: fy-toggle-squash-off 560ms var(--fy-ease-out);
 }
 
-.fy-hero[data-dark='true'] .fy-hero-shadow {
-  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+/* The white ball, faded in over the black one when switched on. */
+.fy-toggle__knob::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f5f5f5 34%, #dadada 74%, #bdbdbd 100%);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  transition: opacity 450ms var(--fy-ease-out);
 }
 
-@keyframes fy-shadow-settle {
-  0% { opacity: 0; transform: scaleX(0.55); }
-  100% { opacity: 1; transform: scaleX(1); }
+.fy-toggle[aria-checked='true'] .fy-toggle__knob {
+  translate: 0 0;
+  animation-name: fy-toggle-squash-on;
 }
 
-/* ---------- Copy entrance (plays once on load) ---------- */
+.fy-toggle[aria-checked='true'] .fy-toggle__knob::before { opacity: 1; }
 
-.fy-hero-rise {
-  animation: fy-hero-rise 800ms var(--fy-ease-out) both;
+/* The lettering rolls with the ball; the shading stays put so the highlight never spins. */
+.fy-toggle__face {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  rotate: var(--roll);
+  transition: rotate 560ms var(--fy-ease-spring);
 }
 
-@keyframes fy-hero-rise {
-  from { opacity: 0; transform: translate3d(0, 18px, 0); }
-  to { opacity: 1; transform: none; }
+.fy-toggle[aria-checked='true'] .fy-toggle__face { rotate: 0deg; }
+
+.fy-toggle__word {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--kb) * 0.31);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: opacity 280ms var(--fy-ease-out);
 }
 
-/* Autoplay progress on the active slide indicator. */
-.fy-hero-progress {
-  transform-origin: left center;
-  animation: fy-hero-progress linear both;
+.fy-toggle__word--on {
+  color: #111111;
+  opacity: 0;
 }
 
-@keyframes fy-hero-progress {
+/* Turned back by the roll angle, so it reads upright when the ball rests at the right. */
+.fy-toggle__word--off {
+  color: #ffffff;
+  rotate: calc(var(--roll) * -1);
+}
+
+.fy-toggle[aria-checked='true'] .fy-toggle__word--on { opacity: 1; transition-delay: 160ms; }
+.fy-toggle[aria-checked='true'] .fy-toggle__word--off { opacity: 0; transition-delay: 0ms; }
+.fy-toggle[aria-checked='false'] .fy-toggle__word--off { transition-delay: 160ms; }
+
+.fy-toggle:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 3px;
+}
+
+/* Two names for the same squash, so it replays on every switch. */
+@keyframes fy-toggle-squash-on {
+  0% { scale: 1 1; }
+  25% { scale: 1.18 0.86; }
+  60% { scale: 0.96 1.04; }
+  100% { scale: 1 1; }
+}
+
+@keyframes fy-toggle-squash-off {
+  0% { scale: 1 1; }
+  25% { scale: 1.18 0.86; }
+  60% { scale: 0.96 1.04; }
+  100% { scale: 1 1; }
+}
+
+/* ---------- Tablet and phones ---------- */
+
+@media (max-width: 1023.98px) {
+  .fy-wall { --fw: min(19vw, 28svh); }
+}
+
+/* Phones: the four frames still hang in one line across the screen. */
+@media (max-width: 639.98px) {
+  .fy-wall {
+    --fw: 20.5vw;
+    --gap: 3.4vw;
+    padding-top: calc(var(--fy-nav-h, 0px) + 16px);
+  }
+
+  .fy-wall__track { left: 2.5%; right: 2.5%; }
+  .fy-wall__brand { margin-top: calc(var(--fw) * 0.42); }
+  .fy-wall__title { font-size: calc(var(--fw) * 0.56); }
+
+  .fy-wall__tagline {
+    gap: 0.7em;
+    letter-spacing: 0.34em;
+  }
+
+  .fy-wall__tagline::before,
+  .fy-wall__tagline::after { width: calc(var(--fw) * 0.26); }
+  .fy-wall__tagline::after { margin-left: -0.34em; }
+
+  .fy-wall__plant { left: calc(var(--fw) * -0.2); height: calc(var(--fw) * 1.95); }
+  .fy-wall__console { right: calc(var(--fw) * -0.2); }
+
+  /* A slightly smaller switch; the whole pill stays an easy 40px+ tap target. */
+  .fy-toggle {
+    --tw: 50px;
+    --th: 26px;
+    --kb: 20px;
+    --roll: 138deg;
+
+    gap: 8px;
+    min-height: 36px;
+    padding: 4px 4px 4px 13px;
+    font-size: 11.5px;
+  }
+
+  .fy-toggle__label { min-width: 76px; }
+}
+
+/* ---------- Carousel: frame wall, then the admin's video ---------- */
+
+/* The frame wall stays in the flow and sets the height; the video slide fills the same box. */
+.fy-hero {
+  --fy-nav-h: 60px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  touch-action: pan-y;
+  background: #e9e8e5;
+}
+
+.fy-hero__slide {
+  transition: transform 750ms cubic-bezier(0.65, 0, 0.25, 1);
+  will-change: transform;
+}
+
+.fy-hero__slide--video {
+  position: absolute;
+  inset: 0;
+  background: #111111;
+}
+
+.fy-hero__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/*
+ * Slide indicators, bottom right. The active slide shows a ring that fills clockwise
+ * over the slide's time (--fy-slide-ms); the others are small dots.
+ */
+.fy-hero__dots {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /* No backing: the marks are dark on the light frame wall and white over the video. */
+  --fy-mark: 17, 17, 17;
+  border-radius: 999px;
+}
+
+/* Each mark sits in a 28px button, so it is easy to tap. */
+.fy-hero__dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fy-hero__dot--active { cursor: default; }
+
+.fy-hero__dot-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(var(--fy-mark), 0.45);
+  transition: background-color 200ms, transform 200ms;
+}
+
+@media (hover: hover) {
+  .fy-hero__dot:hover .fy-hero__dot-mark {
+    background: rgb(var(--fy-mark));
+    transform: scale(1.3);
+  }
+}
+
+.fy-hero__dot:focus-visible {
+  outline: 2px solid rgb(var(--fy-mark));
+  outline-offset: -2px;
+}
+
+/* Rotated so the fill starts at twelve o'clock and runs clockwise. */
+.fy-hero__ring {
+  width: 15px;
+  height: 15px;
+  transform: rotate(-90deg);
+}
+
+.fy-hero__ring-track,
+.fy-hero__ring-fill {
+  fill: none;
+  stroke-width: 1.67;
+}
+
+.fy-hero__ring-track { stroke: rgba(var(--fy-mark), 0.22); }
+
+.fy-hero[data-slide="1"] .fy-hero__dots { --fy-mark: 255, 255, 255; }
+
+.fy-hero__ring-fill {
+  stroke: rgb(var(--fy-mark));
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: fy-hero-ring var(--fy-slide-ms, 5000ms) linear forwards;
+}
+
+/* Hovered, keyboard-focused, off screen or in a hidden tab: the ring stops where it is. */
+.fy-hero[data-paused] .fy-hero__ring-fill { animation-play-state: paused; }
+
+@keyframes fy-hero-ring {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Reduced motion (set from the same media query in the component): a full, still ring. */
+.fy-hero__dots[data-static] .fy-hero__ring-fill {
+  stroke-dashoffset: 0;
+  animation: none;
+}
+
+@media (max-width: 639.98px) {
+  .fy-hero__dots {
+    right: 10px;
+    bottom: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-wphoto { transition: opacity 1ms; transform: none; }
+
+  .fy-toggle__knob,
+  .fy-toggle__face { transition-duration: 1ms; animation: none; }
+
+  .fy-toggle::after { animation: none; }
+
+  .fy-hero__slide { transition: none; }
+}
+
+@media (min-width: 1024px) {
+  .fy-hero { --fy-nav-h: 76px; }
+}
+
+/* ---------- Hero load: wordmark letters, then the tagline ---------- */
+
+/* Each letter rises out of a soft blur, staggered left to right. */
+.fy-wall__letter {
+  display: inline-block;
+  animation: fy-letter-in 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(120ms + var(--i) * 55ms);
+}
+
+@keyframes fy-letter-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(0.38em) scale(0.96);
+  }
+}
+
+/* The tagline slides up from behind an invisible edge; its rules draw out alongside. */
+.fy-wall__tagline-mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-block: 0.15em;
+  vertical-align: middle;
+}
+
+.fy-wall__tagline-text {
+  display: inline-block;
+  animation: fy-tagline-up 700ms cubic-bezier(0.22, 1, 0.36, 1) 680ms both;
+}
+
+.fy-wall__tagline::before,
+.fy-wall__tagline::after {
+  animation: fy-rule-in 700ms cubic-bezier(0.22, 1, 0.36, 1) 760ms both;
+}
+
+.fy-wall__tagline::before { transform-origin: right; }
+.fy-wall__tagline::after { transform-origin: left; }
+
+@keyframes fy-tagline-up {
+  from { transform: translateY(110%); }
+}
+
+@keyframes fy-rule-in {
   from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-wall__letter,
+  .fy-wall__tagline-text,
+  .fy-wall__tagline::before,
+  .fy-wall__tagline::after { animation: none; }
+}
+
+/* ---------- Desktop: more plants either side (phones keep one plant per side) ---------- */
+
+.fy-wall__plant--extra,
+.fy-wall__console-monstera,
+.fy-wall__console-pothos { display: none; }
+
+@media (min-width: 1024px) {
+  .fy-wall__plant--extra,
+  .fy-wall__console-monstera,
+  .fy-wall__console-pothos { display: block; }
+
+  /* The palm stays on phones; on desktop the money plant takes its place. */
+  .fy-wall__console-plant { display: none; }
+
+  /* Left: a tall bird of paradise set back beside the palm, short enough to clear the frames. */
+  .fy-wall__plant--bird-left {
+    left: calc(var(--fw) * 0.86);
+    z-index: 1;
+    height: calc(var(--fw) * 1.72);
+    filter: brightness(0.96) drop-shadow(calc(var(--fw) * 0.1) calc(var(--fw) * 0.03) calc(var(--fw) * 0.06) rgba(40, 34, 26, 0.16));
+  }
+
+  /* Left: a small monstera on the floor in front of the palm's pot. */
+  .fy-wall__plant--monstera-left {
+    left: calc(var(--fw) * 0.5);
+    z-index: 3;
+    bottom: calc(var(--floor) * 0.12);
+    height: calc(var(--fw) * 0.92);
+  }
+
+  /* Right: the same bird of paradise, mirrored, on the floor beside the console. */
+  .fy-wall__plant--bird-right {
+    right: calc(var(--fw) * 1.12);
+    left: auto;
+    height: calc(var(--fw) * 1.66);
+    transform: scaleX(-1);
+    filter: drop-shadow(calc(var(--fw) * -0.1) calc(var(--fw) * 0.03) calc(var(--fw) * 0.06) rgba(40, 34, 26, 0.18));
+  }
+
+  /* Right: a small monstera tucked just behind and right of the money plant, so the two read as one group. */
+  .fy-wall__console-monstera {
+    position: absolute;
+    left: calc(var(--fw) * 0.56);
+    bottom: calc(100% - 2px);
+    width: auto;
+    height: calc(var(--fw) * 0.62);
+    filter: drop-shadow(calc(var(--fw) * -0.06) calc(var(--fw) * 0.02) calc(var(--fw) * 0.04) rgba(40, 34, 26, 0.18));
+    user-select: none;
+  }
+
+  /* Right: the money plant standing on the books (three books, 0.05 × frame width each); its trailing leaves hang just below the saucer. */
+  .fy-wall__console-pothos {
+    position: absolute;
+    left: calc(var(--fw) * 0.01);
+    bottom: calc(100% + var(--fw) * 0.15 - var(--fw) * 0.065);
+    width: auto;
+    height: calc(var(--fw) * 0.72);
+    filter: drop-shadow(calc(var(--fw) * -0.08) calc(var(--fw) * 0.02) calc(var(--fw) * 0.05) rgba(40, 34, 26, 0.18));
+    user-select: none;
+  }
+
+  .fy-wall[data-lights='off'] .fy-wall__plant--bird-left {
+    filter: brightness(0.76) drop-shadow(calc(var(--fw) * 0.1) calc(var(--fw) * 0.03) calc(var(--fw) * 0.06) rgba(40, 34, 26, 0.16));
+  }
+
+  .fy-wall[data-lights='off'] .fy-wall__plant--bird-right {
+    filter: brightness(0.78) drop-shadow(calc(var(--fw) * -0.1) calc(var(--fw) * 0.03) calc(var(--fw) * 0.06) rgba(40, 34, 26, 0.18));
+  }
 }
