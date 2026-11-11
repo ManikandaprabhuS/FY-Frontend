@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import useProducts from '../../../hooks/useProducts';
-import BestSellersSection from '../components/BestSellersSection';
 import FrameCollectionsSection from '../components/FrameCollectionsSection';
 import HeroSection from '../components/HeroSection';
 import HomepageOfferBanner from '../components/HomepageOfferBanner';
@@ -19,7 +18,6 @@ const CustomerHomePage: React.FC = () => {
       <HomepageOfferBanner />
       <FrameCollectionsSection />
       <PhotoToFrameSection />
-      <BestSellersSection />
     </div>
   );
 };

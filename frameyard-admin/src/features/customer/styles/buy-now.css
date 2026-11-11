@@ -1,0 +1,75 @@
+/* Buy now: a frame assembles around a photo, turns into a tick, then checkout opens. */
+
+.fy-buynow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-ink);
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color 240ms, color 240ms, transform 150ms;
+}
+.fy-buynow > * { grid-area: 1 / 1; }
+.fy-buynow:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+@media (hover: hover) { .fy-buynow[data-stage='idle']:hover:not(:disabled) { background: var(--color-ink); color: #ffffff; } }
+.fy-buynow[data-stage='idle']:active:not(:disabled) { transform: scale(0.98); }
+.fy-buynow[data-stage='idle']:disabled { opacity: 0.4; cursor: not-allowed; }
+.fy-buynow:not([data-stage='idle']) { background: var(--color-ink); color: #ffffff; cursor: default; }
+.fy-buynow:not([data-stage='idle']) .fy-buynow__label { visibility: hidden; }
+
+.fy-buynow__play { display: inline-flex; align-items: center; gap: 12px; }
+.fy-buynow__text { font-size: 14px; animation: fy-bn-text 320ms var(--fy-ease-out) backwards; }
+
+/* The 26px icon: frame and tick share the spot. */
+.fy-buynow__icon { position: relative; display: grid; place-items: center; width: 26px; height: 30px; }
+.fy-buynow__icon > * { grid-area: 1 / 1; }
+
+.fy-buynow__frame { position: relative; width: 22px; height: 28px; transition: transform 380ms var(--fy-ease-out), opacity 300ms; }
+.fy-buynow[data-stage='done'] .fy-buynow__frame { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+
+/* The photo appears first… */
+.fy-buynow__photo {
+  position: absolute;
+  inset: 3px;
+  background: linear-gradient(160deg, #d9d4ca, #8e8a82) center / cover no-repeat;
+  animation: fy-bn-photo 260ms var(--fy-ease-out) backwards;
+}
+
+/* …then the four sides of the moulding slide in from outside and close around it. */
+.fy-buynow__side { position: absolute; background: #ffffff; }
+.fy-buynow__side--top { top: 0; left: 0; right: 0; height: 3px; animation: fy-bn-top 360ms 180ms var(--fy-ease-spring) backwards; }
+.fy-buynow__side--bottom { bottom: 0; left: 0; right: 0; height: 3px; animation: fy-bn-bottom 360ms 290ms var(--fy-ease-spring) backwards; }
+.fy-buynow__side--left { top: 0; bottom: 0; left: 0; width: 3px; animation: fy-bn-left 360ms 400ms var(--fy-ease-spring) backwards; }
+.fy-buynow__side--right { top: 0; bottom: 0; right: 0; width: 3px; animation: fy-bn-right 360ms 400ms var(--fy-ease-spring) backwards; }
+
+/* The tick draws in where the frame was. */
+.fy-buynow__tick { width: 24px; height: 24px; overflow: visible; opacity: 0; }
+.fy-buynow__tick circle,
+.fy-buynow__tick path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.fy-buynow__tick circle { stroke-width: 1.5; opacity: 0.5; transform: rotate(-90deg); transform-origin: center; transform-box: fill-box; }
+.fy-buynow__tick path { stroke-width: 2.4; }
+.fy-buynow[data-stage='done'] .fy-buynow__tick { opacity: 1; animation: fy-bn-bounce 420ms 520ms var(--fy-ease-spring); }
+.fy-buynow[data-stage='done'] .fy-buynow__tick circle { animation: fy-bn-draw 420ms 80ms var(--fy-ease-out) forwards; }
+.fy-buynow[data-stage='done'] .fy-buynow__tick path { animation: fy-bn-draw 320ms 280ms var(--fy-ease-out) forwards; }
+
+@keyframes fy-bn-photo { from { opacity: 0; transform: scale(0.6); } }
+@keyframes fy-bn-top { from { transform: translateY(-14px); opacity: 0; } }
+@keyframes fy-bn-bottom { from { transform: translateY(14px); opacity: 0; } }
+@keyframes fy-bn-left { from { transform: translateX(-14px); opacity: 0; } }
+@keyframes fy-bn-right { from { transform: translateX(14px); opacity: 0; } }
+@keyframes fy-bn-draw { to { stroke-dashoffset: 0; } }
+@keyframes fy-bn-bounce { 45% { transform: scale(1.22); } }
+@keyframes fy-bn-text { from { opacity: 0; transform: translateY(6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-buynow__photo, .fy-buynow__side, .fy-buynow__text, .fy-buynow__tick { animation: none !important; }
+  .fy-buynow__frame { transition: none; }
+  .fy-buynow[data-stage='done'] .fy-buynow__tick circle,
+  .fy-buynow[data-stage='done'] .fy-buynow__tick path { animation: none; stroke-dashoffset: 0; }
+}

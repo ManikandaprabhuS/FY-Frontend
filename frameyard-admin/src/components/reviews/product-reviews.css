@@ -1,0 +1,230 @@
+/* Ratings & reviews: a counted score with filling bars, then review cards that stagger in. */
+
+.fy-rev { scroll-margin-top: 96px; }
+.fy-rev__lead { font-size: 14px; color: var(--color-mute); }
+
+.fy-rev__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+
+.fy-rev__write { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--color-ink); font-size: 14px; font-weight: 600; transition: background-color 220ms, color 220ms; }
+.fy-rev__write:hover { background: var(--color-ink); color: #ffffff; }
+.fy-rev__write:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+/* Score: the big number and its bars side by side. */
+.fy-rev__score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px 28px; align-items: center; margin-top: 14px; padding: 20px; background: #f6f5f2; }
+/* (Phones keep score and bars side by side; see product-details.css.) */
+
+.fy-rev__big { display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 6px; }
+.fy-rev__avg { font-size: 64px; font-weight: 800; line-height: 0.9; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.fy-rev__out { font-size: 18px; color: var(--color-mute); }
+.fy-rev__stars { grid-column: 1 / -1; margin-top: 10px; }
+.fy-rev__total { grid-column: 1 / -1; margin-top: 4px; font-size: 13px; color: var(--color-mute); }
+
+.fy-rev__bars { display: grid; gap: 8px; }
+.fy-rev__bars li { display: grid; grid-template-columns: 30px minmax(0, 1fr) 24px; align-items: center; gap: 10px; font-size: 13px; }
+.fy-rev__bar-label { font-weight: 600; }
+.fy-rev__bar-label span[aria-hidden] { margin-left: 2px; color: #b45309; }
+.fy-rev__bar { height: 6px; background: rgba(17, 17, 17, 0.1); overflow: hidden; }
+.fy-rev__bar span { display: block; height: 100%; background: var(--color-ink); transform: scaleX(0); transform-origin: left; transition: transform 900ms calc(var(--i) * 80ms + 120ms) var(--fy-ease-out); }
+.fy-rev[data-seen] .fy-rev__bar span { transform: scaleX(var(--w)); }
+.fy-rev__bar-count { text-align: right; color: var(--color-mute); font-variant-numeric: tabular-nums; }
+
+.fy-rev__toolbar { display: flex; justify-content: flex-end; margin-top: 12px; border-bottom: 1px solid var(--color-rule); }
+
+.fy-rev__error { margin-top: 16px; font-size: 14px; color: #b42318; }
+.fy-rev__error button { min-height: 44px; padding: 0 8px; font-weight: 700; text-decoration: underline; }
+
+.fy-rev__empty { margin-top: 16px; padding: 28px 20px; border: 1px dashed rgba(17, 17, 17, 0.25); text-align: center; font-size: 14px; color: var(--color-mute); }
+.fy-rev__empty-title { margin-bottom: 4px; font-size: 16px; font-weight: 700; color: var(--color-ink); }
+
+/* Review cards. */
+.fy-rev__list { display: grid; gap: 12px; margin-top: 16px; }
+
+.fy-rev__card {
+  padding: 18px;
+  border: 1px solid var(--color-rule);
+  background: #ffffff;
+  transition: border-color 250ms, box-shadow 250ms, transform 250ms var(--fy-ease-out);
+  animation: fy-rev-in 520ms calc(var(--i) * 70ms) var(--fy-ease-out) backwards;
+}
+@media (hover: hover) {
+  .fy-rev__card:hover { border-color: rgba(17, 17, 17, 0.3); box-shadow: 0 14px 30px -22px rgba(17, 17, 17, 0.45); transform: translate3d(0, -2px, 0); }
+}
+
+.fy-rev__card-head { display: flex; align-items: flex-start; gap: 12px; }
+.fy-rev__avatar { display: grid; place-items: center; flex: none; width: 40px; height: 40px; background: var(--color-ink); color: #ffffff; font-size: 15px; font-weight: 700; }
+.fy-rev__name { overflow: hidden; font-size: 14.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.fy-rev__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 3px; font-size: 12px; color: var(--color-mute); }
+.fy-rev__verified { display: inline-flex; flex: none; align-items: center; gap: 4px; padding: 4px 8px; background: #edf6ef; color: #23633a; font-size: 11.5px; font-weight: 700; }
+
+.fy-rev__card-title { margin-top: 12px; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.fy-rev__text { margin-top: 6px; font-size: 14.5px; line-height: 1.6; color: rgba(17, 17, 17, 0.75); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fy-rev__text[data-clamped] { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+.fy-rev__toggle { min-height: 40px; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+
+.fy-rev__loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px 0; font-size: 14px; color: var(--color-mute); }
+.fy-rev__loading span { width: 14px; height: 14px; border: 2px solid rgba(17, 17, 17, 0.2); border-top-color: var(--color-ink); border-radius: 50%; animation: fy-rev-spin 800ms linear infinite; }
+
+.fy-rev__more { width: 100%; min-height: 48px; margin-top: 14px; border: 1px solid var(--color-ink); font-size: 14px; font-weight: 600; transition: background-color 220ms, color 220ms; }
+.fy-rev__more:hover:not(:disabled) { background: var(--color-ink); color: #ffffff; }
+.fy-rev__more:disabled { opacity: 0.5; }
+
+@keyframes fy-rev-in { from { opacity: 0; transform: translate3d(0, 12px, 0); } }
+@keyframes fy-rev-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-rev__card, .fy-rev__loading span { animation: none; }
+  .fy-rev__bar span, .fy-rev__card { transition: none; }
+}
+
+/* The shared sort menu, anchored to the right of this row at every width. */
+.fy-rev__toolbar { position: relative; }
+.fy-rev__toolbar .fy-sort { position: relative; }
+.fy-rev__toolbar .fy-sort__list { left: auto; right: 0; min-width: 220px; border-inline: 1px solid var(--color-ink); transform-origin: top right; }
+
+/* ======================================================================
+   v2: the rating stays in view; only the reviews drop down, and they
+   scroll inside their own panel. Plus the write-a-review dialog.
+   ====================================================================== */
+
+.fy-pdp__about .fy-rev { padding-top: 28px; border-top: 1px solid var(--color-rule); margin-top: 0; }
+.fy-pdp__about .fy-pdp__acc + .fy-rev { border-top: 0; }
+.fy-rev__title { font-size: clamp(22px, 2.4vw, 28px); font-weight: 800; letter-spacing: -0.025em; }
+
+/* The reviews dropdown. */
+.fy-rev__drop { margin-top: 16px; border-block: 1px solid var(--color-rule); }
+.fy-rev__drop summary { display: flex; align-items: center; justify-content: space-between; min-height: 56px; font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
+.fy-rev__drop summary::-webkit-details-marker { display: none; }
+.fy-rev__drop summary small { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 8px; padding: 0 6px; background: var(--color-ink); color: #ffffff; font-size: 12px; }
+.fy-rev__drop summary svg { transition: transform 300ms var(--fy-ease-out); }
+.fy-rev__drop[open] summary svg { transform: rotate(180deg); }
+.fy-rev__drop summary:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.fy-rev__drop[open] > .fy-rev__panel { animation: fy-acc-open 420ms var(--fy-ease-out); }
+.fy-rev__panel { padding-bottom: 16px; }
+.fy-rev__drop .fy-rev__toolbar { margin-top: 0; }
+
+/* The list scrolls in place: a fixed window with soft fades at its edges. */
+.fy-rev__scroll {
+  max-height: min(440px, 60vh);
+  margin-top: 10px;
+  padding: 2px 6px 2px 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(17, 17, 17, 0.35) transparent;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 22px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 22px), transparent 100%);
+}
+.fy-rev__scroll:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.fy-rev__scroll .fy-rev__list { margin-top: 8px; padding-bottom: 14px; }
+
+/* ---------- Write-a-review dialog ---------- */
+
+.fy-rd { position: fixed; inset: 0; z-index: 220; display: grid; place-items: center; padding: 20px; }
+.fy-rd__backdrop { position: absolute; inset: 0; background: rgba(17, 17, 17, 0.5); backdrop-filter: blur(3px); animation: fy-rd-fade 260ms ease both; cursor: default; }
+
+.fy-rd__panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  width: min(860px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.55);
+  animation: fy-rd-rise 420ms var(--fy-ease-out) both;
+}
+
+/* Left: the frame being reviewed, hung on a pale wall. */
+.fy-rd__side { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 24px; background: linear-gradient(180deg, #efeee9, #e4e2dc); }
+.fy-rd__side img, .fy-rd__side-blank { width: 100%; aspect-ratio: 4 / 5; margin-bottom: auto; object-fit: contain; background: #ffffff; box-shadow: 0 2px 3px rgba(17, 17, 17, 0.1), 0 22px 30px -18px rgba(17, 17, 17, 0.5); }
+.fy-rd__side-blank { display: block; }
+.fy-rd__side-kicker { margin-top: 20px; font-size: 12px; color: var(--color-mute); }
+.fy-rd__side-name { font-size: 16px; font-weight: 700; line-height: 1.3; }
+
+.fy-rd__main { min-width: 0; min-height: 0; padding: 24px 28px 28px; overflow-y: auto; overscroll-behavior: contain; }
+.fy-rd__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.fy-rd__title { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.fy-rd__for { display: none; margin-top: 2px; font-size: 13px; color: var(--color-mute); }
+.fy-rd__close { display: grid; place-items: center; flex: none; width: 44px; height: 44px; margin: -8px -10px 0 0; transition: background-color 200ms, transform 200ms; }
+.fy-rd__close:hover { background: #f3f2ef; transform: rotate(90deg); }
+.fy-rd__close:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+
+/* Phones: a sheet that rises from the bottom, product name in the header instead. */
+@media (max-width: 719.98px) {
+  .fy-rd { place-items: end stretch; padding: 0; }
+  .fy-rd__panel { grid-template-columns: 1fr; width: 100%; max-height: 92dvh; animation-name: fy-rd-sheet; }
+  .fy-rd__side { display: none; }
+  .fy-rd__for { display: block; }
+  .fy-rd__main { padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .fy-rd__main::before { content: ''; display: block; width: 40px; height: 4px; margin: -6px auto 14px; background: rgba(17, 17, 17, 0.18); }
+}
+
+@keyframes fy-rd-fade { from { opacity: 0; } }
+@keyframes fy-rd-rise { from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.98); } }
+@keyframes fy-rd-sheet { from { transform: translate3d(0, 100%, 0); } }
+
+/* ---------- The form ---------- */
+
+.fy-rf { display: grid; gap: 18px; }
+.fy-rf__label { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; font-size: 13.5px; font-weight: 700; }
+.fy-rf__label small { font-weight: 400; color: var(--color-mute); }
+
+.fy-rf__rating { border: 0; padding: 0; margin: 0; }
+.fy-rf__stars { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.fy-rf__star { display: grid; place-items: center; width: 46px; height: 46px; cursor: pointer; color: rgba(17, 17, 17, 0.25); transition: color 180ms, transform 200ms var(--fy-ease-spring); }
+.fy-rf__star:hover { transform: scale(1.12); }
+.fy-rf__star-icon { width: 32px; height: 32px; transition: fill 180ms; }
+.fy-rf__star[data-on] { color: #b45309; }
+.fy-rf__star[data-on] .fy-rf__star-icon { fill: currentColor; }
+.fy-rf__star[data-picked] .fy-rf__star-icon { animation: fy-rf-pop 420ms var(--fy-ease-spring); }
+.fy-rf__star:has(input:focus-visible) { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+.fy-rf__rating:disabled .fy-rf__star { cursor: not-allowed; opacity: 0.5; }
+.fy-rf__word { margin-left: 10px; font-size: 14px; font-weight: 600; color: var(--color-mute); animation: fy-rf-word 260ms var(--fy-ease-out) backwards; }
+
+.fy-rf__row { display: grid; gap: 18px; }
+@media (min-width: 560px) { .fy-rf__row { grid-template-columns: 1fr 1fr; } }
+
+.fy-rf__field { display: grid; }
+.fy-rf__field input,
+.fy-rf__field textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(17, 17, 17, 0.22);
+  background: #ffffff;
+  font-size: 15px;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 200ms, box-shadow 200ms;
+}
+.fy-rf__field textarea { resize: vertical; line-height: 1.55; }
+.fy-rf__field input::placeholder, .fy-rf__field textarea::placeholder { color: rgba(17, 17, 17, 0.4); }
+.fy-rf__field input:focus, .fy-rf__field textarea:focus { border-color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-ink); }
+.fy-rf__field [aria-invalid='true'] { border-color: #b42318; }
+.fy-rf__field input:disabled, .fy-rf__field textarea:disabled { opacity: 0.5; }
+.fy-rf__error { margin-top: 6px; font-size: 12.5px; color: #b42318; }
+
+.fy-rf__meter { display: block; height: 2px; background: var(--color-rule); }
+.fy-rf__meter span { display: block; height: 100%; background: var(--color-ink); transform-origin: left; transition: transform 200ms; }
+.fy-rf__foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.fy-rf__count { font-size: 12px; color: var(--color-mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.fy-rf__note { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--color-mute); }
+
+.fy-rf__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 4px; }
+.fy-rf__cancel { min-height: 48px; padding: 0 16px; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+.fy-rf__submit { min-height: 48px; padding: 0 24px; background: var(--color-ink); color: #ffffff; font-size: 14.5px; font-weight: 600; transition: opacity 200ms, transform 150ms; }
+.fy-rf__submit:active:not(:disabled) { transform: scale(0.98); }
+.fy-rf__submit:disabled { cursor: not-allowed; opacity: 0.3; }
+.fy-rf__cancel:focus-visible, .fy-rf__submit:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+@media (max-width: 479.98px) { .fy-rf__actions { flex-direction: column-reverse; align-items: stretch; } }
+
+@keyframes fy-rf-pop { 0% { transform: scale(1); } 40% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(1); } }
+@keyframes fy-rf-word { from { opacity: 0; transform: translateX(-4px); } }
+@keyframes fy-acc-open { from { opacity: 0; transform: translate3d(0, -6px, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-rd__backdrop, .fy-rd__panel, .fy-rf__star-icon, .fy-rf__word, .fy-rev__drop[open] > .fy-rev__panel { animation: none !important; }
+  .fy-rf__star, .fy-rd__close { transition: none; }
+}

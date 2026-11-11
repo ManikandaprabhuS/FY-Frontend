@@ -10,6 +10,10 @@
 /* Decorative props only: frame geometry, photos, card sizes and links are unchanged. */
 .fy-col__plant {position:absolute;z-index:3;bottom:calc(var(--fw) * .1);left:0;width:32%;height:70%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(2px 5px 4px rgba(0,0,0,.12));}
 .fy-col__plant--right {left:auto;right:0;}
+/* The metal card's tulips are a wide, square arrangement: a wider slot gives the vase the same
+   height as the other plants, and the image's extra transparent space at the bottom (6.4% vs about 2% in the others) is
+   pulled down so the vase rests on the same ledge line. */
+.fy-col__card[data-collection='metal'] .fy-col__plant {width:40%;bottom:calc(var(--fw) * .1 - 40cqw * .044);}
 
 /* ---------- Heading ---------- */
 

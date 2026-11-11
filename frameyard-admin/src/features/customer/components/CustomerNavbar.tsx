@@ -83,14 +83,19 @@ const CustomerNavbar: React.FC = () => {
   // Homepage, before scrolling: a transparent bar laid over the hero (logo, centred name,
   // three icons). Once scrolled, or on any other page, the regular white bar.
   const isHome = location.pathname === '/';
-  const overlay = isHome && !scrolled;
+  // The shop also opens on a full-bleed hero (a dark photo), so it gets the same see-through
+  // bar, with white icons and wordmark until the page scrolls.
+  const isShop = location.pathname === '/products';
+  const overHero = isHome || isShop;
+  const overlay = overHero && !scrolled;
+  const overlayTheme = onVideo ? 'on-video' : isShop ? 'on-dark' : 'default';
 
   if (overlay) {
     const overlayIcon = 'fy-nav-overlay__icon relative grid h-9 w-9 place-items-center rounded-full transition-[background-color,transform] duration-300 active:scale-90 sm:h-11 sm:w-11';
     return (
       <>
         {/* Sticky with a negative bottom margin: it overlays the hero, and sticks at the top once the announcement bar scrolls away. */}
-        <header data-header-theme={onVideo ? "on-video" : "default"} className="fy-customer-header fy-nav-overlay sticky top-0 z-[100] -mb-[60px] lg:-mb-[76px]">
+        <header data-header-theme={overlayTheme} className="fy-customer-header fy-nav-overlay sticky top-0 z-[100] -mb-[60px] lg:-mb-[76px]">
           {/* Equal side columns keep the centre exactly mid-screen, whatever is on either side. */}
           <div className="mx-auto grid h-[60px] w-full max-w-[1440px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-2.5 sm:gap-3 sm:px-6 lg:h-[76px] lg:px-10">
             <div className="flex items-center justify-self-start">
@@ -152,7 +157,7 @@ const CustomerNavbar: React.FC = () => {
     <>
       <header
         data-header-theme={onVideo ? "on-video" : "default"}
-        className={`${isHome ? 'fy-nav-solid -mb-[60px] lg:-mb-[76px]' : ''} fy-customer-header sticky top-0 z-[100] border-b bg-white/90 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ${scrolled ? 'border-rule shadow-[0_1px_14px_rgba(17,17,17,0.06)]' : 'border-transparent'}`}
+        className={`${overHero ? 'fy-nav-solid -mb-[60px] lg:-mb-[76px]' : ''} fy-customer-header sticky top-0 z-[100] border-b bg-white/90 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 ${scrolled ? 'border-rule shadow-[0_1px_14px_rgba(17,17,17,0.06)]' : 'border-transparent'}`}
       >
         <div className="mx-auto grid h-[60px] w-full max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 sm:px-6 lg:h-[76px] lg:grid-cols-[1fr_auto_1fr] lg:px-10">
           <div className="flex items-center">

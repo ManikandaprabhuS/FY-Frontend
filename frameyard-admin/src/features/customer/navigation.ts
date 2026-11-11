@@ -24,10 +24,10 @@ export const dockItems: DockItem[] = [
 ];
 
 /**
- * Pages where the bottom bar is hidden. Cart and product pages keep it: their
- * checkout and add-to-bag buttons sit in the page flow, above the reserved space.
+ * Pages where the bottom bar is hidden. Product pages have their own sticky Add to cart bar;
+ * checkout has its own actions. Cart keeps the bar.
  */
-const dockHiddenPrefixes = ['/checkout'];
+const dockHiddenPrefixes = ['/checkout', '/product/'];
 
 export const isDockRoute = (pathname: string) => !dockHiddenPrefixes.some((prefix) => pathname.startsWith(prefix));
 

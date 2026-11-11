@@ -1,0 +1,611 @@
+/*
+ * Product page. Two columns on desktop — a sticky gallery led by "Your frame", and the
+ * buying column — stacked on phones with the preview first and a sticky Add to cart.
+ * Black and white, Inter, square corners: the same language as the shop.
+ */
+
+.fy-pdp { background: #ffffff; color: var(--color-ink); padding-bottom: 96px; }
+@media (min-width: 1024px) { .fy-pdp { padding-bottom: 64px; } }
+
+.fy-pdp__wrap { max-width: 1440px; margin: 0 auto; padding: 16px 20px 0; }
+@media (min-width: 640px) { .fy-pdp__wrap { padding: 20px 32px 0; } }
+@media (min-width: 1024px) { .fy-pdp__wrap { padding: 24px 40px 0; } }
+
+.fy-pdp__crumbs { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; color: var(--color-mute); }
+.fy-pdp__crumbs a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--color-ink); font-weight: 500; }
+.fy-pdp__crumbs a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Phones and tablets: one column — gallery, buying, about, reviews. Desktop: gallery and
+   about on the left, buying and reviews on the right. */
+.fy-pdp__grid { display: flex; flex-direction: column; gap: 28px; margin-top: 8px; }
+.fy-pdp__left, .fy-pdp__right { display: contents; }
+.fy-pdp__media { order: 1; min-width: 0; }
+.fy-pdp__info { order: 2; }
+.fy-pdp__about { order: 3; }
+.fy-pdp__right .fy-rev { order: 4; margin-top: 8px; }
+
+@media (min-width: 1024px) {
+  .fy-pdp__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr); gap: 56px; align-items: start; }
+  .fy-pdp__left, .fy-pdp__right { display: block; min-width: 0; }
+  .fy-pdp__about { margin-top: 28px; }
+  .fy-pdp__right .fy-rev { margin-top: 48px; }
+}
+
+/* ---------- Gallery ---------- */
+
+.fy-gallery { display: grid; gap: 12px; }
+
+.fy-gallery__stage { --stage-h: 400px; --thumbs-h: 76px; position: relative; height: var(--stage-h); overflow: hidden; background: #f3f2ef; }
+@media (min-width: 640px) { .fy-gallery__stage { --stage-h: 480px; --thumbs-h: 84px; } }
+@media (min-width: 1024px) { .fy-gallery__stage { --stage-h: clamp(440px, 64vh, 580px); } }
+.fy-gallery__track { height: 100%; }
+
+.fy-gallery__track {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  outline: none;
+}
+.fy-gallery__track::-webkit-scrollbar { display: none; }
+.fy-gallery__track:focus-visible { box-shadow: inset 0 0 0 2px var(--color-ink); }
+
+.fy-gallery__slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+}
+
+/* Slides cross-fade their content as they arrive — no change of size. */
+.fy-gallery__slide > * { transition: opacity 450ms ease; }
+.fy-gallery__slide:not([data-active]) > * { opacity: 0.35; }
+
+/* A segmented bar along the top: one segment per image, the current one in ink. */
+.fy-gallery__progress { position: absolute; top: 14px; left: 16px; right: 16px; z-index: 3; display: flex; gap: 6px; pointer-events: none; }
+.fy-gallery__progress span { flex: 1; height: 2px; background: rgba(17, 17, 17, 0.14); overflow: hidden; position: relative; }
+.fy-gallery__progress span::after { content: ''; position: absolute; inset: 0; background: var(--color-ink); transform: scaleX(0); transform-origin: left; transition: transform 450ms var(--fy-ease-out); }
+.fy-gallery__progress span[data-on]::after { transform: scaleX(1); }
+
+.fy-gallery__arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-ink);
+  box-shadow: 0 2px 10px rgba(17, 17, 17, 0.12);
+  transition: opacity 250ms, transform 250ms var(--fy-ease-out), background-color 200ms;
+}
+.fy-gallery__arrow--prev { left: 12px; }
+.fy-gallery__arrow--next { right: 12px; }
+.fy-gallery__arrow:hover:not(:disabled) { background: var(--color-ink); color: #ffffff; }
+.fy-gallery__arrow:active:not(:disabled) { transform: scale(0.94); }
+.fy-gallery__arrow:disabled { opacity: 0; pointer-events: none; }
+.fy-gallery__arrow:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+/* On pointer devices the arrows wait for the pointer; touch keeps them visible. */
+@media (hover: hover) {
+  .fy-gallery__stage:not(:hover):not(:focus-within) .fy-gallery__arrow { opacity: 0; }
+  .fy-gallery__arrow--prev { transform: translateX(-6px); }
+  .fy-gallery__arrow--next { transform: translateX(6px); }
+  .fy-gallery__stage:hover .fy-gallery__arrow, .fy-gallery__stage:focus-within .fy-gallery__arrow { transform: none; }
+}
+
+.fy-gallery__count { position: absolute; right: 16px; top: 26px; z-index: 3; padding: 4px 8px; background: rgba(255, 255, 255, 0.9); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.fy-gallery__thumbs {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  padding: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px -14px rgba(17, 17, 17, 0.4);
+  transform: translateX(-50%);
+}
+.fy-gallery__thumbs::-webkit-scrollbar { display: none; }
+
+.fy-gallery__thumb {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  background: #f3f2ef;
+  opacity: 0.55;
+  transition: opacity 250ms, transform 250ms var(--fy-ease-out);
+}
+.fy-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.fy-gallery__thumb::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--color-ink); opacity: 0; transition: opacity 250ms; }
+.fy-gallery__thumb:hover { opacity: 0.9; }
+.fy-gallery__thumb[aria-current] { opacity: 1; }
+.fy-gallery__thumb[aria-current]::after { opacity: 1; }
+.fy-gallery__thumb:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+@media (min-width: 640px) { .fy-gallery__thumb { width: 56px; height: 56px; } }
+
+/* A product photo, whole, on the stage (and the in-photo preview when it has an opening). */
+.fy-pdp__photo { position: absolute; inset: 0; }
+.fy-pdp__photo > div { inset: 40px 5% var(--thumbs-h); }
+
+/* ---------- "Your frame": the frame drawn live around the photo ---------- */
+
+.fy-studio {
+  --fs-ow: min(56cqw, calc(66cqh * var(--fs-r)));   /* the opening's width: fits the stage either way */
+  --fs-mould: calc(var(--fs-ow) * 0.075);
+  --fs-mat: 0px;
+  container-type: size;
+  position: absolute;
+  inset: 0;
+  padding: 44px 0 var(--thumbs-h);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 42%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, #efeee9 0%, #e7e5df 100%);
+}
+.fy-studio[data-mounted] { --fs-mat: calc(var(--fs-ow) * 0.11); }
+
+.fy-studio__frame {
+  position: relative;
+  padding: var(--fs-mould);
+  background-color: var(--fs-color);
+  /* Bevel: light on the top-left of the moulding, shade on the bottom-right. */
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.28));
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.28),
+    inset 2px 2px 3px rgba(255, 255, 255, 0.25),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+    0 3px 5px rgba(17, 17, 17, 0.14),
+    0 28px 46px -20px rgba(17, 17, 17, 0.5);
+  transition: padding 550ms var(--fy-ease-out), background-color 450ms ease;
+  animation: fy-studio-hang 700ms var(--fy-ease-out) backwards;
+}
+
+.fy-studio__mat {
+  padding: var(--fs-mat);
+  background: #fbfaf7;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), inset 1px 1px 3px rgba(0, 0, 0, 0.12);
+  transition: padding 550ms var(--fy-ease-out);
+}
+
+/* The opening has the frame size's exact ratio; the photo fills it edge to edge. */
+.fy-studio__opening {
+  position: relative;
+  width: var(--fs-ow);
+  height: calc(var(--fs-ow) / var(--fs-r));
+  overflow: hidden;
+  background: #f4f3ef;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: width 550ms var(--fy-ease-out), height 550ms var(--fy-ease-out);
+}
+
+.fy-studio__photo { display: block; width: 100%; height: 100%; object-fit: cover; animation: fy-studio-photo 700ms var(--fy-ease-out) backwards; }
+
+.fy-studio__empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  font-size: clamp(11px, 3.2cqw, 14px);
+  font-weight: 600;
+  color: rgba(17, 17, 17, 0.6);
+  background:
+    repeating-linear-gradient(45deg, rgba(17, 17, 17, 0.035) 0 8px, transparent 8px 16px);
+  transition: color 200ms, background-color 200ms;
+}
+.fy-studio__empty:hover { color: var(--color-ink); background-color: #ffffff; }
+.fy-studio__empty:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -4px; }
+
+/* Glass: a soft sheen, and one sweep of light when the glass or the photo changes. */
+.fy-studio__glass { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 400ms; background: linear-gradient(120deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.28) 46%, rgba(255, 255, 255, 0) 60%); background-size: 260% 100%; background-position: 100% 0; }
+.fy-studio[data-glazed] .fy-studio__glass { opacity: 1; animation: fy-studio-sheen 1400ms 250ms var(--fy-ease-out) backwards; }
+
+/* Size guides along the top and side, as on the homepage. */
+.fy-studio__dim { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: rgba(17, 17, 17, 0.55); pointer-events: none; }
+.fy-studio__dim span { padding: 0 6px; background: #ebe9e4; }
+.fy-studio__dim--w { left: 0; right: 0; top: -22px; height: 12px; border-inline: 1px solid rgba(17, 17, 17, 0.3); background: linear-gradient(rgba(17, 17, 17, 0.3), rgba(17, 17, 17, 0.3)) center / 100% 1px no-repeat; }
+.fy-studio__dim--h { top: 0; bottom: 0; left: -24px; width: 12px; border-block: 1px solid rgba(17, 17, 17, 0.3); background: linear-gradient(rgba(17, 17, 17, 0.3), rgba(17, 17, 17, 0.3)) center / 1px 100% no-repeat; }
+.fy-studio__dim--h span { writing-mode: vertical-rl; transform: rotate(180deg); padding: 6px 0; }
+
+@keyframes fy-studio-hang { from { opacity: 0; transform: translate3d(0, -10px, 0); } }
+@keyframes fy-studio-photo { from { opacity: 0; transform: scale(1.06); filter: blur(6px); } }
+@keyframes fy-studio-sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+/* Thumbnail for the studio slide: a tiny frame in the selected finish. */
+.fy-studio-thumb { display: grid; place-items: center; width: 100%; height: 100%; background: #e9e7e1; }
+.fy-studio-thumb > span { display: block; width: 46%; aspect-ratio: 4 / 5; padding: 4px; background: var(--fs-color); box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.5); transition: background-color 400ms; }
+.fy-studio-thumb > span::before { content: ''; display: block; }
+.fy-studio-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.fy-studio-thumb > span:empty { background-image: linear-gradient(#f4f3ef, #f4f3ef); background-origin: content-box; background-clip: content-box; background-color: var(--fs-color); }
+
+/* ---------- Buying column ---------- */
+
+.fy-pdp__info { min-width: 0; }
+
+.fy-pdp__head { display: grid; justify-items: start; gap: 8px; }
+.fy-pdp__pill { padding: 5px 10px; border: 1px solid var(--color-rule); font-size: 12px; font-weight: 600; color: rgba(17, 17, 17, 0.7); }
+.fy-pdp__title { font-size: clamp(28px, 3.4vw, 42px); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; }
+
+.fy-pdp__price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 18px; }
+.fy-pdp__now { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; animation: fy-pdp-tick 380ms var(--fy-ease-out) backwards; }
+.fy-pdp__was { font-size: 16px; color: var(--color-mute); }
+.fy-pdp__save { padding: 4px 8px; background: var(--color-ink); color: #ffffff; font-size: 12px; font-weight: 600; animation: fy-pdp-tick 380ms 60ms var(--fy-ease-out) backwards; }
+
+.fy-pdp__stock { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 500; }
+.fy-pdp__dot { width: 8px; height: 8px; border-radius: 50%; background: #2f7d4a; box-shadow: 0 0 0 4px rgba(47, 125, 74, 0.14); }
+.fy-pdp__stock--warn .fy-pdp__dot { background: #b26a00; box-shadow: 0 0 0 4px rgba(178, 106, 0, 0.14); }
+
+.fy-pdp__group { margin-top: 24px; }
+.fy-pdp__group-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; font-size: 14px; font-weight: 700; }
+.fy-pdp__group-title span { font-weight: 400; color: var(--color-mute); animation: fy-pdp-tick 320ms var(--fy-ease-out) backwards; }
+
+.fy-pdp__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.fy-pdp__chip {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 48px;
+  padding: 6px 16px;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 260ms, border-color 260ms, transform 150ms;
+}
+.fy-pdp__chip small { font-size: 12px; font-weight: 500; opacity: 0.7; }
+/* Selecting fills the chip from the bottom. */
+.fy-pdp__chip::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--color-ink); transform: scaleY(0); transform-origin: bottom; transition: transform 300ms var(--fy-ease-out); }
+.fy-pdp__chip:hover { border-color: var(--color-ink); }
+.fy-pdp__chip:active { transform: scale(0.97); }
+.fy-pdp__chip[aria-pressed='true'] { border-color: var(--color-ink); color: #ffffff; }
+.fy-pdp__chip[aria-pressed='true']::before { transform: scaleY(1); }
+.fy-pdp__chip:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+.fy-pdp__swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.fy-pdp__swatch { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow 260ms, transform 200ms var(--fy-ease-spring); }
+.fy-pdp__swatch:hover { transform: scale(1.06); }
+.fy-pdp__swatch[aria-pressed='true'] { box-shadow: inset 0 0 0 2px var(--color-ink); }
+.fy-pdp__swatch:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+/* Upload: a drop zone, then the cropped photo with its actions. */
+.fy-upload {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 22px 16px;
+  border: 1px dashed rgba(17, 17, 17, 0.3);
+  background: #fafaf8;
+  text-align: center;
+  transition: border-color 220ms, background-color 220ms, transform 220ms var(--fy-ease-out);
+}
+.fy-upload:hover, .fy-upload[data-dragging] { border-color: var(--color-ink); background: #ffffff; }
+.fy-upload[data-dragging] { transform: scale(1.01); border-style: solid; }
+.fy-upload:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.fy-upload__icon { display: grid; place-items: center; width: 44px; height: 44px; background: var(--color-ink); color: #ffffff; transition: transform 300ms var(--fy-ease-spring); }
+.fy-upload:hover .fy-upload__icon, .fy-upload[data-dragging] .fy-upload__icon { transform: translateY(-3px); }
+.fy-upload__title { font-size: 14.5px; font-weight: 700; }
+.fy-upload__hint { font-size: 13px; line-height: 1.45; color: var(--color-mute); }
+
+.fy-upload--done { display: flex; align-items: center; gap: 16px; justify-items: start; padding: 14px; text-align: left; border-style: solid; background: #ffffff; animation: fy-pdp-tick 420ms var(--fy-ease-out) backwards; }
+.fy-upload__thumb { flex: none; width: 76px; max-height: 96px; object-fit: cover; box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(17, 17, 17, 0.2); }
+.fy-upload__body { min-width: 0; display: grid; gap: 4px; }
+.fy-upload__actions { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
+.fy-upload__actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; font-weight: 600; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: text-decoration-color 200ms; }
+.fy-upload__actions button:hover, .fy-upload__actions button[data-emphasis] { text-decoration-color: currentColor; }
+.fy-upload__actions button:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+/* Quantity, Add to cart, wishlist. */
+.fy-pdp__buy { display: flex; align-items: stretch; gap: 10px; margin-top: 28px; }
+
+.fy-qty { display: flex; align-items: center; border: 1px solid rgba(17, 17, 17, 0.25); }
+.fy-qty button { display: grid; place-items: center; width: 42px; height: 52px; transition: background-color 200ms; }
+.fy-qty button:hover:not(:disabled) { background: #f3f2ef; }
+.fy-qty button:disabled { opacity: 0.35; }
+.fy-qty button:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
+.fy-qty span { min-width: 28px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* The shared button, set larger and solid here: this is the page's main action. */
+.fy-cart.fy-pdp__cart { flex: 1; min-height: 52px; margin-top: 0; background: var(--color-ink); color: #ffffff; font-size: 15px; }
+@media (hover: hover) { .fy-cart.fy-pdp__cart[data-state='idle']:hover { background: #2a2a2a; } }
+
+.fy-wish.fy-pdp__wish { position: relative; top: auto; right: auto; width: 52px; height: 52px; border: 1px solid rgba(17, 17, 17, 0.25); background: #ffffff; box-shadow: none; }
+.fy-wish.fy-pdp__wish::before { inset: 0; }
+.fy-wish.fy-pdp__wish:hover { border-color: var(--color-ink); }
+
+.fy-cart.fy-pdp__buynow { min-height: 52px; margin-top: 10px; font-size: 15px; }
+
+.fy-pdp__trust { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 24px; background: var(--color-rule); border: 1px solid var(--color-rule); }
+@media (min-width: 640px) { .fy-pdp__trust { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.fy-pdp__trust-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; background: #ffffff; font-size: 12px; font-weight: 600; text-align: center; color: rgba(17, 17, 17, 0.75); }
+.fy-pdp__trust-item svg { width: 18px; height: 18px; }
+
+/* About (left column on desktop). */
+.fy-pdp__about .fy-pdp__acc:first-of-type { margin-top: 0; }
+
+/* Accordions. */
+.fy-pdp__acc { border-bottom: 1px solid var(--color-rule); }
+.fy-pdp__acc:first-of-type { margin-top: 24px; border-top: 1px solid var(--color-rule); }
+.fy-pdp__acc summary { display: flex; align-items: center; justify-content: space-between; min-height: 56px; font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; }
+.fy-pdp__acc summary::-webkit-details-marker { display: none; }
+.fy-pdp__acc summary svg { transition: transform 300ms var(--fy-ease-out); }
+.fy-pdp__acc[open] summary svg { transform: rotate(180deg); }
+.fy-pdp__acc summary:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.fy-pdp__acc-body { padding-bottom: 18px; animation: fy-pdp-tick 360ms var(--fy-ease-out) backwards; }
+.fy-pdp__text { max-width: 62ch; font-size: 15px; line-height: 1.65; color: rgba(17, 17, 17, 0.72); }
+.fy-pdp__specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+.fy-pdp__specs dt { font-size: 12px; color: var(--color-mute); }
+.fy-pdp__specs dd { margin-top: 2px; font-size: 14.5px; font-weight: 600; }
+
+/* ---------- You might also like ---------- */
+
+.fy-pdp__related { margin-top: 64px; }
+.fy-pdp__related-title { font-size: clamp(28px, 3.6vw, 44px); font-weight: 800; letter-spacing: -0.03em; text-align: center; }
+.fy-pdp__related-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 14px; margin-top: 28px; }
+@media (min-width: 1024px) { .fy-pdp__related-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 24px; } }
+
+/* ---------- Sticky buy bar (phones and tablets) ---------- */
+
+.fy-pdp__sticky {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid var(--color-rule);
+  box-shadow: 0 -10px 30px -18px rgba(17, 17, 17, 0.35);
+  backdrop-filter: blur(10px);
+  transform: translateY(110%);
+  transition: transform 380ms var(--fy-ease-out);
+}
+.fy-pdp__sticky[data-show] { transform: none; }
+.fy-pdp__sticky > div { min-width: 0; }
+.fy-pdp__sticky .fy-pdp__cart { flex: 1; max-width: 320px; margin-left: auto; }
+.fy-pdp__sticky-price { font-size: 18px; font-weight: 800; }
+.fy-pdp__sticky-meta { overflow: hidden; font-size: 12px; color: var(--color-mute); white-space: nowrap; text-overflow: ellipsis; }
+@media (min-width: 1024px) { .fy-pdp__sticky { display: none; } }
+
+@keyframes fy-pdp-tick { from { opacity: 0; transform: translate3d(0, 6px, 0); } }
+
+/* ---------- Reduced motion: still, but every state still changes ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-gallery__slide > *, .fy-studio__frame, .fy-studio__mat, .fy-studio__opening, .fy-pdp__chip::before, .fy-gallery__progress span::after { transition: none; }
+  .fy-gallery__slide:not([data-active]) > * { opacity: 1; }
+  .fy-studio__frame, .fy-studio__photo, .fy-studio__glass, .fy-pdp__now, .fy-pdp__save, .fy-pdp__group-title span, .fy-upload--done, .fy-pdp__acc-body { animation: none !important; }
+  .fy-pdp__sticky { transition: none; }
+}
+
+/* ======================================================================
+   Layout v3: left — gallery, then expandable sections (description,
+   details, size chart, reviews); right — the buying panel.
+   ====================================================================== */
+
+/* Phones: no arrows on the image panel — swipe and the thumbnails move it. */
+@media (max-width: 767.98px) { .fy-gallery__arrow { display: none; } }
+
+/* Expandable sections: a hint after the title, and the body eases open. */
+.fy-pdp__acc summary > span { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.fy-pdp__acc summary small { font-size: 13px; font-weight: 500; color: var(--color-mute); }
+.fy-pdp__acc summary span[aria-hidden] { color: #b45309; }
+.fy-pdp__acc summary:hover { color: rgba(17, 17, 17, 0.75); }
+.fy-pdp__acc[open] > .fy-pdp__acc-body { animation: fy-acc-open 420ms var(--fy-ease-out); }
+@keyframes fy-acc-open { from { opacity: 0; transform: translate3d(0, -6px, 0); clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+.fy-pdp__about .fy-rev { margin-top: 0; }
+
+/* Buying panel: header. */
+.fy-pdp__eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.fy-pdp__rating-link { display: inline-flex; min-height: 44px; align-items: center; }
+.fy-pdp__rating-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.fy-pdp__rating-link > span { margin-top: 0; }
+.fy-pdp__head .fy-pdp__price { margin-top: 10px; }
+.fy-pdp__head .fy-pdp__stock { margin-top: 6px; }
+
+/* Make it yours: numbered steps joined by a thin line; each marker turns into a tick. */
+.fy-steps { position: relative; display: grid; gap: 22px; margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--color-rule); }
+.fy-step { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
+.fy-step:not(:last-child)::before { content: ''; position: absolute; left: 13.5px; top: 32px; bottom: -18px; width: 1px; background: var(--color-rule); }
+.fy-step__marker { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgba(17, 17, 17, 0.3); background: #ffffff; font-size: 12px; font-weight: 700; transition: background-color 300ms, border-color 300ms, color 300ms; }
+.fy-step__marker > * { grid-area: 1 / 1; }
+.fy-step__n { transition: opacity 200ms, transform 300ms var(--fy-ease-out); }
+.fy-step__tick { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 420ms 120ms var(--fy-ease-out); }
+.fy-step[data-done] .fy-step__marker { border-color: var(--color-ink); background: var(--color-ink); color: #ffffff; }
+.fy-step[data-done] .fy-step__n { opacity: 0; transform: scale(0.5); }
+.fy-step[data-done] .fy-step__tick { stroke-dashoffset: 0; }
+.fy-step__body { min-width: 0; }
+.fy-step__title { display: flex; align-items: baseline; gap: 10px; min-height: 28px; margin-bottom: 10px; font-size: 14.5px; font-weight: 700; }
+.fy-step__title span { font-weight: 400; color: var(--color-mute); animation: fy-pdp-tick 320ms var(--fy-ease-out) backwards; }
+
+/* Your frame: the order in one line, with its total. */
+.fy-summary { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-top: 26px; padding: 14px; background: #f6f5f2; }
+.fy-summary__thumb { display: block; width: 56px; height: 56px; overflow: hidden; }
+.fy-summary__title { font-size: 14px; font-weight: 700; }
+.fy-summary__line { margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--color-mute); }
+.fy-summary__total { display: grid; justify-items: end; gap: 2px; font-size: 12px; color: var(--color-mute); }
+.fy-summary__total strong { font-size: 20px; font-weight: 800; color: var(--color-ink); animation: fy-pdp-tick 380ms var(--fy-ease-out) backwards; }
+@media (max-width: 379.98px) {
+  .fy-summary { grid-template-columns: 48px minmax(0, 1fr); }
+  .fy-summary__total { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; justify-content: space-between; }
+}
+.fy-summary + .fy-pdp__buy { margin-top: 12px; }
+
+/* Trust: one quiet row of four. */
+.fy-pdp__trust { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin-top: 22px; padding: 16px 0 0; border: 0; border-top: 1px solid var(--color-rule); background: none; }
+@media (min-width: 480px) { .fy-pdp__trust { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.fy-pdp__trust-item { flex-direction: row; justify-content: flex-start; gap: 8px; padding: 0; background: none; text-align: left; font-size: 12.5px; }
+@media (min-width: 480px) { .fy-pdp__trust-item { flex-direction: column; justify-content: center; gap: 6px; text-align: center; } }
+
+/* ---------- Size chart ---------- */
+
+.fy-sizes__wall {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 18px;
+  height: 160px;
+  padding: 18px 16px 30px;
+  background: linear-gradient(180deg, #efeee9, #e7e5df);
+}
+.fy-sizes__frame {
+  position: relative;
+  width: calc(var(--fw) * 96px);
+  height: calc(var(--fh) * 96px);
+  border: 3px solid rgba(17, 17, 17, 0.35);
+  background: #fbfaf7;
+  box-shadow: 0 10px 18px -12px rgba(17, 17, 17, 0.5);
+  transition: border-color 300ms, transform 300ms var(--fy-ease-out), box-shadow 300ms;
+}
+.fy-sizes__frame span { position: absolute; left: 50%; bottom: -24px; font-size: 11.5px; font-weight: 600; color: var(--color-mute); white-space: nowrap; transform: translateX(-50%); }
+.fy-sizes__frame:hover { transform: translateY(-3px); }
+.fy-sizes__frame[data-on] { border-color: var(--color-ink); box-shadow: 0 16px 24px -12px rgba(17, 17, 17, 0.55); }
+.fy-sizes__frame[data-on] span { color: var(--color-ink); }
+
+.fy-sizes__table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 14px; }
+.fy-sizes__table th, .fy-sizes__table td { padding: 10px 8px; border-bottom: 1px solid var(--color-rule); text-align: left; font-variant-numeric: tabular-nums; }
+.fy-sizes__table thead th { font-size: 12px; font-weight: 600; color: var(--color-mute); }
+.fy-sizes__table td small { display: block; font-size: 11.5px; color: #b26a00; }
+.fy-sizes__table tbody th button { min-height: 44px; font-weight: 700; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: text-decoration-color 200ms; }
+.fy-sizes__table tbody th button:hover,
+.fy-sizes__table tbody th button[aria-pressed="true"] { text-decoration-color: currentColor; }
+.fy-sizes__table tbody tr { transition: background-color 250ms; }
+.fy-sizes__table tbody tr[data-on] { background: #f6f5f2; }
+@media (max-width: 479.98px) { .fy-sizes__table th:nth-child(3), .fy-sizes__table td:nth-child(3) { display: none; } }
+.fy-sizes__note { margin-top: 10px; font-size: 12.5px; color: var(--color-mute); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-pdp__acc[open] > .fy-pdp__acc-body, .fy-step__title span, .fy-summary__total strong { animation: none; }
+  .fy-step__marker, .fy-step__n, .fy-step__tick, .fy-sizes__frame { transition: none; }
+}
+
+/* ======================================================================
+   v4: phone polish, and the uploaded photo's green "ready" glow.
+   ====================================================================== */
+
+/* Uploaded: the photo's frame breathes a soft green three times, then keeps a quiet ring;
+   the card's edge turns green with it. */
+.fy-upload--done { border-color: rgba(47, 125, 74, 0.45); box-shadow: inset 3px 0 0 #2f7d4a; }
+.fy-upload--done .fy-upload__thumb {
+  box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(47, 125, 74, 0.55), 0 0 0 10px rgba(47, 125, 74, 0.12);
+  animation: fy-upload-glow 1.6s ease-in-out 3;
+}
+.fy-upload--done .fy-upload__title { color: #23633a; }
+@keyframes fy-upload-glow {
+  0%, 100% { box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(47, 125, 74, 0.55), 0 0 0 10px rgba(47, 125, 74, 0.12); }
+  50% { box-shadow: 0 0 0 4px #ffffff, 0 0 0 6px rgba(47, 125, 74, 0.9), 0 0 0 18px rgba(47, 125, 74, 0.22), 0 0 28px 8px rgba(47, 125, 74, 0.25); }
+}
+/* A photo that still needs a crop for this size keeps the black edge instead. */
+.fy-upload--done:has([data-emphasis]) { border-color: var(--color-rule); box-shadow: inset 3px 0 0 var(--color-ink); }
+.fy-upload--done:has([data-emphasis]) .fy-upload__thumb { animation: none; box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(17, 17, 17, 0.2); }
+.fy-upload--done:has([data-emphasis]) .fy-upload__title { color: var(--color-ink); }
+
+@media (max-width: 639.98px) {
+  /* Steps: the marker sits beside the title; the options and the upload card use the full
+     width beneath, lined up with the "Your frame" summary. */
+  .fy-step { grid-template-columns: 28px minmax(0, 1fr); grid-template-areas: 'marker title' 'body body'; column-gap: 12px; }
+  .fy-step:not(:last-child)::before { display: none; }
+  .fy-step__marker { grid-area: marker; }
+  .fy-step__body { display: contents; }
+  .fy-step__title { grid-area: title; align-self: center; margin-bottom: 0; }
+  .fy-step__body > :not(.fy-step__title) { grid-column: 1 / -1; margin-top: 10px; }
+  .fy-steps { gap: 20px; }
+
+  /* Buy row: a narrower quantity, Add to cart filling the rest with its label centred. */
+  .fy-pdp__buy { gap: 8px; }
+  .fy-qty button { width: 34px; height: 52px; }
+  .fy-qty span { min-width: 22px; }
+  .fy-cart.fy-pdp__cart { justify-items: center; text-align: center; }
+
+  /* Ratings: score and bars side by side, with less padding. */
+  .fy-rev__score { grid-template-columns: auto minmax(0, 1fr); gap: 14px 18px; padding: 14px; }
+  .fy-rev__avg { font-size: 44px; }
+  .fy-rev__out { font-size: 14px; }
+  .fy-rev__stars { margin-top: 6px; }
+  .fy-rev__bars { gap: 5px; }
+  .fy-rev__bars li { grid-template-columns: 24px minmax(0, 1fr) 16px; gap: 6px; font-size: 12px; }
+  .fy-rev__head { gap: 10px; }
+  .fy-rev__write { min-height: 44px; padding: 0 12px; font-size: 13px; }
+  .fy-pdp__about .fy-rev { padding-top: 20px; }
+  .fy-rev__drop { margin-top: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-upload--done .fy-upload__thumb { animation: none; }
+}
+
+/* Mouse/pen drag on the gallery: a grab hand, and no image dragging or text selection. */
+.fy-gallery__track { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y; }
+.fy-gallery__track:active { cursor: grabbing; }
+.fy-gallery__track img { -webkit-user-drag: none; user-select: none; }
+
+/* ======================================================================
+   v5: a tighter buying column — less gutter, a compact header and an even
+   16px rhythm between steps and blocks. Tap targets stay 44px or more.
+   ====================================================================== */
+
+@media (min-width: 1024px) {
+  .fy-pdp__grid { grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr); gap: 40px; }
+  .fy-pdp__rating-link { min-height: 32px; }
+}
+
+.fy-pdp__head { gap: 6px; }
+.fy-pdp__title { font-size: clamp(26px, 2.8vw, 36px); line-height: 1.08; }
+.fy-pdp__head .fy-pdp__price { margin-top: 4px; }
+.fy-pdp__now { font-size: 28px; }
+.fy-pdp__head .fy-pdp__stock { margin-top: 2px; }
+
+.fy-steps { gap: 16px; margin-top: 18px; padding-top: 18px; }
+.fy-step:not(:last-child)::before { bottom: -12px; }
+.fy-step__title { margin-bottom: 8px; }
+.fy-pdp__chip { min-height: 44px; padding: 4px 14px; }
+.fy-pdp__swatches { gap: 8px; }
+.fy-pdp__swatch { width: 44px; height: 44px; }
+
+.fy-upload { gap: 4px; padding: 14px 14px 16px; }
+.fy-upload__icon { width: 36px; height: 36px; }
+.fy-upload--done { padding: 12px; }
+
+.fy-summary { margin-top: 18px; padding: 12px; }
+.fy-summary + .fy-pdp__buy { margin-top: 10px; }
+.fy-buynow { margin-top: 8px; }
+.fy-pdp__trust { margin-top: 16px; padding-top: 14px; }
+
+@media (max-width: 639.98px) {
+  .fy-steps { gap: 18px; }
+  .fy-step__body > :not(.fy-step__title) { margin-top: 8px; }
+}
+
+/* v6: the sticky bar repeats the page's buy row — quantity, Add to cart, wishlist — under a
+   slim line with the total, size and finish. */
+.fy-pdp__sticky { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 8px; }
+.fy-pdp__sticky .fy-pdp__sticky-meta { display: flex; align-items: baseline; gap: 10px; min-width: 0; font-size: 12.5px; color: var(--color-mute); }
+.fy-pdp__sticky .fy-pdp__sticky-meta strong { font-size: 16px; font-weight: 800; color: var(--color-ink); }
+.fy-pdp__sticky .fy-pdp__sticky-meta span:not(:first-of-type)::before { content: '·'; margin-right: 10px; }
+.fy-pdp__buy.fy-pdp__buy--sticky { margin-top: 0; }
+.fy-pdp__buy--sticky .fy-cart.fy-pdp__cart { max-width: none; margin-left: 0; min-height: 48px; }
+.fy-pdp__buy--sticky .fy-qty button { height: 48px; }
+.fy-pdp__buy--sticky .fy-wish.fy-pdp__wish { width: 48px; height: 48px; }

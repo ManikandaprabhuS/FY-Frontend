@@ -63,11 +63,12 @@ export const useCustomerCommerce = () => {
     }
   }, [requestLogin, toggleStoredWishlist]);
 
-  const addToCart = useCallback((product: Product, variant: ProductVariant, quantity = 1, selectedColor?: string) => {
+  /** Adds the variant to the cart; returns whether it was added (callers may ignore it). */
+  const addToCart = useCallback((product: Product, variant: ProductVariant, quantity = 1, selectedColor?: string): boolean => {
     const stockQuantity = normalizeStock(variant.stockQuantity);
     if (stockQuantity <= 0) {
       showWarning('This product variant is out of stock.');
-      return;
+      return false;
     }
     const unitPrice = getVariantPricing(variant).currentPrice;
     const catalogue = useFrameColorStore.getState();
@@ -89,6 +90,7 @@ export const useCustomerCommerce = () => {
       stockQuantity,
     });
     if (added) showSuccess(`${product.name} added to cart`);
+    return Boolean(added);
   }, [addCartItem]);
 
   return { customerLoggedIn, wishlist, toggleWishlist, addToCart, requestLogin };
