@@ -1,0 +1,268 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/dist/assets/index-CYa4KZDc.css"><style>/* Storefront foundation: scoped to the customer layout so admin pages keep their own styles. */
+
+.fy-store {
+  --fy-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Fallback for browsers without linear(): a gentle overshoot. */
+  --fy-ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  /* Bottom bar: 26px above its top edge (bubble, Customize) + 60px bar, flush with the screen bottom. */
+  --fy-dock-height: 86px;
+  --fy-dock-offset: env(safe-area-inset-bottom, 0px);
+  /* One family across the customer site: Inter, the admin console's font. */
+  --font-body: var(--font-sans);
+  --font-display: var(--font-sans);
+
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: #ffffff;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  .fy-store {
+    /* Spring with a single soft overshoot, settling at ~55%. */
+    --fy-ease-spring: linear(0, 0.06 2.4%, 0.23 5.5%, 0.5 10%, 0.77 15.5%, 0.94 21%, 1.03 27%, 1.055 32%, 1.045 38%, 1.02 46%, 1 55%, 0.996 66%, 1);
+  }
+}
+
+.fy-store :where(h1, h2, h3).fy-display,
+.fy-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-kerning: normal;
+}
+
+.fy-store :focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+/* Reserve space above the mobile dock so it never covers page content. */
+@media (max-width: 1023.98px) {
+  .fy-store[data-dock='visible'] {
+    padding-bottom: calc(var(--fy-dock-height) + var(--fy-dock-offset) + 16px);
+  }
+}
+
+@keyframes fy-dock-rise {
+  from { transform: translate3d(0, calc(100% + 32px), 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fy-item-in {
+  from { opacity: 0; transform: translate3d(-12px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fy-badge-pop {
+  0% { transform: scale(0.4); }
+  100% { transform: scale(1); }
+}
+
+.fy-dock-enter {
+  animation: fy-dock-rise 720ms var(--fy-ease-spring) 180ms both;
+}
+
+.fy-menu-item {
+  animation: fy-item-in 420ms var(--fy-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-store *,
+  .fy-store *::before,
+  .fy-store *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ---------- Homepage navbar: transparent over the hero until the page scrolls ---------- */
+
+/* Shared wordmark sizing keeps header row dimensions and navigation placement stable. */
+.fy-customer-header { box-sizing: border-box; height: 60px; }
+.fy-customer-header > div { height: 100%; }
+@media (min-width: 1024px) {
+  .fy-customer-header { height: 76px; }
+}
+.fy-customer-header .fy-nav-wordmark {
+  font-size: clamp(21px, 6.5vw, 26px);
+  white-space: nowrap;
+}
+@media (min-width: 1024px) {
+  .fy-customer-header .fy-nav-wordmark { font-size: 36px; }
+}
+/* A single on-video theme, including hovered/focused icons and count text. */
+.fy-customer-header[data-header-theme='on-video'] {
+  --fy-nav-fg: #111111;
+  --fy-nav-hover: rgba(17, 17, 17, 0.07);
+  color: var(--fy-nav-fg);
+}
+.fy-customer-header[data-header-theme='on-video'] {
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
+  backdrop-filter: blur(8px);
+}
+.fy-customer-header[data-header-theme='on-video'] :is(a, button),
+.fy-customer-header[data-header-theme='on-video'] :is(a, button):hover,
+.fy-customer-header[data-header-theme='on-video'] :is(a, button):focus-visible {
+  color: var(--fy-nav-fg);
+  transition: color 200ms ease, background-color 200ms ease;
+}
+.fy-customer-header[data-header-theme='on-video'] :is(a, button):focus-visible {
+  outline: 2px solid var(--fy-nav-fg);
+  outline-offset: 3px;
+}
+.fy-customer-header[data-header-theme='on-video'] [data-header-badge] {
+  color: var(--fy-nav-fg);
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(17,17,17,.2);
+}
+.fy-nav-overlay {
+  --fy-nav-fg: #111111;
+  --fy-nav-hover: rgba(17, 17, 17, 0.07);
+  color: var(--fy-nav-fg);
+  background: transparent;
+  animation: fy-nav-fade 380ms var(--fy-ease-out) both;
+  transition: color 200ms ease, background-color 200ms ease;
+}
+
+
+
+.fy-nav-overlay__icon { color: inherit; }
+
+@media (hover: hover) {
+  .fy-nav-overlay__icon:hover { background: var(--fy-nav-hover); }
+}
+
+.fy-nav-overlay__icon:focus-visible,
+.fy-nav-overlay a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+
+.fy-nav-overlay__badge {
+  color: #ffffff;
+  background: #111111;
+  transition: color 400ms, background-color 400ms;
+}
+
+
+
+/* Scrolled on the homepage: the white bar fades in over the same spot, so nothing jumps. */
+.fy-nav-solid { animation: fy-nav-solid-in 380ms var(--fy-ease-out) both; }
+
+@keyframes fy-nav-fade {
+  from { opacity: 0; }
+}
+
+@keyframes fy-nav-solid-in {
+  from {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Very small phones: drop the centre mark so the name never meets the icons. */
+@media (max-width: 359.98px) {
+  .fy-nav-overlay__mark { display: none; }
+}
+
+
+
+/* ---------- Announcement bar above the navbar ---------- */
+
+/* In the page flow: it scrolls away with the page, and the sticky navbar takes the top. */
+.fy-announce {
+  position: relative;
+  z-index: 101;
+  display: grid;
+  place-items: center;
+  height: 34px;
+  overflow: hidden;
+  padding-inline: 16px;
+  color: #ffffff;
+  background: #111111;
+}
+
+.fy-announce__text {
+  margin: 0;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+
+/* Phones: smaller, tighter type so the full offer fits on one line. */
+@media (max-width: 419.98px) {
+  .fy-announce { height: 32px; padding-inline: 10px; }
+  .fy-announce__text { font-size: clamp(8.5px, 2.45vw, 10px); letter-spacing: 0.05em; }
+}
+
+@media (max-width: 339.98px) {
+  .fy-announce { padding-inline: 8px; }
+  .fy-announce__text { letter-spacing: 0.02em; }
+}
+
+/*
+ * Message change: the line rolls like a shop sign. The old message lifts up and out; the
+ * new one rises into place from below, its tracking settling from wide to normal.
+ */
+.fy-announce__line {
+  position: relative;
+  display: grid;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.fy-announce__line > .fy-announce__text { grid-area: 1 / 1; text-align: center; }
+
+.fy-announce__text[data-state='in'] {
+  animation: fy-announce-in 640ms cubic-bezier(0.22, 1, 0.36, 1) 90ms both;
+}
+
+.fy-announce__text[data-state='out'] {
+  animation: fy-announce-out 420ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+}
+
+@keyframes fy-announce-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.3em;
+    transform: translateY(110%);
+  }
+}
+
+@keyframes fy-announce-out {
+  to {
+    opacity: 0;
+    transform: translateY(-110%);
+  }
+}
+
+@media (max-width: 419.98px) {
+  @keyframes fy-announce-in {
+    from {
+      opacity: 0;
+      letter-spacing: 0.12em;
+      transform: translateY(110%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-announce__text[data-state='in'] { animation: fy-announce-fade 300ms ease both; }
+  .fy-announce__text[data-state='out'] { animation: none; opacity: 0; }
+
+  @keyframes fy-announce-fade {
+    from { opacity: 0; }
+  }
+}
+</style></head><body class="fy-store" style="margin:0;--font-display:Inter,Arial,sans-serif;--color-ink:#111111"><div style="height:30px;background:#111"></div><link rel="preload" as="image" href="/src/assets/fy-logo-icon.jpeg"/><header data-header-theme="on-video" class="fy-nav-solid -mb-[60px] lg:-mb-[76px] fy-customer-header sticky top-0 z-[100] border-b bg-white/90 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 border-rule shadow-[0_1px_14px_rgba(17,17,17,0.06)]"><div class="mx-auto grid h-[60px] w-full max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 sm:px-6 lg:h-[76px] lg:grid-cols-[1fr_auto_1fr] lg:px-10"><div class="flex items-center"><button type="button" aria-label="Open menu" aria-expanded="false" class="relative grid h-11 w-11 place-items-center rounded-full text-ink transition-[background-color,transform] duration-300 hover:bg-mat active:scale-90 lg:hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu h-[22px] w-[22px]" aria-hidden="true"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg></button><a aria-label="FrameYaad home" class="hidden items-center gap-3 lg:flex" href="/"><img src="/src/assets/fy-logo-icon.jpeg" alt="" class="h-9 w-9 rounded-full object-contain"/><span class="fy-display fy-nav-wordmark leading-none">FrameYaad</span></a></div><a aria-label="FrameYaad home" class="flex items-center gap-2 lg:hidden" href="/"><img src="/src/assets/fy-logo-icon.jpeg" alt="" class="h-7 w-7 rounded-full object-contain"/><span class="fy-display fy-nav-wordmark leading-none">FrameYaad</span></a><nav class="hidden items-center gap-9 lg:flex" aria-label="Primary navigation"><a href="/" class="group relative py-2 text-[14px] font-medium transition-colors duration-200 text-ink/60 hover:text-ink">Home<span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-px origin-left bg-ink transition-transform duration-500 ease-[var(--fy-ease-out)] scale-x-0 group-hover:scale-x-100"></span></a><a href="/products" class="group relative py-2 text-[14px] font-medium transition-colors duration-200 text-ink/60 hover:text-ink">Shop all<span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-px origin-left bg-ink transition-transform duration-500 ease-[var(--fy-ease-out)] scale-x-0 group-hover:scale-x-100"></span></a><a href="/book-appointment" class="group relative py-2 text-[14px] font-medium transition-colors duration-200 text-ink/60 hover:text-ink">Book appointment<span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-px origin-left bg-ink transition-transform duration-500 ease-[var(--fy-ease-out)] scale-x-0 group-hover:scale-x-100"></span></a><a href="/contact-us" class="group relative py-2 text-[14px] font-medium transition-colors duration-200 text-ink/60 hover:text-ink">Contact us<span aria-hidden="true" class="absolute inset-x-0 bottom-0 h-px origin-left bg-ink transition-transform duration-500 ease-[var(--fy-ease-out)] scale-x-0 group-hover:scale-x-100"></span></a></nav><div class="hidden items-center justify-end gap-0.5 sm:gap-1 lg:flex"><button type="button" aria-label="Wishlist" class="relative grid h-11 w-11 place-items-center rounded-full text-ink transition-[background-color,transform] duration-300 hover:bg-mat active:scale-90 hidden lg:grid"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart h-5 w-5" aria-hidden="true"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg></button><a aria-label="Sign in" class="hidden h-11 items-center gap-2 rounded-full px-3 text-[14px] font-medium text-ink transition-colors duration-300 hover:bg-mat lg:inline-flex" href="/profile"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-round h-5 w-5" aria-hidden="true"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></svg><span>Sign in</span></a><a aria-label="Bag, 3 items" class="relative grid h-11 w-11 place-items-center rounded-full text-ink transition-[background-color,transform] duration-300 hover:bg-mat active:scale-90" href="/cart"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag h-5 w-5" aria-hidden="true"><path d="M16 10a4 4 0 0 1-8 0"></path><path d="M3.103 6.034h17.794"></path><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"></path></svg><span data-header-badge="true" class="absolute right-1 top-1 grid h-[18px] min-w-[18px] animate-[fy-badge-pop_500ms_var(--fy-ease-spring)] place-items-center rounded-full bg-ink px-1 text-[10px] font-semibold leading-none text-white">3</span></a></div></div></header><main style="height:1400px;background:linear-gradient(#000,#777,#fff)"></main></body></html>

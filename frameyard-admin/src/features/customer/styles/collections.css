@@ -7,6 +7,10 @@
 
 .fy-col { font-family: var(--font-sans); }
 
+/* Decorative props only: frame geometry, photos, card sizes and links are unchanged. */
+.fy-col__plant {position:absolute;z-index:3;bottom:calc(var(--fw) * .1);left:0;width:32%;height:70%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(2px 5px 4px rgba(0,0,0,.12));}
+.fy-col__plant--right {left:auto;right:0;}
+
 /* ---------- Heading ---------- */
 
 .fy-col__title {

@@ -1,3 +1,4 @@
+import OrderPhotoDownload from "../../components/orders/OrderPhotoDownload";
 import OrderOfferDetails from "../../components/ui/OrderOfferDetails";
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -495,7 +496,7 @@ export const OrdersPage: React.FC = () => {
                 </span>
               </div>
               <div className="text-right">
-                <OrderOfferDetails order={selectedOrder} /><span className="block text-xs text-on-surface-variant">Total Price</span>
+                <OrderPhotoDownload order={selectedOrder} admin /><OrderOfferDetails order={selectedOrder} /><span className="block text-xs text-on-surface-variant">Total Price</span>
                 <span className="mt-0.5 block text-lg font-bold text-primary">
                   ₹{Number(selectedOrder.totalAmount).toFixed(2)}
                 </span>

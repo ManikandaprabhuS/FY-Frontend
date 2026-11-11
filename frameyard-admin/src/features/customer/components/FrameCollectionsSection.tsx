@@ -5,6 +5,7 @@ import { ArrowRight, BadgeCheck, RefreshCw, ShieldCheck, Truck } from 'lucide-re
 import { collectionShopPath, frameCollections, type FrameCollection } from '../data/frameCollections';
 import { useFramePhotosStore } from '../store/framePhotosStore';
 import '../styles/collections.css';
+import {collectionPlants} from '../data/collectionPlants';
 
 const promises = [
   { icon: Truck, title: 'Shipping across India', detail: 'Delivered to your door' },
@@ -14,6 +15,7 @@ const promises = [
 ];
 
 const CollectionCard: React.FC<{ collection: FrameCollection; index: number; photosOn: boolean }> = ({ collection, index, photosOn }) => {
+  const plant=collection.id in collectionPlants?collectionPlants[collection.id as keyof typeof collectionPlants]:null;
   return (
     <li className="fy-col__item">
       <Link
@@ -27,6 +29,7 @@ const CollectionCard: React.FC<{ collection: FrameCollection; index: number; pho
       >
         <span className="fy-col__scene" aria-hidden="true">
           <span className="fy-col__ledge" />
+          {plant&&<img src={plant.src} alt={plant.alt} width={400} height={600} loading="lazy" decoding="async" className={"fy-col__plant fy-col__plant--"+plant.side}/>}
           <span className={`fy-col__frame fy-col__frame--${collection.id}`}>
             <span className="fy-col__mat">
               <span className="fy-col__opening">

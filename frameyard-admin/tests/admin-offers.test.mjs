@@ -10,7 +10,7 @@ const require=createRequire(import.meta.url);
 const initial={code:"FIRST_ORDER",title:"First Order Offer",description:"5% off on your first order",percentage:5,minOrderAmount:null,enabled:true,version:1,updatedAt:"2026-11-10T06:00:00.000Z",updatedBy:null,usage:{orders:4,totalDiscount:350}};
 async function compile(overrides={}){
  const code=await readFile(new URL("../src/pages/offers/OffersPage.tsx",import.meta.url),"utf8"),module={exports:{}};
- new Function("require","module","exports",ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>overrides[name]??require(name),module,module.exports);
+ new Function("require","module","exports",ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>name==="./HomepageBannerCard"?{__esModule:true,default:()=>null}:overrides[name]??require(name),module,module.exports);
  return module.exports;
 }
 function tree(node){if(!node||typeof node!=="object")return[];return[node,...[node.props?.children].flat(Infinity).flatMap(tree)];}

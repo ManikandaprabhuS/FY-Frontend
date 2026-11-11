@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CalendarDays, CheckCircle2, MapPin } from 'lucide-react';
 import {
   appointmentFrameTypeLabels,
@@ -34,6 +35,21 @@ const errorMessage = (error: unknown) => {
 
 const BookAppointmentPage: React.FC = () => {
   const [form, setForm] = useState<FormState>(initialForm);
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== '#appointment-form') return;
+    const frame = requestAnimationFrame(() => {
+      const formElement = document.getElementById('appointment-form');
+      if (!formElement) return;
+      const header = document.querySelector('header');
+      const offset = header?.getBoundingClientRect().height ?? 80;
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + formElement.getBoundingClientRect().top - offset - 16),
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<Appointment | null>(null);
@@ -109,7 +125,7 @@ const BookAppointmentPage: React.FC = () => {
 
   return (
     <section className="bg-[#f6f6f6] px-4 py-10 sm:px-6 sm:py-14 lg:py-16">
-      <form onSubmit={submit} className="mx-auto max-w-3xl rounded-2xl border border-black/10 bg-white p-5 shadow-[0_18px_55px_rgba(0,0,0,0.07)] sm:p-8 lg:p-10" noValidate>
+      <form id="appointment-form" onSubmit={submit} className="mx-auto max-w-3xl rounded-2xl border border-black/10 bg-white p-5 shadow-[0_18px_55px_rgba(0,0,0,0.07)] sm:p-8 lg:p-10" noValidate>
         <div className="text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-black/45">FrameYaad Service</p>
           <h1 className="mt-2 text-2xl font-black sm:text-3xl">Book an Appointment</h1>

@@ -25,9 +25,9 @@ export const checkoutService={
   void promise.catch(()=>{if(summaryCache.get(key)===entry)summaryCache.delete(key);});
   return promise;
  },
- place:async(items:CheckoutSelection[],userAddressId:string,couponCode?:OfferCode,couponVersion?:number,checkoutKey?:string) => {
-  const key=checkoutKey??checkoutRequestKey(JSON.stringify({items,userAddressId,couponCode,couponVersion}));
-  const response=await api.post<{data:{order:{id:string;orderNumber:string;totalPrice:string;couponTitle?:string;discountPercent?:string;discountAmount?:string;subtotal?:string}}}>("/orders/checkout",{items,userAddressId,couponCode,couponVersion,paymentMethod:"COD",checkoutKey:key},{timeout:30000});
+ place:async(items:CheckoutSelection[],userAddressId:string,couponCode?:OfferCode,couponVersion?:number,checkoutKey?:string,photoId?:string) => {
+  const key=checkoutKey??checkoutRequestKey(JSON.stringify({items,userAddressId,couponCode,couponVersion,photoId}));
+  const response=await api.post<{data:{order:{id:string;photoFileName?:string|null;photoSizeBytes?:number|null;orderNumber:string;totalPrice:string;couponTitle?:string;discountPercent?:string;discountAmount?:string;subtotal?:string}}}>("/orders/checkout",{items,userAddressId,couponCode,couponVersion,photoId,paymentMethod:"COD",checkoutKey:key},{timeout:30000});
   try{localStorage.removeItem("fy-checkout:"+useAuthStore.getState().user?.id);}catch{/* Retry safety also exists on the backend. */}
   if(typeof window!=="undefined")window.dispatchEvent(new Event("fy:customer-orders-changed"));
   return response.data.data.order;

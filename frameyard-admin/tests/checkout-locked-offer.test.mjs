@@ -11,6 +11,8 @@ test("checkout shows the Big Order rule but disables applying it below the minim
  const quote={subtotal:2448,offers:[{code:"FIRST_ORDER",title:"First Order Offer",description:"5% off on your first order",percent:5,discountAmount:122.4,total:2325.6,version:1}],unavailableOffers:[{code:"BIG_ORDER",title:"Big Order Offer",description:"10% off on orders above Rs. 5,000",percent:10,discountAmount:0,total:2448,version:1,unavailableReason:"Available on orders above Rs. 5,000."}],addresses:[]};
  const states=[quote,signature,undefined,"",false,false,0,undefined,false];let state=0;
  const overrides={
+  "./CheckoutPhotoUpload":{__esModule:true,default:()=>null},
+  "../../../components/orders/OrderPhotoDownload":{__esModule:true,default:()=>null},
   react:{useEffect(){},useMemo:fn=>fn(),useRef:value=>({current:value}),useState:()=>[states[state++],()=>{}]},
   "react-router-dom":{Link:({to,children,...props})=>createElement("a",{...props,href:to},children)},
   "../../../store/customerCommerceStore":{useCustomerCommerceStore:selector=>selector({cartItems:items})},

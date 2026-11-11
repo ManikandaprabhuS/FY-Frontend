@@ -1,0 +1,43 @@
+.fy-custom-mobile { display: none; }
+@media (max-width: 767px) {
+  .fy-custom-desktop { display: none; }
+  .fy-custom-mobile { display: block; padding: 12px 16px 24px; color: var(--color-ink, #111); }
+  .fy-custom-mobile__hero { position: relative; min-height: 270px; isolation: isolate; }
+  .fy-custom-mobile__copy { position: relative; z-index: 2; padding: 26px 4px 30px; pointer-events: none; }
+  .fy-custom-mobile__copy h1 { margin: 0; font-size: clamp(27px, 6.6vw, 42px); font-weight: 800; line-height: 1.1; letter-spacing: -.04em; }
+  .fy-custom-mobile__underline { display: block; width: 44px; height: 4px; background: #111; margin: 12px 0; }
+  .fy-custom-mobile__copy p { width: 49%; margin: 0; font-size: clamp(12px, 2.8vw, 16px); line-height: 1.5; }
+  .fy-custom-mobile__scene { position: absolute; inset: 0 -16px 0 0; z-index: 0; overflow: hidden; background: linear-gradient(115deg, #fff 15%, #f7f6f3 100%); }
+  .fy-custom-mobile__scene::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #fff 2%, #fff9 30%, transparent 65%), linear-gradient(0deg, #fff, transparent 15%); pointer-events: none; }
+  .fy-custom-mobile__shelf { position: absolute; height: 12%; bottom: 5%; left: 32%; right: 0; background: linear-gradient(#e5d2b9, #f4eadb); transform: skewY(-3deg); }
+  .fy-custom-mobile__frame { position: absolute; display: grid; padding: 7px; box-shadow: 3px 5px 6px #0003, inset 1px 1px 2px #ffffff50; }
+  .fy-custom-mobile__frame > span { display: block; background: linear-gradient(120deg, #f6f5f3, #dfdedc); border: 13px solid #fff; box-shadow: inset 0 0 3px #0004; }
+  .fy-custom-mobile__frame--black { width: 29%; aspect-ratio: .68; right: 7%; top: 10%; background: linear-gradient(100deg, #080808, #353535, #080808); transform: rotate(-3deg); }
+  .fy-custom-mobile__frame--brown { width: 26%; aspect-ratio: .7; right: 2%; bottom: 10%; background: linear-gradient(100deg, #50301c, #97633f, #50301c); transform: rotate(2deg); }
+  .fy-custom-mobile__frame--grey { width: 21%; aspect-ratio: .85; right: 23%; bottom: 9%; background: linear-gradient(100deg, #5b5a58, #aaa7a2, #66645f); }
+  .fy-custom-mobile__scene img { position: absolute; width: 25%; height: 66%; object-fit: contain; right: 27%; bottom: 7%; }
+  .fy-custom-mobile__appointment { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 10px; padding: 14px 12px; border: 1px solid #c9c9c9; border-radius: 12px; box-shadow: 0 3px 10px #00000006; text-decoration: none; color: inherit; }
+  .fy-custom-mobile__appointment:focus-visible { outline: 3px solid #111; outline-offset: 4px; }
+  .fy-custom-mobile__calendar { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: #f5f5f5; }
+  .fy-custom-mobile__calendar svg { width: 25px; height: 25px; }
+  .fy-custom-mobile__appointment-copy { display: grid; gap: 4px; border-left: 1px solid #ccc; padding-left: 10px; }
+  .fy-custom-mobile__appointment-copy strong { font-size: 15px; line-height: 1.25; }
+  .fy-custom-mobile__appointment-copy > span { font-size: 11px; line-height: 1.4; }
+  .fy-custom-mobile__cta { grid-column: 2; display: inline-flex; justify-self: start; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #080808; color: white; font-size: 12px; font-weight: 700; }
+  .fy-custom-mobile__appointment:active { background: #f5f5f5; }
+  .fy-custom-mobile__note { display: flex; align-items: flex-start; gap: 8px; padding: 12px; margin: 12px 0 18px; border-radius: 8px; background: #f7f7f5; font-size: 11px; line-height: 1.6; }
+  .fy-custom-mobile__note svg { flex-shrink: 0; margin-top: 2px; }
+  .fy-custom-mobile__features { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fy-custom-mobile__features li { display: flex; align-items: center; flex-direction: column; gap: 7px; padding: 0 5px; text-align: center; font-size: 10px; line-height: 1.4; }
+  .fy-custom-mobile__features li + li { border-left: 1px solid #ddd; }
+}
+@media (min-width: 360px) and (max-width: 767px) {
+  .fy-custom-mobile__appointment { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; padding: 14px 10px; }
+  .fy-custom-mobile__appointment-copy strong { font-size: 12px; }
+  .fy-custom-mobile__appointment-copy > span { font-size: 10px; }
+  .fy-custom-mobile__cta { grid-column: auto; padding: 0 12px; font-size: 11px; }
+}
+@media (max-width: 359px) {
+  .fy-custom-mobile__features { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; }
+  .fy-custom-mobile__features li:nth-child(3) { border-left: 0; }
+}

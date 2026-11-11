@@ -79,20 +79,54 @@
 
 /* ---------- Homepage navbar: transparent over the hero until the page scrolls ---------- */
 
-/* Dark on the light frame wall; white while the hero shows its video (set by the hero). */
+/* Shared wordmark sizing keeps header row dimensions and navigation placement stable. */
+.fy-customer-header { box-sizing: border-box; height: 60px; }
+.fy-customer-header > div { height: 100%; }
+@media (min-width: 1024px) {
+  .fy-customer-header { height: 76px; }
+}
+.fy-customer-header .fy-nav-wordmark {
+  font-size: clamp(21px, 6.5vw, 26px);
+  white-space: nowrap;
+}
+@media (min-width: 1024px) {
+  .fy-customer-header .fy-nav-wordmark { font-size: 36px; }
+}
+/* A single on-video theme, including hovered/focused icons and count text. */
+.fy-customer-header[data-header-theme='on-video'] {
+  --fy-nav-fg: #111111;
+  --fy-nav-hover: rgba(17, 17, 17, 0.07);
+  color: var(--fy-nav-fg);
+}
+.fy-customer-header[data-header-theme='on-video'] {
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
+  backdrop-filter: blur(8px);
+}
+.fy-customer-header[data-header-theme='on-video'] :is(a, button),
+.fy-customer-header[data-header-theme='on-video'] :is(a, button):hover,
+.fy-customer-header[data-header-theme='on-video'] :is(a, button):focus-visible {
+  color: var(--fy-nav-fg);
+  transition: color 200ms ease, background-color 200ms ease;
+}
+.fy-customer-header[data-header-theme='on-video'] :is(a, button):focus-visible {
+  outline: 2px solid var(--fy-nav-fg);
+  outline-offset: 3px;
+}
+.fy-customer-header[data-header-theme='on-video'] [data-header-badge] {
+  color: var(--fy-nav-fg);
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(17,17,17,.2);
+}
 .fy-nav-overlay {
   --fy-nav-fg: #111111;
   --fy-nav-hover: rgba(17, 17, 17, 0.07);
   color: var(--fy-nav-fg);
   background: transparent;
   animation: fy-nav-fade 380ms var(--fy-ease-out) both;
-  transition: color 400ms var(--fy-ease-out);
+  transition: color 200ms ease, background-color 200ms ease;
 }
 
-html[data-hero-tone='dark'] .fy-nav-overlay {
-  --fy-nav-fg: #ffffff;
-  --fy-nav-hover: rgba(255, 255, 255, 0.14);
-}
+
 
 .fy-nav-overlay__icon { color: inherit; }
 
@@ -113,10 +147,7 @@ html[data-hero-tone='dark'] .fy-nav-overlay {
   transition: color 400ms, background-color 400ms;
 }
 
-html[data-hero-tone='dark'] .fy-nav-overlay__badge {
-  color: #111111;
-  background: #ffffff;
-}
+
 
 /* Scrolled on the homepage: the white bar fades in over the same spot, so nothing jumps. */
 .fy-nav-solid { animation: fy-nav-solid-in 380ms var(--fy-ease-out) both; }

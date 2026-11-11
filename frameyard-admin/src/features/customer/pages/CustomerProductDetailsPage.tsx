@@ -1,6 +1,9 @@
 import { getStockStatus, normalizeStock } from '../../../utils/stock';
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Link, useParams, useLocation } from 'react-router-dom';
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
+import {useAuthStore} from '../../../store/authStore';
+import {useCustomerCommerceStore} from '../../../store/customerCommerceStore';
+import {setCheckoutPhotoDraft, checkoutPhotoDraft, clearCheckoutPhotoDraft, validateOrderPhoto} from '../../../services/order-photos.service';
 import {
   ArrowLeft,
   Check,
@@ -35,6 +38,7 @@ const uniqueValues = (values: Array<string | null | undefined>) => [...new Set(v
 
 const CustomerProductDetailsPage: React.FC = () => {
   const reviewLocation = useLocation();
+  const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const products = useProductStore((state) => state.products);
   const fetchedProduct = useProductStore((state) => state.currentProduct);
@@ -129,14 +133,14 @@ const CustomerProductDetailsPage: React.FC = () => {
 
   const handleFile = (file?: File) => {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showWarning('Please select a valid image file.');
-      return;
+    const auth = useAuthStore.getState();
+    if (!auth.isAuthenticated || auth.user?.role !== 'CUSTOMER') {
+      showWarning('Please log in to upload your photo.'); return;
     }
-    if (file.size > 12 * 1024 * 1024) {
-      showWarning('Please select an image smaller than 12 MB.');
-      return;
-    }
+    const issue = validateOrderPhoto(file);
+    if (issue) { showWarning(issue); return; }
+    setCheckoutPhotoDraft(auth.user.id, file);
+    try { localStorage.setItem("frameyaad-photo-name:"+slug, file.name); localStorage.setItem("frameyaad-photo-owner:"+slug, auth.user.id); } catch { /* Local preview still works when storage is full. */ }
     const reader = new FileReader();
     reader.onload = () => setCropSource(String(reader.result || ''));
     reader.onerror = () => showError('The selected image could not be opened.');
@@ -164,6 +168,8 @@ const CustomerProductDetailsPage: React.FC = () => {
 
   const clearCrop = () => {
     if (!croppedImage) return;
+    const customer = useAuthStore.getState().user;
+    if(customer) clearCheckoutPhotoDraft(customer.id);
 
     const nextImages = { ...croppedImages, [cropKey]: '' };
 
@@ -233,7 +239,7 @@ const CustomerProductDetailsPage: React.FC = () => {
             <div className="order-3 grid gap-4 md:grid-cols-2 xl:mt-4">
               <div className="rounded-xl border border-black/10 bg-white p-4">
                 <div className="mb-3 flex items-start justify-between gap-3">
-                  <div><h2 className="text-sm font-black">Upload Your Photo</h2><p className="mt-0.5 text-[10px] text-black/45">JPG, PNG or WEBP · maximum 12 MB</p></div>
+                  <div><h2 className="text-sm font-black">Upload Your Photo</h2><p className="mt-0.5 text-[10px] text-black/45">JPG, PNG or WebP · maximum 4 MB</p></div>
                   {croppedImage && (
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600"><Check className="h-3 w-3" /> Saved locally</span>
@@ -318,6 +324,27 @@ const CustomerProductDetailsPage: React.FC = () => {
                 <button type="button" aria-label="Increase quantity" onClick={() => { const available = normalizeStock(selectedVariant?.stockQuantity); if (quantity >= available) { showWarning('Requested quantity exceeds available stock (' + available + ')'); return; } setQuantity(current => current + 1); }} className="grid h-full w-10 place-items-center"><Plus className="h-3.5 w-3.5" /></button>
               </div>
               <button type="button" onClick={() => { if (selectedVariant) addToCart(currentProduct, selectedVariant, quantity, effectiveColor); }} disabled={!selectedVariant || normalizeStock(selectedVariant.stockQuantity) <= 0} className="inline-flex h-11 w-full flex-1 items-center justify-center gap-2 rounded-lg bg-black text-xs font-black text-white disabled:bg-black/30"><ShoppingBag className="h-4 w-4" /> Add to Bag</button>
+              <button type="button" disabled={!selectedVariant || normalizeStock(selectedVariant.stockQuantity) < quantity} onClick={() => {
+                if (!selectedVariant) return;
+                const before = useCustomerCommerceStore.getState().cartItems.reduce((n, item) => n + item.quantity, 0);
+                addToCart(currentProduct, selectedVariant, quantity, effectiveColor);
+                const after = useCustomerCommerceStore.getState().cartItems.reduce((n, item) => n + item.quantity, 0);
+                if (after > before) {
+                  const customer = useAuthStore.getState().user;
+                  try {
+                  if (customer?.role === 'CUSTOMER' && croppedImage && !checkoutPhotoDraft(customer.id) && localStorage.getItem('frameyaad-photo-owner:'+slug) === customer.id) {
+                    const source = photoSource || croppedImage;
+                    const match = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(source);
+                    if (match) {
+                      const bytes = Uint8Array.from(atob(match[2]), char => char.charCodeAt(0));
+                      const savedName = localStorage.getItem("frameyaad-photo-name:"+slug) || "photo.png";
+                      setCheckoutPhotoDraft(customer.id, new File([bytes], savedName, {type:match[1]}));
+                    }
+                  }
+                  } catch { showWarning("Your local photo could not be carried over. You can choose it again at checkout."); }
+                  navigate('/checkout');
+                }
+              }} className="inline-flex min-h-11 w-full flex-1 items-center justify-center rounded-lg border border-black bg-white px-4 text-xs font-black text-black disabled:opacity-40">Buy Now</button>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-2 border-t border-black/10 pt-4 sm:grid-cols-4">

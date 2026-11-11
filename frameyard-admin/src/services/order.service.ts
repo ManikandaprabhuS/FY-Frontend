@@ -19,6 +19,7 @@ type BackendOrderItem = {
 };
 
 type BackendOrder = {
+  photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
   id: string;
   orderNumber: string;
   userId: string;
@@ -107,6 +108,7 @@ const historyFrom=(value:unknown):NonNullable<Order["statusHistory"]>=>Array.isA
  return[{status:e.status,changedAt:e.changedAt,changedBy:{id:by.id,role:by.role},...(typeof e.note==="string"?{note:e.note}:{}),...(typeof e.previousStatus==="string"?{previousStatus:e.previousStatus}:{})}];
 }):[];
 export const normalizeOrder = (order: BackendOrder): Order => ({
+  photoId:order.photoId,photoFileName:order.photoFileName,photoSizeBytes:order.photoSizeBytes,
   statusHistory:historyFrom(order.statusHistory),
   id: order.id,
   userId: order.userId,
@@ -200,13 +202,14 @@ export const orderService = {
   exportOrders: async (params: Omit<OrderQueryParams, 'page' | 'limit'> = {}): Promise<Blob> => {
     const { orders } = await orderService.getOrders({ ...params, page: 1, limit: 100 });
     const rows = [
-      ['Order Number', 'Customer', 'Status', 'Total', 'Created At'],
+      ['Order Number', 'Customer', 'Status', 'Total', 'Created At', 'Photo uploaded', 'Photo file name'],
       ...orders.map((order) => [
         order.orderNumber,
         order.user?.name ?? '',
         order.orderStatus,
         String(order.totalAmount),
         order.createdAt,
+        order.photoFileName ? 'Yes' : 'No', order.photoFileName ?? '-',
       ]),
     ];
     return new Blob([rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n')], {

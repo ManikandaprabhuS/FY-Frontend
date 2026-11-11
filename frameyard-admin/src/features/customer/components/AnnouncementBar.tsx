@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 /** Messages shown in turn above the navbar. */
 const MESSAGES = [
   { full: 'Shipping across India' },
-  { full: 'Get 10% off on your first order — use code WELCOME10' },
+  { full: 'Get 5% off on your first order — By Sign In ' },
 ];
 
 /** How long each message stays. */

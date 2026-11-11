@@ -1,0 +1,15 @@
+.fy-offer-wrap {max-width:1440px;margin:24px auto 0;padding:0 20px;}
+.fy-offer-banner {position:relative;isolation:isolate;container-type:inline-size;overflow:hidden;height:220px;min-height:220px;border-radius:20px;background:linear-gradient(110deg,#efefed 0%,#f7f7f6 48%,#e6e6e4 100%);color:#101010;}
+.fy-offer-banner__copy {position:relative;z-index:2;padding:24px;max-width:72%;}
+.fy-offer-banner__label {font-size:10px;font-weight:800;letter-spacing:.07em;}
+.fy-offer-banner__heading {margin:4px 0 0;font-size:clamp(28px,5cqw,48px);font-weight:800;line-height:1.05;letter-spacing:-.035em;}
+.fy-offer-banner__subtext {margin-top:7px;font-size:clamp(12px,1.5vw,17px);line-height:1.4;}
+.fy-offer-banner__shop {display:inline-flex;min-height:44px;align-items:center;gap:12px;margin-top:15px;padding:8px 18px;border-radius:999px;background:#0b0b0b;color:#fff;font-size:12px;font-weight:700;}
+.fy-offer-banner__shop:focus-visible {outline:3px solid #101010;outline-offset:4px;}
+.fy-offer-banner__art {position:absolute;inset:0 0 0 auto;z-index:0;width:48%;height:100%;opacity:.65;}
+.fy-offer-banner::after {content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,transparent 45%,rgba(247,247,246,.5) 64%,transparent 85%);}
+.fy-offer-skeleton {height:220px;min-height:220px;border-radius:20px;background:#eeeeec;animation:fy-offer-pulse 1.5s ease-in-out infinite;}
+@keyframes fy-offer-pulse {50%{opacity:.6;}}
+@media(min-width:640px){.fy-offer-wrap{padding:0 32px;}.fy-offer-banner,.fy-offer-skeleton{height:220px;min-height:220px;}.fy-offer-banner__copy{padding:28px 36px;max-width:60%;}.fy-offer-banner__art{width:57%;opacity:1;}.fy-offer-banner__label{font-size:12px;}}
+@media(min-width:1024px){.fy-offer-wrap{padding:0 40px;}}
+@media(prefers-reduced-motion:reduce){.fy-offer-skeleton{animation:none;}}

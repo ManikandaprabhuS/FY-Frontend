@@ -115,6 +115,7 @@ export interface OrderItem {
 
 export interface OrderStatusHistoryEntry {status:string;changedAt:string;changedBy:{id:string;role:string};note?:string;previousStatus?:string}
 export interface Order {
+  photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
   statusHistory?: OrderStatusHistoryEntry[];
   id: string;
   userId: string;

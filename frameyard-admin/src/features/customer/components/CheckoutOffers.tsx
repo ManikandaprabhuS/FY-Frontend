@@ -5,6 +5,9 @@ import { checkoutService, type CheckoutQuote, type OfferCode } from "../../../se
 import { useCustomerCommerceStore } from "../../../store/customerCommerceStore";
 import { showApiError, showLoading, showSuccess, showWarning } from "../../../utils/toast";
 import CheckoutAddressForm from "./CheckoutAddressForm";
+import CheckoutPhotoUpload from "./CheckoutPhotoUpload";
+import OrderPhotoDownload from "../../../components/orders/OrderPhotoDownload";
+import type {OrderPhotoInfo} from "../../../services/order-photos.service";
 const money=(n:number)=>"₹"+n.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 export default function CheckoutOffers(){
  const items=useCustomerCommerceStore(s=>s.cartItems);
@@ -16,6 +19,7 @@ export default function CheckoutOffers(){
  const visibleOffers=[...(quote?.offers??[]),...(quote?.unavailableOffers??[])];
  const saveLock=useRef(false);
  const [cod,setCod]=useState(false);
+ const [photo,setPhoto]=useState<OrderPhotoInfo|null>(null),[photoBusy,setPhotoBusy]=useState(true);
  const codeRef=useRef(code),quoteRef=useRef(quote);
  useEffect(()=>{codeRef.current=code;quoteRef.current=quote;},[code,quote]);
  useEffect(()=>{const refresh=()=>setRevision(v=>v+1);window.addEventListener("focus",refresh);return()=>window.removeEventListener("focus",refresh);},[]);
@@ -35,7 +39,7 @@ export default function CheckoutOffers(){
  },[signature,selections,revision]);
  const loading=!error&&quoteSignature!==signature;
  const place=async()=>{
-  if(saveLock.current||busy||loading||!address||!quote||!cod)return; saveLock.current=true;
+  if(saveLock.current||busy||photoBusy||loading||!address||!quote||!cod)return; saveLock.current=true;
   setBusy(true);showLoading("Please wait, your order is being placed...","checkout-save");
   try{
    const latest=await checkoutService.offers(selections,true);
@@ -43,12 +47,12 @@ export default function CheckoutOffers(){
    if(code&&(!latest.offers.some(o=>o.code===code)||latest.offers.find(o=>o.code===code)?.version!==selected?.version)){
     setCode(undefined);showWarning(latest.offers.some(o=>o.code===code)?"This offer was updated. Please review your total.":"This offer is no longer available",{id:"checkout-save"});return;
    }
-   const order=await checkoutService.place(selections,address,code,selected?.version);setPlaced(order);
+   const order=await checkoutService.place(selections,address,code,selected?.version,undefined,photo?.imageId);setPlaced(order);
    useCustomerCommerceStore.getState().clearCart();showSuccess("Order placed successfully",{id:"checkout-save"});
   }catch(e){showApiError(e,"Order could not be placed. Please try again.",{id:"checkout-save"});setRevision(v=>v+1);}
   finally{saveLock.current=false;setBusy(false);}
  };
- if(placed)return <section className="mt-6 rounded-xl border border-black/10 bg-white p-5"><h2 className="text-xl font-black">Order confirmed: {placed.orderNumber}</h2><p className="mt-3 font-bold">Total: {money(Number(placed.totalPrice))}</p><p>Payment: Cash on Delivery</p><p>Subtotal: {money(Number(placed.subtotal??placed.totalPrice))}</p><p>Coupon: {placed.couponTitle??"-"}{placed.couponTitle?" ("+Number(placed.discountPercent??0)+"%)":""}</p><p>Coupon discount: {placed.couponTitle?"−"+money(Number(placed.discountAmount??0)):"-"}</p><Link to="/orders" className="mt-4 inline-block font-bold underline">View your orders</Link></section>;
+ if(placed)return <section className="mt-6 rounded-xl border border-black/10 bg-white p-5"><h2 className="text-xl font-black">Order confirmed: {placed.orderNumber}</h2><p className="mt-3 font-bold">Total: {money(Number(placed.totalPrice))}</p><p>Payment: Cash on Delivery</p><OrderPhotoDownload order={placed}/><p>Subtotal: {money(Number(placed.subtotal??placed.totalPrice))}</p><p>Coupon: {placed.couponTitle??"-"}{placed.couponTitle?" ("+Number(placed.discountPercent??0)+"%)":""}</p><p>Coupon discount: {placed.couponTitle?"−"+money(Number(placed.discountAmount??0)):"-"}</p><Link to="/orders" className="mt-4 inline-block font-bold underline">View your orders</Link></section>;
  if(!items.length)return <div className="mt-5"><p>Your cart is empty.</p><Link to="/products" className="font-bold underline">Explore frames</Link></div>;
  return <div className="mt-6 grid gap-5">
   <section aria-label="Your products" className="rounded-xl border border-black/10 p-5"><h2 className="text-lg font-black">Your products</h2><ul className="mt-3 space-y-3">{items.map(item=><li key={item.key} className="flex items-center gap-3">{item.imageUrl&&<img src={item.imageUrl} alt="" loading="lazy" width={56} height={56} className="h-14 w-14 rounded-lg object-cover"/>}<div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{item.name}</p><p className="text-xs text-black/60">{item.frameSize} · Qty: {item.quantity}</p></div><span className="text-sm font-bold">{money(item.unitPrice*item.quantity)}</span></li>)}</ul></section>
@@ -62,6 +66,7 @@ export default function CheckoutOffers(){
   {quote?.addresses.length?<label className="text-sm font-bold">Delivery address<select disabled={busy} value={address} onChange={e=>setAddress(e.target.value)} className="mt-2 min-h-12 w-full rounded-lg border border-black/20 bg-white px-3">{quote.addresses.map(a=><option key={a.id} value={a.id}>{a.contactPerson} · {a.addressLine}, {a.city} {a.postalCode}</option>)}</select></label>:<CheckoutAddressForm onSaved={saved=>{setQuote(previous=>previous?{...previous,addresses:[saved,...previous.addresses.filter(a=>a.id!==saved.id)]}:previous);setAddress(saved.id);}}/>}
   {quote?.addresses.find(a=>a.id===address)&&<div className="rounded-xl border border-black/10 p-4 text-sm">{quote.addresses.filter(a=>a.id===address).map(a=><address key={a.id} className="not-italic"><strong>{a.contactPerson}</strong><p>{a.addressLine}, {a.city}, {a.state}, {a.country} {a.postalCode}</p><p>{a.contactNumber}</p></address>)}</div>}
   <section className="rounded-xl border border-black/10 p-5"><h2 className="text-lg font-black">Payment method</h2><label className="mt-3 flex min-h-12 cursor-pointer items-center gap-3"><input type="radio" name="payment-method" checked={cod} disabled={busy} onChange={()=>setCod(true)}/><span><strong>Cash on Delivery (COD)</strong><span className="block text-sm text-black/60">Pay when your order arrives.</span></span></label></section>
-  <button type="button" disabled={busy||loading||error||!address||!cod} onClick={()=>void place()} className="min-h-12 rounded-lg bg-black px-5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{busy?"Placing order…":"Place order"}</button>
+  <CheckoutPhotoUpload onChange={setPhoto} onBusy={setPhotoBusy}/>
+  <button type="button" disabled={busy||photoBusy||loading||error||!address||!cod} onClick={()=>void place()} className="min-h-12 rounded-lg bg-black px-5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{busy?"Placing order…":"Place order"}</button>
  </div>;
 }

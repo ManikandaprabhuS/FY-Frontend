@@ -601,5 +601,19 @@ Fixed an empty customer drawer caused by older order events remaining in the leg
 - Tests: November 10 cutoff, first/last month day, India midnight, current week/year/hour cutoff, past/future custom periods, ranges over 31 days, cancellation/summary consistency, and chart baseline/spacing. Browser fixture: tests/fixtures/revenue-chart.html (test data only; no API writes).
 - Verification: 201 frontend tests pass; production build and scoped chart lint pass. Browser fixture checked at desktop, 768 px and 360 px: correct current/past range endpoints, readable rupee labels, no horizontal overflow or negative spike overshoot, and no console errors. No backend/API/schema or order-data changes.
 
+## Dynamic homepage offer banner and plant props
+Added the Homepage banner card to /admin/offers and a singleton homepage_banner setting (idempotent default: enabled, BIG_ORDER). The public /api/v1/home/banner endpoint exposes only safe live offer values, hides disabled/missing offers and checks First Order customer eligibility privately. Configuration caches for 30 seconds, invalidates on offer/banner changes, and Home refreshes while visible. Audit entries use the existing offer audit log; its field constraint now permits the two banner fields. Checkout/order calculations and stored data are unchanged.
+The Home banner is directly below the hero, shares its live preview with admin, and uses a same-height skeleton. Existing collection frames/photos/cards/links/filters are unchanged; only three generated transparent plant-and-vase props were added as compressed lazy WebP overlays.
+See docs/homepage-banner.md for APIs, setup, asset paths, generation prompts and validation details.
+
+### Mobile Customize page
+The existing mobile Customize tab (/studio) now shows a frame-and-plant scene, an accessible Enquiry Now appointment card, consultation copy and four benefits below 768px. The desktop page is unchanged. The card opens the existing appointment form with sticky-header-aware scrolling and reduced-motion support; booking fields and logic are unchanged. Existing compressed plant artwork is reused with CSS-built frames. Consultation copy is static: no BULK_MIN_QUANTITY config or quantity rules were added.
+
+## Optional customer order photo
+Product previews stay browser-local. Buy Now carries the selected photo to the existing checkout, with optional private upload, progress, replacement, Clear and Retry (JPG/PNG/WebP, 4 MB). Order details show download text only; staff views/exports include the snapshot filename. COD and offer calculations are unchanged. Frontend suite: 211 passed. Responsive fixture checked at 320/390/768/1280px without overflow. See backend docs/customer-order-photos.md for setup and remaining real-device checks.
+
+## Customer header readability
+The shared wordmark is 36px on desktop and fluid 21–26px on mobile/tablet, preserving its font weight and existing 60px/76px rows. One data-header-theme="on-video" state follows the existing hero-slide signal and header overlap on scroll/resize. Text/icons stay #111111 over video; a header-only 78–92% white gradient and blur protect contrast even over black footage, without editing the hero/video. Count badges are black on white in this state. Other-page colors/navigation are unchanged. Announcement typo fixed to SIGN IN; its existing static 5% message source was left unchanged. Verified expanded/compact fixtures at 320/375/768/1440px with fixed 60px/76px heights, black wordmark/badge text and no overflow. Live homepage video -> scroll past hero -> scroll back correctly switched on-video/default, and the mobile menu and Shop All navigation worked.
+
 
 

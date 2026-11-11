@@ -3,6 +3,7 @@ import useProducts from '../../../hooks/useProducts';
 import BestSellersSection from '../components/BestSellersSection';
 import FrameCollectionsSection from '../components/FrameCollectionsSection';
 import HeroSection from '../components/HeroSection';
+import HomepageOfferBanner from '../components/HomepageOfferBanner';
 import PhotoToFrameSection from '../components/PhotoToFrameSection';
 
 const CustomerHomePage: React.FC = () => {
@@ -15,6 +16,7 @@ const CustomerHomePage: React.FC = () => {
   return (
     <div className="bg-white text-black">
       <HeroSection />
+      <HomepageOfferBanner />
       <FrameCollectionsSection />
       <PhotoToFrameSection />
       <BestSellersSection />

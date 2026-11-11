@@ -4,6 +4,7 @@ import { getOrderStatusStyle, orderStatusLabel } from '../components/ui/order-st
 
 export interface RevenueReportItem { productId?: string | null; productIdentifier?: string | null; productName?: string; frameSize?: string; colorName?: string | null; colorHex?: string | null; material?: string | null; quantity: number; price: number | string; subtotal?: number | string }
 export interface RevenueReportOrder {
+  photoUploaded?: boolean; photoFileName?: string|null;
   orderItems?: RevenueReportItem[];
   createdAt: string;
   orderNumber: string;
@@ -76,6 +77,19 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
       if (cell.section === 'head' && cell.column.index === 4) cell.cell.styles.halign = 'right';
     },
   });
+  if (data.orders.some(order => order.photoUploaded !== undefined)) {
+    if (ordersBottom > 230) { doc.addPage(); ordersBottom = 12; }
+    autoTable(doc, {
+      startY: ordersBottom + 9, margin: { left: margin, right: margin, top: 16, bottom: 20 },
+      head: [['Order ID', 'Photo uploaded', 'Customer photo file name']],
+      body: data.orders.map(order => [order.orderNumber, order.photoUploaded ? 'Yes' : 'No', order.photoFileName || '-']),
+      theme: 'grid', showHead: 'everyPage', rowPageBreak: 'avoid',
+      headStyles: { fillColor: '#111827', textColor: '#ffffff', fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', textColor: '#111827' },
+      columnStyles: { 0: {cellWidth: 40}, 1: {cellWidth: 32}, 2: {cellWidth: 110} },
+      didDrawPage: ({cursor}) => {if(cursor) ordersBottom = cursor.y;},
+    });
+  }
   if (data.orders.some(order => order.address !== undefined)) {
     if (ordersBottom > 230) { doc.addPage(); ordersBottom = 12; }
     doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor('#111827');
