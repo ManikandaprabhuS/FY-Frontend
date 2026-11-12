@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { getFrameOpening } from './framePreviewConfig';
-import { fitPhotoRect } from './framePreviewGeometry';
 
 interface ProductFramePreviewProps {
   productImage: string;
@@ -9,7 +8,25 @@ interface ProductFramePreviewProps {
   name: string;
 }
 
-export default function ProductFramePreview({ productImage, photo, aspectRatio = 4 / 5, name }: ProductFramePreviewProps) {
+/** How far (as a share of the photo) it runs past each edge, under the moulding, so no gap shows. */
+const OVERSCAN = 0.02;
+
+/**
+ * An SVG transform that maps the unit square onto an opening's corners, given in order
+ * top-left, top-right, bottom-right, bottom-left. Each edge direction averages its two
+ * opposite sides, so a slightly uneven quad is matched evenly rather than from one corner.
+ */
+const quadPlacement = (corners: number[][]) => {
+  const [tl, tr, br, bl] = corners;
+  const across = [((tr[0] - tl[0]) + (br[0] - bl[0])) / 2, ((tr[1] - tl[1]) + (br[1] - bl[1])) / 2];
+  const down = [((bl[0] - tl[0]) + (br[0] - tr[0])) / 2, ((bl[1] - tl[1]) + (br[1] - tr[1])) / 2];
+  const centre = [(tl[0] + tr[0] + br[0] + bl[0]) / 4, (tl[1] + tr[1] + br[1] + bl[1]) / 4];
+  const origin = [centre[0] - (across[0] + down[0]) / 2, centre[1] - (across[1] + down[1]) / 2];
+  return `matrix(${across[0]} ${across[1]} ${down[0]} ${down[1]} ${origin[0]} ${origin[1]})`;
+};
+
+// `aspectRatio` is kept for callers; the photo now takes the opening's own shape.
+export default function ProductFramePreview({ productImage, photo, name }: ProductFramePreviewProps) {
   const clipId = useId();
   const [loaded, setLoaded] = useState<{ source: string; width: number; height: number } | null>(null);
   const openings = getFrameOpening(productImage);
@@ -37,7 +54,10 @@ export default function ProductFramePreview({ productImage, photo, aspectRatio =
           </defs>
           {openings.map((opening, index) => {
             const bounds = { x: opening.x * dimensions.width, y: opening.y * dimensions.height, width: opening.width * dimensions.width, height: opening.height * dimensions.height };
-            const photoRect = fitPhotoRect(bounds, aspectRatio);
+            // A four-corner opening (a frame shot at an angle): lay the photo onto those corners,
+            // so it follows the tilt instead of sitting upright inside it with white gaps.
+            const corners = opening.points?.length === 4 ? opening.points.map(([x, y]) => [x * dimensions.width, y * dimensions.height]) : null;
+            const placement = corners ? quadPlacement(corners) : null;
             return (
             <g key={index}>
               <defs>
@@ -49,7 +69,9 @@ export default function ProductFramePreview({ productImage, photo, aspectRatio =
               </defs>
               <g clipPath={`url(#${clipId}-${index})`}>
                 <rect {...bounds} fill="white" />
-                <image href={photo} {...photoRect} preserveAspectRatio="xMidYMid slice" />
+                {placement
+                  ? <image href={photo} x={-OVERSCAN} y={-OVERSCAN} width={1 + OVERSCAN * 2} height={1 + OVERSCAN * 2} preserveAspectRatio="none" transform={placement} />
+                  : <image href={photo} {...bounds} preserveAspectRatio="xMidYMid slice" />}
               </g>
             </g>
             );

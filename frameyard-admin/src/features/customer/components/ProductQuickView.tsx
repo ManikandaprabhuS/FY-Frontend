@@ -9,6 +9,7 @@ import type { Product, ProductVariant } from '../../../types';
 import { normalizeStock } from '../../../utils/stock';
 import { useCustomerCommerce } from '../hooks/useCustomerCommerce';
 import { getVariantPricing } from '../utils/product-pricing';
+import '../styles/quick-view.css';
 
 const formatPrice = (value: number) => `₹${value.toLocaleString('en-IN')}`;
 const unique = (values: (string | null | undefined)[]) => [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))];

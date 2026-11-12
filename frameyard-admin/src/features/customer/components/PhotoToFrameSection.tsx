@@ -62,7 +62,7 @@ const PhotoToFrameSection: React.FC = () => {
   return (
     <section
       ref={ref}
-      className="fy-story mx-auto w-full max-w-[1440px] px-5 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-8"
+      className="fy-story mx-auto w-full max-w-[1440px] px-5 pb-8 pt-6 sm:px-8 sm:pb-10 sm:pt-8 lg:px-10 lg:pb-3 lg:pt-8"
       aria-labelledby="fy-story-title"
       data-paused={paused || undefined}
       data-static={reducedMotion || undefined}
