@@ -1,3 +1,4 @@
+import {removeCartPhotos} from '../services/local-photos';
 import { create } from 'zustand';
 import { normalizeStock } from '../utils/stock';
 import { showWarning } from '../utils/toast';
@@ -33,6 +34,7 @@ const cartStorageKey = (ownerId: string | null) =>
   `${LEGACY_CART_STORAGE_KEY}:${ownerId ? `customer:${ownerId}` : GUEST_CART_OWNER}`;
 
 export type CustomerCartItem = {
+  maxPhotoSizeMB?:number|null;
   key: string;
   productId: string;
   productIdentifier?: string | null;
@@ -173,12 +175,14 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
     writeCart(state.cartOwnerId, cartItems); set({ cartItems });
   },
   removeCartItem: (key) => set((state) => {
+    void removeCartPhotos([key]);
     const cartItems = state.cartItems.filter((item) => item.key !== key);
     writeCart(state.cartOwnerId, cartItems);
     return { cartItems };
   }),
 
   clearCart: () => {
+    void removeCartPhotos(get().cartItems.map(item=>item.key));
     writeCart(get().cartOwnerId, []);
     set({ cartItems: [] });
   },
@@ -323,6 +327,7 @@ export const useCustomerCommerceStore = create<CommerceState>((set, get) => ({
       set(state => ({ wishlistByProductIdentifier: { ...state.wishlistByProductIdentifier, [productIdentifier]: result.wishlistItem.id },
         wishlistItems: [result.wishlistItem, ...state.wishlistItems.filter(item => item.productIdentifier !== productIdentifier)],
         wishlistTotal: pendingWishlistMutations.size === 1 ? result.wishlistCount : Math.max(0, state.wishlistTotal - (!existingId && result.alreadySaved ? 1 : 0)) }));
+      void removeCartPhotos([key]);
       return result.alreadySaved ? 'exists' : 'moved';
     } catch (error) {
       const current = get();

@@ -31,6 +31,7 @@ export type ProductPayload = {
 };
 
 export type VariantPayload = {
+  maxPhotoSizeMB?:number|null;
   imageUrl?: string | null;
   color?: string | null;
   frameSize: string;
@@ -120,6 +121,7 @@ const normalizeVariant = (variant: ProductVariantApi): ProductVariant => ({
       ? null
       : Number(variant.mrp),
   stockQuantity: Number(variant.stockQuantity ?? 0),
+  maxPhotoSizeMB:variant.maxPhotoSizeMB==null?null:Number(variant.maxPhotoSizeMB),
   createdAt: variant.createdAt
     ? new Date(variant.createdAt).toISOString()
     : new Date().toISOString(),

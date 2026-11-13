@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Tag, Check } from "lucide-react";
 import { checkoutService, type CheckoutQuote, type OfferCode } from "../../../services/checkout.service";
 import { useCustomerCommerceStore } from "../../../store/customerCommerceStore";
-import { showApiError, showLoading, showSuccess, showWarning } from "../../../utils/toast";
+import { showApiError, showError, showLoading, showSuccess, showWarning } from "../../../utils/toast";
 import CheckoutAddressForm from "./CheckoutAddressForm";
-import CheckoutPhotoUpload from "./CheckoutPhotoUpload";
+import {getPhotoMaxBytes,PHOTO_MB_BYTES,photoSizeError} from "../../../utils/photo-limits";
+import CheckoutPhotoUpload, {type CheckoutPhotoHandle} from "./CheckoutPhotoUpload";
+import {useAuthStore} from "../../../store/authStore";
+import {removeCartPhotos,removeLocalPhoto} from "../../../services/local-photos";
 import OrderPhotoDownload from "../../../components/orders/OrderPhotoDownload";
 import type {OrderPhotoInfo} from "../../../services/order-photos.service";
 const money=(n:number)=>"₹"+n.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 export default function CheckoutOffers(){
+ const navigate=useNavigate();
+ const photoControl=useRef<CheckoutPhotoHandle>(null);
  const items=useCustomerCommerceStore(s=>s.cartItems);
  const signature=JSON.stringify(items.map(i=>({productIdentifier:i.productIdentifier??"",variantId:i.variantId,quantity:i.quantity,...(i.colorName?{colorName:i.colorName}:{}),...(i.colorHex?{colorHex:i.colorHex}:{})})));
  const selections=useMemo(()=>JSON.parse(signature) as Parameters<typeof checkoutService.offers>[0],[signature]);
@@ -38,18 +43,31 @@ export default function CheckoutOffers(){
   return()=>{active=false;clearTimeout(timer);};
  },[signature,selections,revision]);
  const loading=!error&&quoteSignature!==signature;
+ const maxPhotoMB=quoteSignature===signature&&quote?.photoLimit?quote.photoLimit.maxAllowedMB:Number((getPhotoMaxBytes(items)/PHOTO_MB_BYTES).toFixed(1));
+ const photoInvalid=Boolean(photo&&photo.sizeBytes>getPhotoMaxBytes([{maxPhotoSizeMB:maxPhotoMB}]));
  const place=async()=>{
-  if(saveLock.current||busy||photoBusy||loading||!address||!quote||!cod)return; saveLock.current=true;
+  const auth=useAuthStore.getState();
+  if(!auth.isAuthenticated||auth.user?.role!=='CUSTOMER'){
+   showWarning('Please log in to place your order',{id:'checkout-login'});
+   navigate('/profile',{state:{returnTo:'/checkout'}});return;
+  }
+  if(saveLock.current||busy||photoBusy||photoInvalid||loading||!address||!quote||!cod)return; saveLock.current=true;
   setBusy(true);showLoading("Please wait, your order is being placed...","checkout-save");
   try{
    const latest=await checkoutService.offers(selections,true);
    setQuote(latest);setQuoteSignature(signature);
+   if(photo&&latest.photoLimit){const max=getPhotoMaxBytes([{maxPhotoSizeMB:latest.photoLimit.maxAllowedMB}]);if(photo.sizeBytes>max){showWarning(photoSizeError(photo.sizeBytes,max)+" Please clear or replace your photo.",{id:"checkout-save"});return;}}
    if(code&&(!latest.offers.some(o=>o.code===code)||latest.offers.find(o=>o.code===code)?.version!==selected?.version)){
     setCode(undefined);showWarning(latest.offers.some(o=>o.code===code)?"This offer was updated. Please review your total.":"This offer is no longer available",{id:"checkout-save"});return;
    }
-   const order=await checkoutService.place(selections,address,code,selected?.version,undefined,photo?.imageId);setPlaced(order);
+   const uploaded=await photoControl.current?.prepare(latest.photoLimit?.maxAllowedMB??maxPhotoMB);
+   const order=await checkoutService.place(selections,address,code,selected?.version,undefined,uploaded?.imageId);setPlaced(order);
+   await removeCartPhotos(items.map(i=>i.key));await removeLocalPhoto('checkout');
    useCustomerCommerceStore.getState().clearCart();showSuccess("Order placed successfully",{id:"checkout-save"});
-  }catch(e){showApiError(e,"Order could not be placed. Please try again.",{id:"checkout-save"});setRevision(v=>v+1);}
+  }catch(e){
+   if((e as {photoValidation?:boolean}).photoValidation){showWarning((e as Error).message,{id:'checkout-save'});return;}
+   if((e as {photoUploadFailed?:boolean}).photoUploadFailed){showError('Your photo could not be uploaded. Please try again.',{id:'checkout-save',retry:()=>{void place();}});return;}
+   const detail=(e as {response?:{data?:{error?:{code?:string;message?:string}}}}).response?.data?.error;showApiError(e,detail?.code==="PHOTO_LIMIT_CHANGED"?(detail.message??"Please clear or replace your photo."):"Order could not be placed. Please try again.",{id:"checkout-save"});setRevision(v=>v+1);}
   finally{saveLock.current=false;setBusy(false);}
  };
  if(placed)return <section className="mt-6 rounded-xl border border-black/10 bg-white p-5"><h2 className="text-xl font-black">Order confirmed: {placed.orderNumber}</h2><p className="mt-3 font-bold">Total: {money(Number(placed.totalPrice))}</p><p>Payment: Cash on Delivery</p><OrderPhotoDownload order={placed}/><p>Subtotal: {money(Number(placed.subtotal??placed.totalPrice))}</p><p>Coupon: {placed.couponTitle??"-"}{placed.couponTitle?" ("+Number(placed.discountPercent??0)+"%)":""}</p><p>Coupon discount: {placed.couponTitle?"−"+money(Number(placed.discountAmount??0)):"-"}</p><Link to="/orders" className="mt-4 inline-block font-bold underline">View your orders</Link></section>;
@@ -66,7 +84,7 @@ export default function CheckoutOffers(){
   {quote?.addresses.length?<label className="text-sm font-bold">Delivery address<select disabled={busy} value={address} onChange={e=>setAddress(e.target.value)} className="mt-2 min-h-12 w-full rounded-lg border border-black/20 bg-white px-3">{quote.addresses.map(a=><option key={a.id} value={a.id}>{a.contactPerson} · {a.addressLine}, {a.city} {a.postalCode}</option>)}</select></label>:<CheckoutAddressForm onSaved={saved=>{setQuote(previous=>previous?{...previous,addresses:[saved,...previous.addresses.filter(a=>a.id!==saved.id)]}:previous);setAddress(saved.id);}}/>}
   {quote?.addresses.find(a=>a.id===address)&&<div className="rounded-xl border border-black/10 p-4 text-sm">{quote.addresses.filter(a=>a.id===address).map(a=><address key={a.id} className="not-italic"><strong>{a.contactPerson}</strong><p>{a.addressLine}, {a.city}, {a.state}, {a.country} {a.postalCode}</p><p>{a.contactNumber}</p></address>)}</div>}
   <section className="rounded-xl border border-black/10 p-5"><h2 className="text-lg font-black">Payment method</h2><label className="mt-3 flex min-h-12 cursor-pointer items-center gap-3"><input type="radio" name="payment-method" checked={cod} disabled={busy} onChange={()=>setCod(true)}/><span><strong>Cash on Delivery (COD)</strong><span className="block text-sm text-black/60">Pay when your order arrives.</span></span></label></section>
-  <CheckoutPhotoUpload onChange={setPhoto} onBusy={setPhotoBusy}/>
-  <button type="button" disabled={busy||photoBusy||loading||error||!address||!cod} onClick={()=>void place()} className="min-h-12 rounded-lg bg-black px-5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{busy?"Placing order…":"Place order"}</button>
+  <CheckoutPhotoUpload disabled={busy} ref={photoControl} onChange={setPhoto} onBusy={setPhotoBusy} items={selections} maxAllowedMB={maxPhotoMB} limitingItem={quote?.photoLimit?.limitingItem}/>
+  <button type="button" disabled={busy||photoBusy||photoInvalid||loading||error||!address||!cod} onClick={()=>void place()} className="min-h-12 rounded-lg bg-black px-5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{busy?"Placing order…":"Place order"}</button>
  </div>;
 }

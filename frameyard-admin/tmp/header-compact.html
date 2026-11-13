@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/dist/assets/index-CYa4KZDc.css"><style>/* Storefront foundation: scoped to the customer layout so admin pages keep their own styles. */
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/dist/assets/index-mSZ4_MZk.css"><style>/* Storefront foundation: scoped to the customer layout so admin pages keep their own styles. */
 
 .fy-store {
   --fy-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -92,15 +92,12 @@
 @media (min-width: 1024px) {
   .fy-customer-header .fy-nav-wordmark { font-size: 36px; }
 }
-/* A single on-video theme, including hovered/focused icons and count text. */
+/* Over the hero video: black icons and wordmark. The background follows the same rule as
+   the first slide — transparent at the top of the page, the sticky white bar once scrolled. */
 .fy-customer-header[data-header-theme='on-video'] {
   --fy-nav-fg: #111111;
   --fy-nav-hover: rgba(17, 17, 17, 0.07);
   color: var(--fy-nav-fg);
-}
-.fy-customer-header[data-header-theme='on-video'] {
-  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
-  backdrop-filter: blur(8px);
 }
 .fy-customer-header[data-header-theme='on-video'] :is(a, button),
 .fy-customer-header[data-header-theme='on-video'] :is(a, button):hover,
@@ -113,10 +110,20 @@
   outline-offset: 3px;
 }
 .fy-customer-header[data-header-theme='on-video'] [data-header-badge] {
-  color: var(--fy-nav-fg);
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(17,17,17,.2);
+  color: #ffffff;
+  background: #111111;
+  box-shadow: none;
 }
+/* Over the shop's dark hero photo: white wordmark and icons, a white badge. */
+.fy-nav-overlay[data-header-theme='on-dark'] {
+  --fy-nav-fg: #ffffff;
+  --fy-nav-hover: rgba(255, 255, 255, 0.16);
+  color: var(--fy-nav-fg);
+}
+.fy-nav-overlay[data-header-theme='on-dark'] .fy-nav-overlay__badge { background: #ffffff; color: #111111; }
+/* The logo is a black mark on white; inverted and screened, only a white mark shows. */
+.fy-nav-overlay[data-header-theme='on-dark'] img { filter: invert(1); mix-blend-mode: screen; }
+
 .fy-nav-overlay {
   --fy-nav-fg: #111111;
   --fy-nav-hover: rgba(17, 17, 17, 0.07);

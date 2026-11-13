@@ -30,7 +30,7 @@ function setup(){
  const service={add:(...args)=>{calls.add++;return add(...args);},remove:(...args)=>{calls.remove++;return remove(...args);},moveFromCart:(...args)=>{calls.move++;return move(...args);},listPage:(...args)=>{calls.list++;return list(...args);},lookup:(...args)=>{calls.lookup++;return lookup(...args);}};
  const source=readFileSync(new URL('../src/store/customerCommerceStore.ts',import.meta.url),'utf8');
  const mod={exports:{}};const output=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
- new Function('require','module','exports',output)(name=>name.includes('customer-wishlist.service')?{customerWishlistService:service}:name==='../utils/stock'?stock:name==='../utils/toast'?{showWarning:(...args)=>warnings.push(args)}:require(name),mod,mod.exports);
+ new Function('require','module','exports',output)(name=>name==='../services/local-photos'?{removeCartPhotos:async()=>{}}:name.includes('customer-wishlist.service')?{customerWishlistService:service}:name==='../utils/stock'?stock:name==='../utils/toast'?{showWarning:(...args)=>warnings.push(args)}:require(name),mod,mod.exports);
  const store=mod.exports.useCustomerCommerceStore;store.getState().setCartOwner('customer');
  return{store,calls,warnings,add:fn=>{add=fn;},remove:fn=>{remove=fn;},move:fn=>{move=fn;},list:fn=>{list=fn;},lookup:fn=>{lookup=fn;}};
 }

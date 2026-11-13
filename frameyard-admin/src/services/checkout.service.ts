@@ -12,7 +12,7 @@ export function checkoutRequestKey(intent:string){
 export type OfferCode="FIRST_ORDER"|"BIG_ORDER";
 export type CheckoutSelection={productIdentifier:string;variantId:string;quantity:number;colorName?:string;colorHex?:string};
 export type CheckoutOffer={code:OfferCode;title:string;description:string;percent:number;discountAmount:number;total:number;bestOffer:boolean;version:number;unavailableReason?:string};
-export type CheckoutQuote={offers:CheckoutOffer[];unavailableOffers?:CheckoutOffer[];subtotal:number;bigOrderRemovalMessage:string;addresses:DeliveryAddress[]};
+export type CheckoutQuote={photoLimit?:{maxAllowedMB:number;limitingItem:{name:string;variant:string}|null};offers:CheckoutOffer[];unavailableOffers?:CheckoutOffer[];subtotal:number;bigOrderRemovalMessage:string;addresses:DeliveryAddress[]};
 const summaryCache=new Map<string,{expires:number;promise:Promise<CheckoutQuote>}>();
 export const checkoutService={
  offers:(items:CheckoutSelection[],fresh=false):Promise<CheckoutQuote> => {

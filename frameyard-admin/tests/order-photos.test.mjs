@@ -8,7 +8,8 @@ import ts from 'typescript';
 const require=createRequire(import.meta.url),React=require('react');
 const read=path=>readFile(new URL('../src/'+path,import.meta.url),'utf8');
 const compile=(source,overrides={})=>{const m={exports:{}};new Function('require','module','exports',ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(id=>overrides[id]??require(id),m,m.exports);return m.exports;};
-const service=compile(await read('services/order-photos.service.ts'),{'./api':{__esModule:true,default:{}}});
+const limits=compile(await read('utils/photo-limits.ts'));
+const service=compile(await read('services/order-photos.service.ts'),{'../utils/photo-limits':limits,'./api':{__esModule:true,default:{}}});
 test('client validation accepts exactly 4 MB JPG/PNG/WebP and rejects zero, oversize and unsafe types',()=>{
  for(const type of ['image/jpeg','image/png','image/webp'])assert.equal(service.validateOrderPhoto({type,size:4194304}),null);
  assert.match(service.validateOrderPhoto({type:'image/png',size:4194305}),/4 MB/);
@@ -27,10 +28,10 @@ test('staff and customer details are download-only, and absent photos are option
  const empty=renderToStaticMarkup(createElement(Component,{order:{id:'order'},admin:true}));assert.match(empty,/No photo uploaded/);assert.match(empty,/Contact the customer directly/);
 });
 test('checkout upload is optional, accessible and can produce mobile/desktop verification fixtures',async()=>{
- const hooks={...React,useEffect(){},useCallback:fn=>fn,useRef:value=>({current:value}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]};
+ const hooks={...React,useEffect(){},useImperativeHandle(){},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]};
  const Component=compile(await read('features/customer/components/CheckoutPhotoUpload.tsx'),{
-  react:hooks,'../../../store/authStore':{useAuthStore:selector=>selector({user:{id:'fixture',role:'CUSTOMER'}})},
-  '../../../services/order-photos.service':service,'../../../utils/toast':{},
+  react:hooks,'../../../store/customerCommerceStore':{useCustomerCommerceStore:select=>select({cartItems:[]})},'../../../services/local-photos':{},'../../../store/authStore':{useAuthStore:selector=>selector({user:{id:'fixture',role:'CUSTOMER'}})},
+  '../../../services/order-photos.service':service,'../../../utils/photo-limits':limits,'../../../utils/toast':{},
  }).default;
  const html=renderToStaticMarkup(createElement(Component,{onChange(){},onBusy(){}}));
  assert.match(html,/Upload your photo \(optional\)/);assert.match(html,/You can skip this/);assert.match(html,/One photo per order/);assert.match(html,/aria-label="Choose your order photo"/);assert.doesNotMatch(html,/\brequired=/);
@@ -41,6 +42,6 @@ test('checkout upload is optional, accessible and can produce mobile/desktop ver
 test('checkout passes photoId into its retry intent without changing COD/offer fields',async()=>{
  const checkout=await read('services/checkout.service.ts'),view=await read('features/customer/components/CheckoutOffers.tsx'),product=await read('features/customer/pages/CustomerProductDetailsPage.tsx');
  assert.match(checkout,/couponVersion,photoId/);assert.match(checkout,/paymentMethod:"COD"/);
- assert.match(view,/busy\|\|photoBusy/);assert.match(view,/photo\?\.imageId/);
- assert.match(product,/setCheckoutPhotoDraft/);assert.match(product,/Please log in to upload your photo/);
+ assert.match(view,/busy\|\|photoBusy/);assert.match(view,/uploaded\?\.imageId/);
+ assert.match(product,/linkProductPhoto/);assert.doesNotMatch(product,/Please log in to upload your photo/);
 });

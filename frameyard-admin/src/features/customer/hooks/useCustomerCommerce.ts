@@ -88,6 +88,7 @@ export const useCustomerCommerce = () => {
       unitPrice,
       quantity,
       stockQuantity,
+      maxPhotoSizeMB:variant.maxPhotoSizeMB,
     });
     if (added) showSuccess(`${product.name} added to cart`);
     return Boolean(added);

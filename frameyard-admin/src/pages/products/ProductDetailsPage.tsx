@@ -1,4 +1,6 @@
 import { getStockStatus } from '../../utils/stock';
+import {getPhotoMaxBytes,PHOTO_MB_BYTES} from '../../utils/photo-limits';
+import VariantPhotoLimitInput from '../../components/ui/VariantPhotoLimitInput';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
@@ -15,6 +17,7 @@ import { showSuccess, showWarning, showApiError } from '../../utils/toast';
 import { validateProductBasics, validateProductFiles, validateVariant } from '../../utils/form-validation';
 
 type VariantForm = {
+  maxPhotoSizeMB?:number|null;
   imageUrl?: string | null;
   id: string;
   productId?: string;
@@ -94,6 +97,7 @@ const [isSaving, setIsSaving] = useState(false);
   const [varPrice, setVarPrice] = useState('');
   const [varOfferPrice, setVarOfferPrice] = useState('');
   const [varStock, setVarStock] = useState('');
+  const [varPhotoSize,setVarPhotoSize]=useState('');
   const [varImage, setVarImage] = useState<string | null>(null);
 
   const mapCurrentProductImages = (productImages: ProductImage[] = []) =>
@@ -275,6 +279,7 @@ const [isSaving, setIsSaving] = useState(false);
       })), ...colors.filter(color => getColorImage(color)).map((color, index) => ({ imageUrl: getColorImage(color), color, displayOrder: images.length + index + 1 }))],
       variants: variants.map((variant) => ({
         imageUrl: variant.imageUrl ?? null,
+        maxPhotoSizeMB:variant.maxPhotoSizeMB??null,
         frameSize: variant.frameSize,
         mountType: variant.mountType,
         glassType: variant.glassType,
@@ -319,6 +324,7 @@ const [isSaving, setIsSaving] = useState(false);
     setVarPrice('');
     setVarOfferPrice('');
     setVarStock('');
+    setVarPhotoSize('');
     setVarImage(null);
     setVariantModalOpen(true);
   };
@@ -331,6 +337,7 @@ const [isSaving, setIsSaving] = useState(false);
     setVarPrice(variant.price.toString());
     setVarOfferPrice(variant.offerPrice?.toString() || '');
     setVarStock(variant.stockQuantity.toString());
+    setVarPhotoSize(variant.maxPhotoSizeMB?.toString()??"");
     setVarImage(variant.imageUrl ?? null);
     setVariantModalOpen(true);
   };
@@ -351,6 +358,7 @@ const [isSaving, setIsSaving] = useState(false);
       price: Number(varPrice),
       offerPrice: varOfferPrice ? Number(varOfferPrice) : null,
       stockQuantity: Number(varStock),
+      maxPhotoSizeMB:varPhotoSize.trim()===""?null:Number(varPhotoSize),
       priceValidUntil: editingVariant?.priceValidUntil || null,
     };
 
@@ -366,6 +374,7 @@ const [isSaving, setIsSaving] = useState(false);
         price: newVariant.price,
         offerPrice: newVariant.offerPrice,
         stockQuantity: newVariant.stockQuantity,
+        maxPhotoSizeMB:newVariant.maxPhotoSizeMB??null,
       };
       setIsSavingVariant(true);
       let saved;
@@ -418,7 +427,7 @@ const [isSaving, setIsSaving] = useState(false);
   const imageIssue = !images.length || images.some(image => image.isUploading) ? 'Please upload at least one product image before continuing.' : null;
   const stepIssue = [basicIssue, materialIssue, variantIssue, imageIssue][wizardStep - 1];
   const productIssue = basicIssue || materialIssue || variantIssue || imageIssue;
-  const variantFormIssue = !varPrice.trim() || !varStock.trim() ? 'Variant price and stock are required.' : validateVariant({ frameSize: varSize, mountType: varMountType, glassType: varGlassType, price: Number(varPrice), offerPrice: varOfferPrice ? Number(varOfferPrice) : null, stockQuantity: Number(varStock) });
+  const variantFormIssue = !varPrice.trim() || !varStock.trim() ? 'Variant price and stock are required.' : validateVariant({ frameSize: varSize, mountType: varMountType, glassType: varGlassType, price: Number(varPrice), offerPrice: varOfferPrice ? Number(varOfferPrice) : null, stockQuantity: Number(varStock),maxPhotoSizeMB:varPhotoSize.trim()===""?null:Number(varPhotoSize) });
   const wizardSteps = ['Basic Info', 'Materials', 'Variants', 'Images', 'Review'];
   const colorImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{colors.map(color => <OptionalImageUpload key={color} label={`${resolveColorOption(color, colorCatalogue.colors, colorCatalogue.legacyColors).name} frame image`} value={getColorImage(color)} busy={isUploadingImages || isSaving || isSavingVariant} onBusyChange={setIsUploadingImages} onChange={url => setColorImages(previous => { const next = { ...previous }; for (const key of Object.keys(next)) { if (key.toLowerCase() === color.toLowerCase()) delete next[key]; } if (url) next[color] = url; return next; })} />)}</div>;
   const variantImageFields = <div className="mt-4 grid gap-3 sm:grid-cols-2">{variants.map(variant => <OptionalImageUpload key={variant.id} label={`${variant.frameSize} · ${variant.mountType} · ${variant.glassType} image`} value={variant.imageUrl} busy={isUploadingImages} onBusyChange={setIsUploadingImages} onChange={url => setVariants(previous => previous.map(item => item.id === variant.id ? { ...item, imageUrl: url } : item))} />)}</div>;
@@ -523,7 +532,7 @@ const [isSaving, setIsSaving] = useState(false);
 
           {wizardStep === 3 && <div>
             <div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface">Add Variants</h3><p className="mt-1 text-xs text-on-surface-variant">Add sizes, mount options, glass options, prices and stock.</p></div><button type="button" data-variant-entry onClick={openAddVariant} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary"><Plus className="h-3.5 w-3.5" /> Add Variant</button></div>
-            <div className="mt-6 overflow-x-auto rounded-lg border border-outline-variant"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-surface text-[11px] uppercase tracking-wider text-on-surface-variant"><tr><th className="px-4 py-3">Size</th><th className="px-4 py-3">Mount Type</th><th className="px-4 py-3">Glass Type</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Stock</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-outline-variant/50">{variants.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-xs text-on-surface-variant">No variants added yet.</td></tr> : variants.map((variant) => <tr key={variant.id}><td className="px-4 py-3 font-medium">{variant.frameSize}</td><td className="px-4 py-3">{variant.mountType}</td><td className="px-4 py-3">{variant.glassType}</td><td className="px-4 py-3">₹{variant.price.toFixed(2)}</td><td className={`px-4 py-3 ${getStockStatus(variant.stockQuantity).textClass}`}>{getStockStatus(variant.stockQuantity).label}</td><td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditVariant(variant)} className="p-1 text-on-surface-variant hover:text-primary"><Edit2 className="h-4 w-4" /></button><button type="button" onClick={() => handleDeleteVariant(variant.id)} className="p-1 text-on-surface-variant hover:text-error"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>
+            <div className="mt-6 overflow-x-auto rounded-lg border border-outline-variant"><table className="w-full min-w-[680px] text-left text-sm"><thead className="bg-surface text-[11px] uppercase tracking-wider text-on-surface-variant"><tr><th className="px-4 py-3">Size</th><th className="px-4 py-3">Mount Type</th><th className="px-4 py-3">Glass Type</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Stock</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-outline-variant/50">{variants.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-xs text-on-surface-variant">No variants added yet.</td></tr> : variants.map((variant) => <tr key={variant.id}><td className="px-4 py-3 font-medium">{variant.frameSize}<span className="mt-1 block text-xs font-normal">Photo max: {Number((getPhotoMaxBytes([variant])/PHOTO_MB_BYTES).toFixed(1))} MB</span></td><td className="px-4 py-3">{variant.mountType}</td><td className="px-4 py-3">{variant.glassType}</td><td className="px-4 py-3">₹{variant.price.toFixed(2)}</td><td className={`px-4 py-3 ${getStockStatus(variant.stockQuantity).textClass}`}>{getStockStatus(variant.stockQuantity).label}</td><td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditVariant(variant)} className="p-1 text-on-surface-variant hover:text-primary"><Edit2 className="h-4 w-4" /></button><button type="button" onClick={() => handleDeleteVariant(variant.id)} className="p-1 text-on-surface-variant hover:text-error"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>
           </div>}
 
           {wizardStep === 4 && <div><div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface">Upload Product Images</h3><p className="mt-1 text-xs text-on-surface-variant">Upload up to {MAX_IMAGES} images or videos. The first is the product cover.</p></div><button type="button" data-image-entry onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || images.length >= MAX_IMAGES} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-60"><Upload className="h-3.5 w-3.5" /> {isUploadingImages ? 'Uploading...' : 'Upload Images'}</button></div><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,.jpg,.jpeg,.png,.webp,.mp4" multiple className="hidden" onChange={handleImageSelection} /><div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">{images.map((image, index) => <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg border border-outline-variant bg-surface-container">{isVideoUrl(image.imageUrl) ? <video src={image.imageUrl} className="h-full w-full object-cover" controls /> : <img src={image.imageUrl} alt={`Product image ${index + 1}`} className="h-full w-full object-cover" />}{image.isUploading && <div role="status" className="absolute inset-0 flex items-center justify-center bg-white/80"><span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-label="Uploading image" /></div>}<span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold text-white">{index === 0 ? 'Cover' : `Image ${index + 1}`}</span><button type="button" onClick={() => handleRemoveImage(image.id)} disabled={isUploadingImages || isSaving} className="absolute right-1 top-1 rounded bg-white p-1 text-error shadow"><Trash2 className="h-3.5 w-3.5" /></button></div>)}<button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || isSaving} className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant text-xs text-on-surface-variant hover:bg-surface"><Plus className="mb-1 h-5 w-5" />Add Image</button></div></div>}
@@ -537,7 +546,7 @@ const [isSaving, setIsSaving] = useState(false);
         
         <footer className="flex items-center justify-between"><button type="button" onClick={() => { setWizardError(null); setWizardStep((step) => Math.max(1, step - 1)); }} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:invisible hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <FormAction onClick={goNext} focusSelector={wizardStep === 3 ? '[data-variant-entry]' : wizardStep === 4 ? '[data-image-entry]' : undefined} issue={stepIssue} busy={isSaving || isUploadingImages || isAddingColor} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next</FormAction> : <FormAction onClick={() => { void handleSave(); }} issue={productIssue} busy={isSaving || isUploadingImages || isAddingColor} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">{isSaving ? 'Creating...' : 'Create Product'}</FormAction>}</footer>
 
-        <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><FormAction onClick={handleSaveVariant} issue={variantFormIssue} busy={isUploadingImages || isSavingVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</FormAction></>}><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><FormStatus busy={isSavingVariant} /></div><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
+        <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><FormAction onClick={handleSaveVariant} issue={variantFormIssue} busy={isUploadingImages || isSavingVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</FormAction></>}><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><FormStatus busy={isSavingVariant} /></div><VariantPhotoLimitInput value={varPhotoSize} onChange={setVarPhotoSize}/><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
       </div>
     );
   }
@@ -725,7 +734,7 @@ const [isSaving, setIsSaving] = useState(false);
                           </div>
                         </td>
                         <td className="px-6 py-4 font-medium">
-                          <span className={getStockStatus(variant.stockQuantity).textClass}>
+                          <span className="mb-1 block text-xs font-normal">Photo max: {Number((getPhotoMaxBytes([variant])/PHOTO_MB_BYTES).toFixed(1))} MB</span><span className={getStockStatus(variant.stockQuantity).textClass}>
                             {getStockStatus(variant.stockQuantity).label}
                           </span>
                         </td>
@@ -961,6 +970,7 @@ const [isSaving, setIsSaving] = useState(false);
               required
             />
           </div>
+          <VariantPhotoLimitInput value={varPhotoSize} onChange={setVarPhotoSize}/>
         </div>
       </Modal>
     </div>

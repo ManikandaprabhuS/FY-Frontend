@@ -1,9 +1,11 @@
 import { getStockStatus, normalizeStock } from '../../../utils/stock';
+import {getPhotoMaxBytes,PHOTO_MB_BYTES} from '../../../utils/photo-limits';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useAuthStore } from '../../../store/authStore';
+
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
-import { setCheckoutPhotoDraft, checkoutPhotoDraft, clearCheckoutPhotoDraft, validateOrderPhoto } from '../../../services/order-photos.service';
+import { validateOrderPhoto } from '../../../services/order-photos.service';
+import {findProductPhoto,saveLocalPhoto,removeLocalPhoto,listLocalPhotos,linkProductPhoto,photoSelectionKey,type LocalPhoto} from '../../../services/local-photos';
 import { productService } from '../../../services/product.service';
 import { ArrowLeft, ChevronDown, Crop, ImagePlus, Minus, PackageCheck, Plus, RefreshCw, ShieldCheck, Sparkles, Trash2, Upload } from 'lucide-react';
 
@@ -19,7 +21,7 @@ import AddToCartButton from '../components/AddToCartButton';
 import BuyNowButton from '../components/BuyNowButton';
 import WishlistHeart from '../components/WishlistHeart';
 import ProductCatalogCard from '../components/ProductCatalogCard';
-import { parseStoredCrops, ratioFromFrameSize, selectVariantPhoto } from '../components/framePreviewGeometry';
+import { ratioFromFrameSize, selectVariantPhoto } from '../components/framePreviewGeometry';
 import { productOptionImage, type ImageSelection } from '../utils/productOptionImage';
 import { getVariantPricing, variantForColor } from '../utils/product-pricing';
 import { getCatalogPricing } from '../utils/catalog-product';
@@ -54,6 +56,9 @@ const CustomerProductDetailsPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [cropSource, setCropSource] = useState('');
   const [photoSource, setPhotoSource] = useState('');
+  const [sourceBytes,setSourceBytes]=useState(0);
+  const localPhoto=useRef<LocalPhoto|undefined>(undefined);
+  const photoHandoff=useRef<Promise<void>>(Promise.resolve());
   const [photoOwner, setPhotoOwner] = useState<string>();
   const [croppedImages, setCroppedImages] = useState<Record<string, string>>({});
   const [dragging, setDragging] = useState(false);
@@ -70,26 +75,18 @@ const CustomerProductDetailsPage: React.FC = () => {
     return () => clearCurrentProduct();
   }, [clearCurrentProduct, fetchProductById, slug]);
 
-  // Saved crops for this product (per frame size) survive reloads.
+  // Pixels persist locally across reloads and a guest login redirect.
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (!slug) {
-        setCroppedImages({});
-        setPhotoSource('');
-        return;
-      }
-      try {
-        setCroppedImages(parseStoredCrops(window.localStorage.getItem(`frameyaad-crops:${slug}`)));
-        setPhotoSource(window.localStorage.getItem(`frameyaad-photo-source:${slug}`) || '');
-        setPhotoOwner(slug);
-      } catch {
-        setCroppedImages({});
-        setPhotoSource('');
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [slug]);
-
+    let active=true;
+    localPhoto.current=undefined;
+    void findProductPhoto(slug??'').then(photo=>{
+      if(!active)return;
+      localPhoto.current=photo;
+      setCroppedImages(photo?.crops??{});setPhotoSource(photo?.source??'');
+      setSourceBytes(photo?.file.size??0);setPhotoOwner(slug);
+    });
+    return()=>{active=false;};
+  },[slug]);
   // "You might also like": other frames from the public catalogue (read-only, this page only).
   useEffect(() => {
     let active = true;
@@ -124,6 +121,14 @@ const CustomerProductDetailsPage: React.FC = () => {
   const frameRatio = ratioFromFrameSize(selectedVariant?.frameSize);
   const cropKey = selectedVariant?.frameSize || 'default';
   const croppedImage = photoOwner === slug ? selectVariantPhoto(croppedImages, cropKey, photoSource) : '';
+  const photoMaxBytes=getPhotoMaxBytes(selectedVariant?[selectedVariant]:[]);
+  const photoMaxMB=Number((photoMaxBytes/PHOTO_MB_BYTES).toFixed(1));
+  const encodedPhoto=(photoSource||croppedImage).split(",")[1]??"";
+  const selectedPhotoBytes=sourceBytes||Math.floor(encodedPhoto.length*3/4)-(encodedPhoto.match(/=+$/)?.[0].length??0);
+  const photoTooLarge=Boolean(croppedImage&&selectedPhotoBytes>photoMaxBytes);
+  useEffect(()=>{
+    if(photoTooLarge)showWarning("This size allows photos up to "+photoMaxMB+" MB. Please choose a smaller photo.",{id:"product-photo-limit"});
+  },[photoTooLarge,photoMaxMB]);
   // A photo carried over from another size has the wrong shape until it is re-cropped.
   const needsRecrop = Boolean(croppedImage) && !croppedImages[cropKey];
   const { currentPrice, originalPrice, discount } = getVariantPricing(selectedVariant);
@@ -164,15 +169,10 @@ const CustomerProductDetailsPage: React.FC = () => {
 
   const handleFile = (file?: File) => {
     if (!file) return;
-    const auth = useAuthStore.getState();
-    if (!auth.isAuthenticated || auth.user?.role !== 'CUSTOMER') {
-      showWarning('Please log in to upload your photo.');
-      return;
-    }
-    const issue = validateOrderPhoto(file);
+    const issue = validateOrderPhoto(file, selectedVariant?[selectedVariant]:[]);
     if (issue) { showWarning(issue); return; }
-    setCheckoutPhotoDraft(auth.user.id, file);
-    try { localStorage.setItem('frameyaad-photo-name:' + slug, file.name); localStorage.setItem('frameyaad-photo-owner:' + slug, auth.user.id); } catch { /* Local preview still works when storage is full. */ }
+    localPhoto.current={id:'product:'+slug,file,name:file.name,source:'',crops:{},productId:slug,createdAt:Date.now()};
+    setSourceBytes(file.size);
     const reader = new FileReader();
     reader.onload = () => setCropSource(String(reader.result || ''));
     reader.onerror = () => showError('The selected image could not be opened.');
@@ -180,64 +180,36 @@ const CustomerProductDetailsPage: React.FC = () => {
   };
 
   const saveCrop = (image: string) => {
-    const nextImages = { ...croppedImages, [cropKey]: image };
+    const nextImages = { ...(localPhoto.current?.crops??croppedImages), [cropKey]: image };
     setCroppedImages(nextImages);
     setPhotoSource(cropSource);
     setPhotoOwner(slug);
     setCropSource('');
     jumpTo(0);
-    try {
-      window.localStorage.setItem(`frameyaad-crops:${slug}`, JSON.stringify(nextImages));
-      window.localStorage.removeItem(`frameyaad-photo-source:${slug}`);
-      // Large originals stay in this session only; saved crops survive reloads.
-      if (cropSource.length <= 1_500_000) window.localStorage.setItem(`frameyaad-photo-source:${slug}`, cropSource);
-      showSuccess(`Your photo is in the ${frameRatio.label} frame.`);
-    } catch {
-      showWarning('The crop is ready for this session, but browser storage is full.');
+    const draft=localPhoto.current;
+    if(draft){
+      const saved={...draft,source:cropSource,crops:nextImages};
+      localPhoto.current=saved;
+      void saveLocalPhoto(saved).then(persisted=>{
+        if(!persisted)showWarning('Your photo is kept in memory and may be lost on reload.',{id:'local-photo-storage'});
+      });
     }
+    showSuccess('Your photo is in the '+frameRatio.label+' frame.');
   };
-
   const clearCrop = () => {
-    if (!croppedImage) return;
-    const customer = useAuthStore.getState().user;
-    if (customer) clearCheckoutPhotoDraft(customer.id);
-    const nextImages = { ...croppedImages, [cropKey]: '' };
-    try {
-      window.localStorage.setItem(`frameyaad-crops:${slug}`, JSON.stringify(nextImages));
-      setCroppedImages(nextImages);
-      setCropSource('');
-      showSuccess(`Photo removed from the ${frameRatio.label} frame.`);
-    } catch {
-      showError('Unable to clear the saved photo. Please try again.');
-    }
+    if(localPhoto.current)void removeLocalPhoto(localPhoto.current.id);
+    void listLocalPhotos().then(rows=>Promise.all(rows.filter(p=>p.productId===slug).map(p=>removeLocalPhoto(p.id))));
+    localPhoto.current=undefined;setCroppedImages({});setPhotoSource('');setSourceBytes(0);setCropSource('');
+    showSuccess('Photo removed from the '+frameRatio.label+' frame.');
   };
-
-  const addSelectedToCart = () => (selectedVariant && currentProduct ? addToCart(currentProduct, selectedVariant, quantity, effectiveColor) : false);
-
-  // Buy now: add to the cart (the walker crosses the button), then carry the photo to checkout.
-  const addForBuyNow = () => {
-    if (!selectedVariant || !currentProduct) return false;
-    const before = useCustomerCommerceStore.getState().cartItems.reduce((total, item) => total + item.quantity, 0);
-    addToCart(currentProduct, selectedVariant, quantity, effectiveColor);
-    const after = useCustomerCommerceStore.getState().cartItems.reduce((total, item) => total + item.quantity, 0);
-    return after > before;
+  const addSelectedToCart = () => {
+    if(photoTooLarge||!selectedVariant||!currentProduct)return false;
+    const added=addToCart(currentProduct,selectedVariant,quantity,effectiveColor);
+    if(added&&croppedImage)photoHandoff.current=linkProductPhoto(currentProduct.id,photoSelectionKey(currentProduct.id,selectedVariant.id,colorOption.hex||effectiveColor));
+    return added;
   };
-  const goToCheckout = () => {
-    const customer = useAuthStore.getState().user;
-    try {
-      if (customer?.role === 'CUSTOMER' && croppedImage && !checkoutPhotoDraft(customer.id) && localStorage.getItem('frameyaad-photo-owner:' + slug) === customer.id) {
-        const source = photoSource || croppedImage;
-        const match = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(source);
-        if (match) {
-          const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
-          const savedName = localStorage.getItem('frameyaad-photo-name:' + slug) || 'photo.png';
-          setCheckoutPhotoDraft(customer.id, new File([bytes], savedName, { type: match[1] }));
-        }
-      }
-    } catch { showWarning('Your local photo could not be carried over. You can choose it again at checkout.'); }
-    navigate('/checkout');
-  };
-
+  const addForBuyNow = addSelectedToCart;
+  const goToCheckout = () => { void photoHandoff.current.then(()=>navigate('/checkout')); };
   if (loading && !currentProduct) return <ProductDetailsSkeleton />;
 
   if (!currentProduct) {
@@ -297,7 +269,7 @@ const CustomerProductDetailsPage: React.FC = () => {
         <span aria-live="polite">{quantity}</span>
         <button type="button" aria-label="Increase quantity" onClick={() => { const limit = normalizeStock(selectedVariant?.stockQuantity); if (quantity >= limit) { showWarning('Requested quantity exceeds available stock (' + limit + ')'); return; } setQuantity((current) => current + 1); }}><Plus className="h-4 w-4" /></button>
       </div>
-      <AddToCartButton available={available} onAdd={addSelectedToCart} className="fy-pdp__cart" />
+      <AddToCartButton available={available && !photoTooLarge} soldOutLabel={photoTooLarge?"Choose a smaller photo":"Sold out"} onAdd={addSelectedToCart} className="fy-pdp__cart" />
       <WishlistHeart wished={wished} pending={wishPending} productName={currentProduct.name} onToggle={() => void toggleWishlist(currentProduct)} className="fy-pdp__wish" />
     </>
   );
@@ -431,7 +403,7 @@ const CustomerProductDetailsPage: React.FC = () => {
                     >
                       <span className="fy-upload__icon"><Upload className="h-5 w-5" strokeWidth={1.7} aria-hidden="true" /></span>
                       <span className="fy-upload__title">Drop your photo here, or browse</span>
-                      <span className="fy-upload__hint">JPG, PNG or WebP, up to 4 MB. You'll crop it to {frameRatio.label}.</span>
+                      <span className="fy-upload__hint">JPG, PNG or WebP. Max file size: {photoMaxMB} MB. You'll crop it to {frameRatio.label}.</span>
                     </button>
                   )}
                 </Step>
@@ -448,7 +420,7 @@ const CustomerProductDetailsPage: React.FC = () => {
               </div>
 
               <div ref={buyRowRef} className="fy-pdp__buy">{buyControls}</div>
-              <BuyNowButton available={available && normalizeStock(selectedVariant?.stockQuantity) >= quantity} photo={croppedImage || undefined} onAdd={addForBuyNow} onDone={goToCheckout} />
+              <BuyNowButton available={!photoTooLarge && available && normalizeStock(selectedVariant?.stockQuantity) >= quantity} photo={croppedImage || undefined} onAdd={addForBuyNow} onDone={goToCheckout} />
 
               <ul className="fy-pdp__trust">
                 <TrustItem icon={<Sparkles />} label="Premium quality" />

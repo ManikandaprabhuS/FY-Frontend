@@ -12,14 +12,15 @@ test("checkout offer cards render the applied backend quote without client price
  const quote={subtotal:6000,offers:[{code:"FIRST_ORDER",title:"First Order Offer",description:"5% off on your first order",percent:5,discountAmount:300,total:5700,bestOffer:false},{code:"BIG_ORDER",title:"Big Order Offer",description:"10% off on orders above Rs. 5,000",percent:10,discountAmount:600,total:5400,bestOffer:true}],addresses:[{id:"address",contactPerson:"Example customer",addressLine:"12 Example Road",city:"Chennai",postalCode:"600040"}]};
  const states=[quote,signature,"BIG_ORDER","address",false,false,0,undefined];let state=0;
  const overrides={
+  "../../../utils/photo-limits":{getPhotoMaxBytes:()=>4194304,PHOTO_MB_BYTES:1048576},
   "./CheckoutPhotoUpload":{__esModule:true,default:()=>null},
   "../../../components/orders/OrderPhotoDownload":{__esModule:true,default:()=>null},
   react:{useEffect(){},useMemo:fn=>fn(),useRef:value=>({current:value}),useState:()=>[states[state++],()=>{}]},
-  "react-router-dom":{Link:({to,children,...props})=>createElement("a",{...props,href:to},children)},
+  "react-router-dom":{useNavigate:()=>()=>{},Link:({to,children,...props})=>createElement("a",{...props,href:to},children)},
   "../../../store/customerCommerceStore":{useCustomerCommerceStore:selector=>selector({cartItems:items})},
   "../../../services/checkout.service":{checkoutService:{}},
   "./CheckoutAddressForm":{default:()=>null},
-  "../../../utils/toast":{},
+  "../../../store/authStore":{},"../../../services/local-photos":{},"../../../utils/toast":{},
  };
  const source=await readFile(new URL("../src/features/customer/components/CheckoutOffers.tsx",import.meta.url),"utf8"),module={exports:{}};
  new Function("require","module","exports",ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(id=>overrides[id]??require(id),module,module.exports);

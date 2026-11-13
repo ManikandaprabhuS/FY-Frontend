@@ -34,6 +34,7 @@ export interface UserAddress {
 export type ProductStatus = 'active' | 'draft';
 
 export interface ProductVariant {
+  maxPhotoSizeMB?: number|null;
   imageUrl?: string | null;
   id: string;
   productId: string;

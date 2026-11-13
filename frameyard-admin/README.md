@@ -617,3 +617,62 @@ The shared wordmark is 36px on desktop and fluid 21–26px on mobile/tablet, pre
 
 
 
+
+## Admin-uploadable homepage banner image
+The existing Offers > Homepage banner card supports staff-only upload/replace/remove of public banner artwork (JPG/PNG/WebP, 2 MB; recommended 1200x400). Preview and storefront share the same clipped, responsive cover crop; failed/removed images use the existing default art. The private customer-photos bucket is unchanged. See [homepage-banner.md](docs/homepage-banner.md) for setup, API flow, cleanup, validation results and the five unrelated existing frontend test failures.
+
+## Per-variant customer photo limits — audit and update
+### Audit (before this change)
+| Location | Previous rule | Current rule |
+| --- | --- | --- |
+| backend src/modules/order-photos/photo-file.ts | PHOTO_MAX_BYTES = 4 x 1024 x 1024; fixed 4 MB error | Absolute transport/type-validation cap derived from MAX_PHOTO_MAX_MB (10) |
+| backend order-photos.routes.ts | Multer cap 4 MB + one byte; fixed 4 MB error | Global cap + one byte; authenticated cart context then enforces the stricter DB limit |
+| backend order-photos.service.ts | No variant-dependent check at upload or final reservation | getPhotoMaxBytes at upload and before order creation; final maxAllowedMB snapshot |
+| frontend services/order-photos.service.ts | Fixed 4 MB validation | Shared helper, default 4 or selected/cart variant limits |
+| product Upload Your Photo | Fixed “up to 4 MB” hint/check | Live “Max file size: X MB” for the selected variant |
+| checkout Upload your photo card | Fixed “up to 4 MB” hint/check | Lowest limit across final cart variants; shows the unique limiting item when applicable |
+| Supabase customer-photos | Private, 4,194,304-byte bucket cap | Still private, 10,485,760-byte physical cap; same three MIME types |
+| order_photos sizeBytes CHECK | Positive and at most 4,194,304 bytes | Positive and at most the global 10 MB cap; necessary to store permitted larger photos |
+
+### Configuration and admin
+DEFAULT_PHOTO_MAX_MB = 4, MIN_PHOTO_MAX_MB = 1, MAX_PHOTO_MAX_MB = 10 live in utils/photo-limits.ts. These independently deployed repositories carry byte-identical copies of this small shared contract; the backend is authoritative and frontend values cannot bypass it. SHA-256 parity was checked during validation. Keep both contract copies in sync when changing defaults/ranges.
+
+Variant.maxPhotoSizeMB is nullable. Null/omitted/empty means default, not zero. Values must be numbers from 1 through 10 with at most one decimal. Add/Edit Product's existing per-variant modal now includes the optional input and helper text; variant rows/details show the effective limit. Existing required-step/Next rules remain intact. Admin/Employee role checks are unchanged, and customer updates are rejected. The API whitelist, product response types and variant CSV export include the new field.
+
+getPhotoMaxBytes([variant]) uses that variant or the default. For several items it chooses the lowest effective limit; an empty list uses the default. Byte limits are floored to whole bytes; a file exactly at the byte limit passes. Validation messages show the file's size and allowed MB.
+
+### Server-resolved cart context
+The storefront cart is browser-local; existing checkout already resolves submitted item selections on the backend. Photo uploads therefore optionally include an items JSON field containing product/variant IDs and quantities only, never limit values. The backend reads the authenticated server cart and verifies each provided selection against current product/variant DB relations. When local selection IDs are supplied, independent lookups run in parallel. Without context, the owned server cart is used. Empty carts use the default for temporary upload; existing empty-order rejection is unchanged.
+
+Checkout summaries return the current authoritative photo limit and limiting item. Product changes keep the local preview but warn and disable Add to Cart/Buy Now when the selected file is too large. Checkout rechecks on cart changes and immediately before placement. Oversized uploads return 413. Final order validation uses freshly loaded final variant IDs within the existing order transaction and rejects PHOTO_LIMIT_CHANGED (400, allowed MB included) before creating the order. Clear/replacement allows retry. An asynchronous Storage move failure still never fails a saved order.
+
+OrderPhoto.maxAllowedMB is nullable for historical records and snapshots the applied limit for new uploads/final attachments. Existing attached photos/orders are not backfilled or recalculated.
+
+### Deployment and storage
+Stop the backend if Prisma is Windows-locked, run npm run prisma:generate, then npx tsx prisma/setup-variant-photo-limits.ts --apply. The script only adds the two nullable fields, validates the new variant range, raises the existing photo byte CHECK, and updates customer-photos to the global cap. It does not rewrite existing variant/photo/order values. No Prisma migrations were generated. The idempotent original photo setup script also reads the global cap now.
+
+The bucket remains private. JPG/PNG/WebP, magic-byte validation, non-empty file checks, ownership, rate limits, one TEMP photo, one photo per order, optional upload, signed downloads, cleanup and failed-move retries remain unchanged. Admin product-media/banner uploads are separate and were not changed.
+
+### Verification
+- New backend tests cover defaults/range/empty input, 1.9 MB, exact 2 MB, one byte above, mixed 2/5 MB variants, forged context rejection, customer update denial, and a 3 MB TEMP upload becoming invalid after adding a 2 MB variant. Clearing/replacing then passes.
+- Six new frontend tests pass; 18 focused affected upload/checkout/form tests pass.
+- Live range/null/check-constraint tests ran in a rolled-back fixture; the private 10 MB bucket cap was verified. Existing variants and order totals/counts were unchanged.
+- Shared helper sources are byte-identical. Builds/types and backend lint pass. Changed frontend limit components pass focused lint; ProductDetailsPage retains two pre-existing synchronous-effect lint findings outside this change.
+- Mobile/admin/checkout fixture checked at 320/375/768/1440px: no overflow or console errors/warnings, optional 1–10 MB input, default text and limiting-item note readable.
+- Full frontend suite: 225/230 pass; the same five unrelated header/collection/review failures remain untouched. No real customer order was created just for testing; a full real-device customer checkout walkthrough remains a final user acceptance check.
+
+## Guest-local photo preview and upload at Place Order (13 November 2026)
+
+Product photo selection and cropping no longer require login. The product page never uploads photo pixels or calls the photo API. Selected-variant JPG/PNG/WebP and exact byte-limit validation still use the shared photo-limit helper; switching to a smaller variant retains the preview but blocks adding/buying until it is cleared or replaced.
+
+The local-photos service stores the original/crops as browser-local IndexedDB records and links a cropped photo to the cart selection (product, variant, colour). Guest login/cart merge preserves those keys. No new photo pixels are written to localStorage. Records expire after 24 hours (purged when storage is next read; expired records cannot be submitted). When IndexedDB is unavailable, an amber warning explains the memory-only fallback. Clear, cart removal, a successful move to wishlist, and successful order placement remove the relevant local photos. Existing localStorage-only previews from the older implementation are not migrated; choose the photo once again.
+
+Checkout restores local photos, shows the filename/size, and asks the customer to choose one if multiple cart lines have photos. It enforces the strictest cart limit and rechecks the fresh server quote. Choosing a file here is local too. Only clicking Place Order triggers the authenticated private upload, then order creation with its returned photoId. Upload failure stops order creation and provides Retry; clearing the optional photo allows a photo-free order. Existing TEMP uploads remain recoverable for compatibility. Backend auth, real-file-type checks, per-variant limits, private bucket, FY naming, and attach flow are unchanged. No schema/database/backend source changes were made.
+
+Validation:
+- Production build and scoped changed-file lint passed.
+- Seven new tests passed: IndexedDB reload/login-key persistence, 24-hour expiry, cart cleanup, unavailable-IndexedDB fallback, cropped bytes, local-only product flow, and upload-on-prepare with success/failure/multiple-choice/oversize/no-photo cases.
+- Affected checkout/photo/cart regression tests pass. Full frontend suite: 232/237 passing; the same five pre-existing header/collection/review failures remain outside this change.
+- Unchanged backend photo suites: 59 tests passed, including guest rejection and oversized-file rejection.
+- Browser: guest selected/cropped the supplied family PNG, refreshed and saw the crop restored, used Buy Now and reached login, returned to the product with the crop intact, and cleared it. Checked 320px and 375px with no horizontal overflow; desktop preview remained intact.
+- A real authenticated COD order and real Supabase upload were not submitted during this verification; those end-to-end acceptance checks remain for the customer test account. No real orders were created.

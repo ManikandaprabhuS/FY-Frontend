@@ -1,3 +1,4 @@
+import {photoLimitValidation} from "./photo-limits.ts";
 // Basic input validation only. No pricing, eligibility, permission or stock calculations.
 export const validateText = (label: string, value: string, minimum: number, maximum: number): string | null => {
   const text = value.trim();
@@ -19,9 +20,10 @@ export const validatePerson = (input: { name: string; email?: string; phoneNumbe
   if (input.password !== undefined && (input.password.length < 8 || input.password.length > 72)) return 'Password must contain 8–72 characters.';
   return validatePhone(input.phoneNumber ?? '');
 };
-export const validateVariant = (input: { frameSize: string; mountType: string; glassType: string; price: number; offerPrice?: number | null; stockQuantity: number }): string | null => {
+export const validateVariant = (input: { maxPhotoSizeMB?: number|null; frameSize: string; mountType: string; glassType: string; price: number; offerPrice?: number | null; stockQuantity: number }): string | null => {
   const text = validateText('Variant size', input.frameSize, 1, 80) || validateText('Mount type', input.mountType, 1, 80);
   if (text) return text;
+  const photoIssue=photoLimitValidation(input.maxPhotoSizeMB);if(photoIssue)return photoIssue;
   if (!['NONE', 'OPTION_1', 'OPTION_2'].includes(input.glassType)) return 'Select a valid glass type.';
   if (!Number.isFinite(input.price) || input.price <= 0 || input.price > 9_999_999_999.99) return 'Price must be greater than zero and within the supported range.';
   if (input.offerPrice != null && (!Number.isFinite(input.offerPrice) || input.offerPrice <= 0 || input.offerPrice > 9_999_999_999.99)) return 'Offer price must be greater than zero and within the supported range.';

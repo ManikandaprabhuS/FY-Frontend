@@ -33,6 +33,7 @@ async function harness(){
   react:{useEffect(){},useRef:value=>refs[refIndex++]??(refs[refIndex-1]={current:value}),useState:initial=>{const i=index++;if(!(i in states))states[i]=i===0?setting:initial;return[states[i],value=>{states[i]=typeof value==="function"?value(states[i]):value;}];}},
   "../../services/homepage-banner.service":{homepageBannerService:{update:input=>{calls.push(input);return pending;}}},
   "../../utils/toast":Object.fromEntries(["showApiError","showLoading","showSuccess","showWarning"].map(name=>[name,(...args)=>toasts.push([name,...args])])),
+  "./BannerImageUpload":{__esModule:true,default:()=>null},
   "../../features/customer/components/HomepageBannerVisual":{__esModule:true,default:()=>null}
  }).default;
  return {render:()=>{index=0;refIndex=0;return Component({offers:[{...big,enabled:true}]});},states,calls,toasts,resolve,reject,setting};
