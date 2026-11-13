@@ -13,7 +13,7 @@ const { orderService } = mod.exports;
 test('export sends every applied filter to the staff export endpoint without page limits', async () => {
   requests.length = 0;
   assert.equal(await orderService.getExportReport({ dateFilter: '90', status: 'PROCESSING', search: '  FY-9905  ' }), payload);
-  assert.deepEqual(requests[0], { url: '/orders/export', config: { params: { dateFilter: '90', status: 'PROCESSING', search: 'FY-9905' }, timeout: 60000 } });
+  assert.deepEqual(requests[0], { url: '/orders/export', config: { params: { dateFilter: '90', status: 'PROCESSING', search: 'FY-9905',refundStatus:undefined }, timeout: 60000 } });
   assert.equal(requests[0].config.params.page, undefined);
   assert.equal(requests[0].config.params.limit, undefined);
 });
@@ -27,7 +27,7 @@ test('All Time/empty search remove restrictive search and status parameters', as
 test('table requests combine date, status, search and pagination on the backend', async () => {
   requests.length = 0;
   await orderService.getOrders({ page: 2, limit: 5, dateFilter: '7', status: 'PROCESSING', search: '89109' });
-  assert.deepEqual(requests[0].config.params, { page: 2, limit: 5, dateFilter: '7', status: 'PROCESSING', search: '89109', userId: undefined });
+  assert.deepEqual(requests[0].config.params, { page: 2, limit: 5, dateFilter: '7', status: 'PROCESSING', search: '89109', userId: undefined,refundStatus:undefined });
 });
 test('summary icons replace dots and all date choices remain available', async () => {
   const page = await readFile(new URL('../src/pages/orders/OrdersPage.tsx', import.meta.url), 'utf8');
@@ -40,7 +40,7 @@ test('summary icons replace dots and all date choices remain available', async (
 });
 test('PDF export renders only server-filtered orders and server-calculated totals', async () => {
   const page = await readFile(new URL('../src/pages/orders/OrdersPage.tsx', import.meta.url), 'utf8');
-  assert.match(page, /orderService.getExportReport\(\{ search: debouncedSearchTerm, status: statusFilter, dateFilter \}\)/);
+  assert.match(page, /orderService.getExportReport\(\{ search: debouncedSearchTerm, status: statusFilter, dateFilter,refundStatus:refundFilter \}\)/);
   assert.match(page, /orders: report.orders/);
   assert.match(page, /totalRevenue: report.summary.totalRevenue/);
   assert.match(page, /averageOrderValue: report.summary.averageOrderValue/);

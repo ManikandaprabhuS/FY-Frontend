@@ -4,6 +4,7 @@ import { getOrderStatusStyle, orderStatusLabel } from '../components/ui/order-st
 
 export interface RevenueReportItem { productId?: string | null; productIdentifier?: string | null; productName?: string; frameSize?: string; colorName?: string | null; colorHex?: string | null; material?: string | null; quantity: number; price: number | string; subtotal?: number | string }
 export interface RevenueReportOrder {
+  refundStatus?:string|null;refundInitiatedAt?:string|null;refundCompletedAt?:string|null;excludedFromRevenue?:boolean;
   photoUploaded?: boolean; photoFileName?: string|null;
   orderItems?: RevenueReportItem[];
   createdAt: string;
@@ -57,7 +58,7 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
     head: [['Date', 'Order ID', 'Customer', 'Status', 'Amount (INR)']],
     body: data.orders.length ? data.orders.map(order => [
       formatReportDate(order.createdAt), order.orderNumber, order.user?.name || 'Unknown Customer',
-      orderStatusLabel(order.orderStatus), formatReportAmount(order.totalAmount),
+      orderStatusLabel(order.orderStatus)+(order.orderStatus==="CANCELLED"?" (excluded from revenue)":""), formatReportAmount(order.totalAmount),
     ]) : [[{ content: 'No orders found for this range', colSpan: 5, styles: { halign: 'center', cellPadding: 8 } }]],
     foot: [[{ content: 'Total', colSpan: 4, styles: { halign: 'right' } }, { content: formatReportAmount(data.totalRevenue), styles: { halign: 'right' } }]],
     showHead: 'everyPage', showFoot: 'lastPage', rowPageBreak: 'avoid', theme: 'striped',
@@ -103,6 +104,14 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
       headStyles: { fillColor: '#111827', textColor: '#ffffff', fontStyle: 'bold' },
       columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 40 }, 2: { cellWidth: 42 }, 3: { cellWidth: 34 }, 4: { cellWidth: 38, halign: 'right' } },
       didDrawPage: ({ cursor }) => { if (cursor) ordersBottom = cursor.y; },
+    });
+  }
+  if(data.orders.some(o=>o.orderStatus==="CANCELLED"||o.refundStatus)){
+    if(ordersBottom>230){doc.addPage();ordersBottom=12;}
+    autoTable(doc,{startY:ordersBottom+8,margin:{left:margin,right:margin,top:16,bottom:20},head:[['Order ID','Refund status','Initiated','Completed','Revenue']],
+      body:data.orders.map(o=>[o.orderNumber,o.refundStatus??'-',o.refundInitiatedAt?formatReportDate(o.refundInitiatedAt):'-',o.refundCompletedAt?formatReportDate(o.refundCompletedAt):'-',o.orderStatus==='CANCELLED'?'Excluded from revenue':'Included']),
+      styles:{fontSize:8,cellPadding:3},headStyles:{fillColor:'#111827',textColor:'#ffffff'},showHead:'everyPage',rowPageBreak:'avoid',
+      didDrawPage:({cursor})=>{if(cursor)ordersBottom=cursor.y;}
     });
   }
   const itemRows = data.orders.flatMap(order => (order.orderItems ?? []).map(item => ({ ...item, orderNumber: order.orderNumber })));

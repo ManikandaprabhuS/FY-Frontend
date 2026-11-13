@@ -8,7 +8,7 @@ import type { Notification } from '../../types';
 import type { Pagination } from '../../services/contracts';
 import PaginationControls from '../../components/ui/PaginationControls';
 import { showError, showSuccess } from '../../utils/toast';
-import { Bell, CheckCircle2, Info, Check } from 'lucide-react';
+import { Bell, CheckCircle2, Info, Check, XCircle } from 'lucide-react';
 
 export const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -50,6 +50,7 @@ export const NotificationsPage: React.FC = () => {
 
   const getIconForType = (type: string) => {
     switch (type) {
+      case 'ORDER_CANCELLED': return <XCircle className="w-5 h-5 text-red-700"/>;
       case 'ORDER_PLACED':
         return <CheckCircle2 className="w-5 h-5 text-green-500" />;
       case 'ACCOUNT_CREATED':
@@ -135,14 +136,14 @@ export const NotificationsPage: React.FC = () => {
               </div>
               <div className="flex-grow">
                 <div className="flex justify-between items-start gap-2">
-                  <h4 className={`font-semibold ${notification.read ? 'text-on-surface' : 'text-primary'}`}>
+                  <h4 className={`font-semibold ${notification.type==='ORDER_CANCELLED'?'text-red-700 font-bold':notification.read ? 'text-on-surface' : 'text-primary'}`}>
                     {notification.actionUrl ? <Link to={notification.actionUrl} onClick={() => toggleNotificationRead(notification.id)} className="underline-offset-4 hover:underline">{notification.title}</Link> : notification.title}
                   </h4>
                   <span className="text-xs text-on-surface-variant whitespace-nowrap">
                     {new Date(notification.date).toLocaleDateString()}
                   </span>
                 </div>
-                <p className={`text-sm mt-1 ${notification.read ? 'text-on-surface-variant' : 'text-on-surface'}`}>
+                <p className={`text-sm mt-1 ${notification.type==='ORDER_CANCELLED'?'text-red-700 font-bold':notification.read ? 'text-on-surface-variant' : 'text-on-surface'}`}>
                   {notification.message}
                 </p>
                 {notification.readBy && (

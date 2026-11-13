@@ -1,3 +1,5 @@
+import RefundStatusSummary from "../../components/orders/RefundStatusSummary";
+import RefundControls from "../../components/orders/RefundControls";
 import OrderPhotoDownload from "../../components/orders/OrderPhotoDownload";
 import OrderOfferDetails from "../../components/ui/OrderOfferDetails";
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -41,6 +43,8 @@ export const OrdersPage: React.FC = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() => getSearchTermFromQueryString(location.search));
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>(() => getStatusFilterFromQueryString(location.search));
   const [dateFilter, setDateFilter] = useState('all');
+  const [refundFilter,setRefundFilter]=useState('all');
+  const [cancelNote,setCancelNote]=useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
@@ -81,26 +85,26 @@ export const OrdersPage: React.FC = () => {
       limit: itemsPerPage,
       search: debouncedSearchTerm,
       status: statusFilter,
-      dateFilter,
+      dateFilter,refundStatus:refundFilter,
     }, {
       silent: orders.length > 0,
     });
-  }, [currentPage, dateFilter, debouncedSearchTerm, fetchOrders, itemsPerPage, statusFilter]);
+  }, [currentPage, dateFilter, debouncedSearchTerm, fetchOrders, itemsPerPage, statusFilter,refundFilter]);
 
-  const applyStatus=async(orderId:string,newStatus:OrderStatus)=>{
+  const applyStatus=async(orderId:string,newStatus:OrderStatus,note?:string)=>{
     if(statusLocks.current.has(orderId))return;
     statusLocks.current.add(orderId);setStatusBusy(values=>[...values,orderId]);
     const id="order-status:"+orderId;
     showLoading("Please wait, the order status is being updated...",id);
     try{
-      const updated=await changeOrderStatus(orderId,newStatus);
+      const updated=await changeOrderStatus(orderId,newStatus,note);
       if(updated){setSelectedOrder(current=>current?.id===orderId?useOrderStore.getState().orders.find(o=>o.id===orderId)??current:current);showSuccess("Order status updated successfully",{id});}
       else showError(useOrderStore.getState().error??"Failed to update order status",{id});
     }finally{statusLocks.current.delete(orderId);setStatusBusy(values=>values.filter(value=>value!==orderId));}
   };
   const handleStatusChange=(orderId:string,newStatus:OrderStatus)=>{
     if(statusLocks.current.has(orderId))return;
-    if(newStatus==="SHIPPED"||newStatus==="DELIVERED")setStatusConfirmation({id:orderId,status:newStatus});
+    if(newStatus==="CANCELLED"||newStatus==="SHIPPED"||newStatus==="DELIVERED")setStatusConfirmation({id:orderId,status:newStatus});
     else void applyStatus(orderId,newStatus);
   };
 
@@ -117,7 +121,7 @@ export const OrdersPage: React.FC = () => {
     let notified = false;
     showLoading('Please wait, your report is being generated...', toastId);
     try {
-      const report = await orderService.getExportReport({ search: debouncedSearchTerm, status: statusFilter, dateFilter });
+      const report = await orderService.getExportReport({ search: debouncedSearchTerm, status: statusFilter, dateFilter,refundStatus:refundFilter });
       if (!report.orders.length) { showWarning('No records match the selected filters', { id: toastId }); notified = true; return; }
       const { createRevenueReportPdf } = await import('../../utils/revenue-report-pdf');
       const logoResponse = await fetch(brandLogo, { signal: AbortSignal.timeout(15_000) });
@@ -160,6 +164,7 @@ export const OrdersPage: React.FC = () => {
     { key: 'items', label: 'Items', align: 'right' as const },
     { key: 'amount', label: 'Amount', align: 'right' as const },
     { key: 'status', label: 'Status' },
+    { key: 'refund', label: 'Refund' },
     { key: 'date', label: 'Order Date' },
     { key: 'actions', label: 'Actions', align: 'right' as const },
   ];
@@ -168,7 +173,7 @@ export const OrdersPage: React.FC = () => {
   const totalItems = pagination.total;
   const startItem = totalItems === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const endItem = Math.min(pagination.page * pagination.limit, totalItems);
-  const isFiltered = searchTerm.trim() !== '' || statusFilter !== 'all' || dateFilter !== 'all';
+  const isFiltered = searchTerm.trim() !== '' || statusFilter !== 'all' || dateFilter !== 'all'||refundFilter!=='all';
   // Apply the selected status immediately while the server refreshes. This
   // keeps the table responsive on slower API/database connections.
   const visibleOrders = useMemo(
@@ -295,7 +300,8 @@ export const OrdersPage: React.FC = () => {
           )}
         </div>
 
-        <DataTable
+        <label className="text-xs font-bold">Refund status<select value={refundFilter} onChange={e=>{setRefundFilter(e.target.value);setCurrentPage(1);}} className="ml-2 min-h-11 rounded border bg-white px-3"><option value="all">All refunds</option><option value="NONE">Not started</option><option value="INITIATED">Initiated</option><option value="COMPLETED">Completed</option></select></label>
+      <DataTable
           headers={headers}
           items={visibleOrders}
           loading={loading}
@@ -316,10 +322,11 @@ export const OrdersPage: React.FC = () => {
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{getCustomerPhone(order)}</td>
               <td className="px-6 py-4 text-right font-medium">{getItemsCount(order)}</td>
-              <td className="px-6 py-4 text-right font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</td>
+              <td className="px-6 py-4 text-right font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}{order.orderStatus==="CANCELLED"&&<span className="block text-[10px] font-bold text-red-700">Excluded from revenue</span>}</td>
               <td className="px-6 py-4">
                 <StatusBadge status={order.orderStatus} disabled={!flow||statusBusy.includes(order.id)} options={[order.orderStatus,...(flow?.transitions[order.orderStatus]??[])]} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </td>
+              <td className="px-6 py-4"><RefundStatusSummary order={order}/></td>
               <td className="px-6 py-4 text-on-surface-variant">{new Date(order.createdAt).toLocaleDateString()}</td>
               <td className="px-6 py-4 text-right">
                 <button
@@ -354,7 +361,7 @@ export const OrdersPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="block text-[10px] font-semibold uppercase text-on-surface-variant/60">Total Amount</span>
-                  <span className="font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</span>
+                  <span className="font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</span>{order.orderStatus==="CANCELLED"&&<p className="text-[10px] font-bold text-red-700">Excluded from revenue</p>}<RefundStatusSummary order={order}/>
                 </div>
               </div>
 
@@ -382,7 +389,7 @@ export const OrdersPage: React.FC = () => {
                 onClick={() => {
                   setSearchTerm('');
                   setStatusFilter('all');
-                  setDateFilter('all');
+                  setDateFilter('all');setRefundFilter('all');
                   setCurrentPage(1);
                 }}
                 className="font-semibold text-primary hover:underline"
@@ -431,7 +438,12 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
-      <ConfirmDialog isOpen={Boolean(statusConfirmation)} onClose={()=>setStatusConfirmation(null)} onConfirm={()=>{if(statusConfirmation)void applyStatus(statusConfirmation.id,statusConfirmation.status);}} title="Update order status" message={"Move this order to "+(statusConfirmation?.status.replaceAll("_"," ")??"")+"?"} confirmText="Confirm status" type="info"/>
+      <Modal isOpen={statusConfirmation?.status==="CANCELLED"} onClose={()=>{setStatusConfirmation(null);setCancelNote('');}} title="Cancel order" size="sm">
+       <p className="text-sm font-bold">Rs. {Number(orders.find(o=>o.id===statusConfirmation?.id)?.totalAmount??0).toFixed(2)} will be deducted from revenue. Please send the amount to the customer.</p>
+       <label className="mt-3 block text-sm font-bold">Reason (optional)<textarea maxLength={500} value={cancelNote} onChange={e=>setCancelNote(e.target.value)} className="mt-2 min-h-24 w-full rounded border p-2"/></label>
+       <button disabled={/[<>]/.test(cancelNote)} onClick={()=>{if(statusConfirmation)void applyStatus(statusConfirmation.id,"CANCELLED",cancelNote.trim()||undefined);setStatusConfirmation(null);setCancelNote('');}} className="mt-4 min-h-11 rounded bg-red-700 px-4 font-bold text-white disabled:opacity-40">Confirm cancellation</button>
+      </Modal>
+      <ConfirmDialog isOpen={Boolean(statusConfirmation&&statusConfirmation.status!=="CANCELLED")} onClose={()=>setStatusConfirmation(null)} onConfirm={()=>{if(statusConfirmation)void applyStatus(statusConfirmation.id,statusConfirmation.status);}} title="Update order status" message={"Move this order to "+(statusConfirmation?.status.replaceAll("_"," ")??"")+"?"} confirmText="Confirm status" type="info"/>
       <Modal
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
@@ -488,6 +500,8 @@ export const OrdersPage: React.FC = () => {
               </div>
             </div>
 
+            <RefundControls order={selectedOrder} onChanged={updated=>{setSelectedOrder(updated);void fetchOrders(useOrderStore.getState().lastQuery,{silent:true});}}/>
+            {selectedOrder.orderStatus==="CANCELLED"&&<p className="text-xs font-bold text-red-700">Excluded from revenue{selectedOrder.cancelledAt?" · Cancelled "+new Date(selectedOrder.cancelledAt).toLocaleString("en-IN"):""}{selectedOrder.cancellationReason?" · "+selectedOrder.cancellationReason:""}</p>}
             <div className="flex items-center justify-between border-t border-outline-variant pt-4">
               <div>
                 <span className="block text-xs text-on-surface-variant">Order Date</span>

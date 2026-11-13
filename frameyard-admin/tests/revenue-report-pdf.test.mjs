@@ -40,9 +40,9 @@ for (const [count, range, filename] of [
 test('export keeps the existing range/revenue expressions and does not truncate rows', async () => {
   const code = await readFile(new URL('../src/pages/overview/OverviewPage.tsx', import.meta.url), 'utf8');
   assert.match(code, /range: reportDateRange.label/);
-  assert.match(code, /totalRevenue: reportRevenue/);
-  assert.match(code, /averageOrderValue: reportOrders.length \? reportRevenue \/ reportOrders.length : 0/);
-  assert.match(code, /orders: reportOrders/);
+  assert.match(code, /totalRevenue: fresh.summary.totalRevenue/);
+  assert.match(code, /averageOrderValue: fresh.summary.averageOrderValue/);
+  assert.match(code, /orders: fresh.orders/);
   assert.doesNotMatch(code, /slice\(0, 28\)|%PDF-1.4|escapePdfText/);
   assert.match(code, /Please wait, your report is being generated/);
 });

@@ -29,7 +29,7 @@ type OrderQueryParams = {
   limit?: number;
   search?: string;
   status?: string;
-  dateFilter?: string;
+  dateFilter?: string;refundStatus?:string;
 };
 
 type OrderPagination = {
@@ -57,7 +57,7 @@ interface OrderState {
   summary: OrderSummary;
   lastQuery: OrderQueryParams;
   fetchOrders: (params?: OrderQueryParams, options?: { silent?: boolean }) => Promise<void>;
-  changeOrderStatus: (id: string, status: OrderStatus) => Promise<boolean>;
+  changeOrderStatus: (id: string, status: OrderStatus,note?:string) => Promise<boolean>;
 }
 
 const cached = readOrderCache() as Partial<Pick<OrderState, 'orders' | 'pagination' | 'summary' | 'lastQuery'>> | null;
@@ -95,7 +95,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       limit: params.limit ?? 10,
       search: params.search ?? '',
       status: params.status ?? 'all',
-      dateFilter: params.dateFilter ?? 'all',
+      dateFilter: params.dateFilter ?? 'all',refundStatus:params.refundStatus??'all',
     };
     const silent = options.silent ?? false;
     set({
@@ -130,9 +130,9 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     }
   },
 
-  changeOrderStatus: async (id, status) => {
+  changeOrderStatus: async (id, status,note) => {
     try {
-      const updatedOrder = await orderService.updateOrderStatus(id, status, get().orders.find(order=>order.id===id)?.orderStatus);
+      const updatedOrder = await orderService.updateOrderStatus(id, status, get().orders.find(order=>order.id===id)?.orderStatus,note);
       set((state) => ({
         orders: state.orders.map((o) => (o.id === id ? updatedOrder : o)),
       }));

@@ -16,7 +16,8 @@ async function compile(path,overrides={}){
  new Function("require","module","exports",ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>overrides[name]??require(name),module,module.exports);return module.exports;
 }
 const badge=await compile("components/ui/StatusBadge.tsx",{"./order-status":status,"./StatusBadge.css":{}});
-const tracker=await compile("components/orders/OrderStatusTracker.tsx",{"../ui/StatusBadge":badge,"../../store/orderFlowStore":{useOrderFlow:()=>({flow,error:false,retry(){}})},"../../utils/order-tracker":{trackerSteps}});
+const refund=await compile("utils/refund-message.ts");
+const tracker=await compile("components/orders/OrderStatusTracker.tsx",{"../../utils/refund-message":refund,"../ui/StatusBadge":badge,"../../store/orderFlowStore":{useOrderFlow:()=>({flow,error:false,retry(){}})},"../../utils/order-tracker":{trackerSteps}});
 test("each step is current exactly once, with dates only for reached steps",()=>{
  for(let i=0;i<5;i++){const current={...order,orderStatus:flow.steps[i].status};const steps=trackerSteps(current,flow);assert.equal(steps.filter(s=>s.current).length,1);assert.equal(steps.filter(s=>s.done).length,i+1);}
  const html=renderToStaticMarkup(createElement(tracker.default,{order}));

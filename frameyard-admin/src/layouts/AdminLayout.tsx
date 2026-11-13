@@ -6,6 +6,7 @@ import useNotifications from '../hooks/useNotifications';
 import GlobalAdminSearch from '../components/admin/GlobalAdminSearch';
 import fyLogoIcon from '../assets/fy-logo-icon.jpeg';
 import { 
+  XCircle,
   LayoutDashboard, 
   Package, 
   ShoppingCart, 
@@ -300,12 +301,12 @@ export const AdminLayout: React.FC = () => {
                             onClick={() => {
                               toggleNotificationRead(notif.id);
                               setNotifDropdownOpen(false);
-                              if (notif.actionUrl?.startsWith("/admin/reviews")) navigate(notif.actionUrl);
+                              if (notif.actionUrl?.startsWith("/admin/")) navigate(notif.actionUrl);
                             }}
                             className={`p-3 text-left hover:bg-surface transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
                           >
-                            <p className="text-xs font-semibold text-on-surface">{notif.title}</p>
-                            <p className="text-[11px] text-on-surface-variant mt-0.5 line-clamp-2">{notif.message}</p>
+                            <p className={"text-xs font-bold flex items-center gap-1 "+(notif.type==="ORDER_CANCELLED"?"text-red-700":"text-on-surface")}>{notif.type==="ORDER_CANCELLED"&&<XCircle size={15} aria-hidden/>}{notif.title}</p>
+                            <p className={"text-[11px] mt-0.5 "+(notif.type==="ORDER_CANCELLED"?"text-red-700 font-bold":"text-on-surface-variant line-clamp-2")}>{notif.message}</p>
                             {notif.readBy && <p className="mt-1 text-[10px] text-on-surface-variant">Read by {notif.readBy.name} ({notif.readBy.role})</p>}
                             <span className="text-[9px] text-on-surface-variant/60 mt-1 block">
                               {new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

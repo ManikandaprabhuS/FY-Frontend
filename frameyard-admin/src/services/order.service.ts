@@ -18,7 +18,7 @@ type BackendOrderItem = {
   };
 };
 
-type BackendOrder = {
+type BackendOrder = import('../types').OrderRefundFields & {
   photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
   id: string;
   orderNumber: string;
@@ -53,6 +53,7 @@ export type OrderQueryParams = {
   search?: string;
   status?: string;
   dateFilter?: string;
+  refundStatus?: string;
   userId?: string;
 };
 
@@ -110,6 +111,7 @@ const historyFrom=(value:unknown):NonNullable<Order["statusHistory"]>=>Array.isA
 export const normalizeOrder = (order: BackendOrder): Order => ({
   photoId:order.photoId,photoFileName:order.photoFileName,photoSizeBytes:order.photoSizeBytes,
   statusHistory:historyFrom(order.statusHistory),
+  cancelledBy:order.cancelledBy,cancelledAt:order.cancelledAt,cancellationReason:order.cancellationReason,refundStatus:order.refundStatus,refundInitiatedAt:order.refundInitiatedAt,refundCompletedAt:order.refundCompletedAt,refundUpdatedBy:order.refundUpdatedBy,refundHistory:order.refundHistory,
   id: order.id,
   userId: order.userId,
   userAddressId: order.userAddressId,
@@ -152,10 +154,25 @@ const summaryFor = (orders: Order[]): OrdersResponse['summary'] => ({
   cancelledCount: orders.filter((order) => order.orderStatus === 'CANCELLED').length,
 });
 
+const orderChanged=()=>{
+ if(typeof window==='undefined')return;
+ try{sessionStorage.removeItem('fy_admin_order_cache');}catch{/* Storage can be disabled; fresh backend queries remain authoritative. */}
+ window.dispatchEvent(new Event('fy:orders-changed'));
+ window.dispatchEvent(new Event('fy:customer-orders-changed'));
+ try{localStorage.setItem('fy:order-revision',String(Date.now()));}catch{/* Visible tabs also poll for changes. */}
+};
 export const orderService = {
+ revenue:async(from:Date,to:Date)=>{
+  const response=await api.get<ApiEnvelope<{totalRevenue:number;totalOrders:number;summary:{totalRevenue:number;orderCount:number;averageOrderValue:number};orders:import('../utils/revenue-report-pdf').RevenueReportOrder[]}>>('/orders/revenue',{params:{from:from.toISOString(),to:to.toISOString()},timeout:30000});
+  return response.data.data;
+ },
+ updateRefund:async(order:Order,status:'INITIATED'|'COMPLETED',confirmCompleted=false)=>{
+  const response=await api.patch<ApiEnvelope<{order:BackendOrder}>>('/orders/'+order.id+'/refund',{status,expectedRefundStatus:order.refundStatus??null,confirmCompleted});
+  orderChanged();return normalizeOrder(response.data.data.order);
+ },
   getExportReport: async (params: Omit<OrderQueryParams, 'page' | 'limit'> = {}) => {
     type ExportReport = { range: string; generatedAt: string; summary: { totalRevenue: number; orderCount: number; averageOrderValue: number }; orders: import('../utils/revenue-report-pdf').RevenueReportOrder[] };
-    const response = await api.get<ApiEnvelope<ExportReport>>('/orders/export', { params: { ...params, status: params.status === 'all' ? undefined : params.status, search: params.search?.trim() || undefined }, timeout: 60_000 });
+    const response = await api.get<ApiEnvelope<ExportReport>>('/orders/export', { params: { ...params, refundStatus:params.refundStatus==="all"?undefined:params.refundStatus, status: params.status === 'all' ? undefined : params.status, search: params.search?.trim() || undefined }, timeout: 60_000 });
     return response.data.data;
   },
   getOrdersByIds: async (ids: string[]): Promise<Order[]> => {
@@ -176,7 +193,7 @@ export const orderService = {
         search: params.search || undefined,
         status: params.status && params.status !== 'all' ? params.status : undefined,
         dateFilter: params.dateFilter && params.dateFilter !== 'all' ? params.dateFilter : undefined,
-        userId: params.userId,
+        userId: params.userId,refundStatus:params.refundStatus==="all"?undefined:params.refundStatus,
       },
     });
     const orders = response.data.data.orders.map(normalizeOrder);
@@ -189,27 +206,28 @@ export const orderService = {
     return normalizeOrder(response.data.data.order);
   },
 
-  updateOrderStatus: async (id: string, status: OrderStatus, expectedStatus?:OrderStatus): Promise<Order> => {
-    const response = await api.patch<ApiEnvelope<{ order: BackendOrder }>>(`/orders/${id}/status`, { status, expectedStatus });
+  updateOrderStatus: async (id: string, status: OrderStatus, expectedStatus?:OrderStatus,note?:string): Promise<Order> => {
+    const response = await api.patch<ApiEnvelope<{ order: BackendOrder }>>(`/orders/${id}/status`, { status, expectedStatus,note });
+    orderChanged();
     return normalizeOrder(response.data.data.order);
   },
 
   cancelOrder:async(id:string,note?:string,expectedStatus?:OrderStatus):Promise<Order>=>{
     const response=await api.post<ApiEnvelope<{order:BackendOrder}>>('/orders/'+id+'/cancel',{note,expectedStatus},{timeout:20000});
-    if(typeof window!=="undefined")window.dispatchEvent(new Event("fy:customer-orders-changed"));
+    orderChanged();
     return normalizeOrder(response.data.data.order);
   },
   exportOrders: async (params: Omit<OrderQueryParams, 'page' | 'limit'> = {}): Promise<Blob> => {
-    const { orders } = await orderService.getOrders({ ...params, page: 1, limit: 100 });
+    const { orders } = await orderService.getExportReport(params);
     const rows = [
-      ['Order Number', 'Customer', 'Status', 'Total', 'Created At', 'Photo uploaded', 'Photo file name'],
+      ['Order Number', 'Customer', 'Status', 'Total', 'Created At', 'Photo uploaded', 'Photo file name','Refund status','Refund initiated','Refund completed','Revenue'],
       ...orders.map((order) => [
         order.orderNumber,
         order.user?.name ?? '',
         order.orderStatus,
         String(order.totalAmount),
         order.createdAt,
-        order.photoFileName ? 'Yes' : 'No', order.photoFileName ?? '-',
+        order.photoFileName ? 'Yes' : 'No', order.photoFileName ?? '-',order.refundStatus??'-',order.refundInitiatedAt??'-',order.refundCompletedAt??'-',order.orderStatus==='CANCELLED'?'Excluded from revenue':'Included',
       ]),
     ];
     return new Blob([rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n')], {

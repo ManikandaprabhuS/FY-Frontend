@@ -1,5 +1,7 @@
 export const normalizeOrderStatus = (status: unknown): string => typeof status === 'string' ? status.trim().replace(/[\s_-]+/g, '_').toUpperCase() : '';
 export const orderStatusStyles = {
+  INITIATED: {backgroundColor:'#fffbeb',color:'#92400e',borderColor:'#fcd34d'},
+  COMPLETED: {backgroundColor:'#dcfce7',color:'#15803d',borderColor:'#86efac'},
   PENDING: { backgroundColor: '#fffbeb', color: '#92400e', borderColor: '#fcd34d' },
   APPROVED: { backgroundColor: '#dcfce7', color: '#15803d', borderColor: '#86efac' },
   REJECTED: { backgroundColor: '#fee2e2', color: '#b91c1c', borderColor: '#fca5a5' },

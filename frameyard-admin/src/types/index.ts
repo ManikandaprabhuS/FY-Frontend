@@ -115,7 +115,12 @@ export interface OrderItem {
 }
 
 export interface OrderStatusHistoryEntry {status:string;changedAt:string;changedBy:{id:string;role:string};note?:string;previousStatus?:string}
-export interface Order {
+export interface OrderRefundFields {
+ cancelledBy?:'admin'|'customer'|null;cancelledAt?:string|null;cancellationReason?:string|null;
+ refundStatus?:'INITIATED'|'COMPLETED'|null;refundInitiatedAt?:string|null;refundCompletedAt?:string|null;refundUpdatedBy?:string|null;
+ refundHistory?:Array<{status:string;changedAt:string;changedBy:{id:string;role:string}}>;
+}
+export interface Order extends OrderRefundFields {
   photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
   statusHistory?: OrderStatusHistoryEntry[];
   id: string;
@@ -207,7 +212,7 @@ export interface Customer {
   customerIncidents?: CustomerIncident[];
 }
 
-export type NotificationType = 'ACCOUNT_CREATED' | 'ORDER_PLACED';
+export type NotificationType = 'ACCOUNT_CREATED' | 'ORDER_PLACED' | 'ORDER_CANCELLED';
 
 export interface NotificationReader {
   id: string;

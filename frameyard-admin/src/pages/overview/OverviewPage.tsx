@@ -1,3 +1,4 @@
+import {orderService} from "../../services/order.service";
 import { getStockStatus, normalizeStock } from '../../utils/stock';
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -19,7 +20,7 @@ import {
   Download
 } from 'lucide-react';
 
-import {revenueDateParts,revenueDateRange,revenueChartData,revenueOrdersInRange,type RevenueRange as ReportRange} from "./revenue-calendar";
+import {revenueDateParts,revenueDateRange,revenueChartData,type RevenueRange as ReportRange} from "./revenue-calendar";
 const RevenueChart = lazy(() => import('./RevenueChart'));
 
 export const OverviewPage: React.FC = () => {
@@ -27,7 +28,7 @@ export const OverviewPage: React.FC = () => {
   const reportExportLock = useRef(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const { products, pagination: productPagination, fetchProducts } = useProducts(false);
-  const { orders, pagination: orderPagination, summary: orderSummary, fetchOrders } = useOrders(false);
+  const { orders, summary: orderSummary, fetchOrders } = useOrders(false);
   const { total: customerTotal, fetchCustomers } = useCustomers(false);
   const [clock,setClock]=useState(()=>new Date());
   const today=revenueDateParts(clock);
@@ -61,20 +62,28 @@ export const OverviewPage: React.FC = () => {
   }, [customerTotal, fetchCustomers]);
 
   const reportDateRange=useMemo(()=>revenueDateRange(reportRange,clock,reportFromDate,reportToDate),[reportRange,clock,reportFromDate,reportToDate]);
-  const reportOrders=useMemo(()=>revenueOrdersInRange(orders,reportDateRange),[orders,reportDateRange]);
-
-  const calculatedRevenue = orders.reduce(
-    (sum, o) => (o.orderStatus !== 'CANCELLED' ? sum + Number(o.totalAmount || 0) : sum),
-    0
-  );
-  const calculatedOrders = orderPagination.total;
+  const [revenue,setRevenue]=useState<Awaited<ReturnType<typeof orderService.revenue>>>();
+  useEffect(()=>{
+    let active=true,request=0;
+    const refresh=()=>{
+      if(document.hidden)return;
+      const current=++request;
+      void orderService.revenue(reportDateRange.from,reportDateRange.to).then(data=>{
+        if(active&&current===request)setRevenue(data);
+      }).catch(()=>{if(active)showError('Revenue could not be refreshed. Please try again.',{id:'revenue-refresh',retry:refresh});});
+    };
+    const storage=(e:StorageEvent)=>{if(e.key==='fy:order-revision')refresh();};
+    refresh();const timer=window.setInterval(refresh,15000);
+    window.addEventListener('fy:orders-changed',refresh);window.addEventListener('storage',storage);document.addEventListener('visibilitychange',refresh);
+    return()=>{active=false;window.clearInterval(timer);window.removeEventListener('fy:orders-changed',refresh);window.removeEventListener('storage',storage);document.removeEventListener('visibilitychange',refresh);};
+  },[reportDateRange]);
+  const reportOrders=useMemo(()=>(revenue?.orders??[]).map(o=>({...o,totalAmount:Number(o.totalAmount)})),[revenue]);
+  const calculatedRevenue = revenue?.totalRevenue??0;
+  const calculatedOrders = revenue?.totalOrders??0;
   const calculatedCustomers = customerTotal;
   const calculatedProducts = productPagination.total;
-
   const chartData=useMemo(()=>revenueChartData(reportOrders,reportRange,reportDateRange),[reportOrders,reportRange,reportDateRange]);
-
-  const reportRevenue = reportOrders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
-
+  const reportRevenue = revenue?.summary.totalRevenue??0;
   const handleDownloadRevenueReport = async () => {
     if (reportExportLock.current) return;
     reportExportLock.current = true;
@@ -88,12 +97,13 @@ export const OverviewPage: React.FC = () => {
       const logoResponse = await fetch(brandLogo, { signal: AbortSignal.timeout(15_000) });
       if (!logoResponse.ok) throw new Error('Unable to load report branding');
       const logo = new Uint8Array(await logoResponse.arrayBuffer());
+      const fresh=await orderService.revenue(reportDateRange.from,reportDateRange.to);setRevenue(fresh);
       const generatedAt = new Date();
       const doc = createRevenueReportPdf({
         range: reportDateRange.label, generatedAt, logo,
-        totalRevenue: reportRevenue, paidActiveOrders: reportOrders.length,
-        averageOrderValue: reportOrders.length ? reportRevenue / reportOrders.length : 0,
-        orders: reportOrders,
+        totalRevenue: fresh.summary.totalRevenue, paidActiveOrders: fresh.summary.orderCount,
+        averageOrderValue: fresh.summary.averageOrderValue,
+        orders: fresh.orders,
       });
       doc.save(`revenue-report-${generatedAt.toISOString().slice(0, 10)}.pdf`);
       showSuccess('Revenue report downloaded successfully', { id: toastId });
