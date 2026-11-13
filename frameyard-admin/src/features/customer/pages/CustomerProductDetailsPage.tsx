@@ -36,6 +36,9 @@ const formatPrice = (value: number) => `₹${value.toLocaleString('en-IN')}`;
 /** Mount and glass are stored as codes; these are the names the admin uses for them. */
 const optionLabel = (value?: string | null) => (!value || value === 'NONE' ? 'None' : value.replace(/^OPTION_(\d+)$/, 'Option $1'));
 const hasOption = (value?: string | null) => Boolean(value && value !== 'NONE');
+/** "8 X 10" reads as "8 × 10" in the configurator (display only; the value is unchanged). */
+const sizeLabel = (size: string) => size.replace(/\s*[xX×]\s*/, ' × ');
+const normalizeColor = (value?: string | null) => (value ?? '').trim().toLowerCase();
 
 const CustomerProductDetailsPage: React.FC = () => {
   const reviewLocation = useLocation();
@@ -118,6 +121,25 @@ const CustomerProductDetailsPage: React.FC = () => {
   }), [activeVariants, currentProduct?.availableColors]);
   const effectiveColor = selectedColor || selectedVariant?.color || colors[0] || '';
   const colorOption = resolveColorOption(effectiveColor, colorCatalogue.colors, colorCatalogue.legacyColors);
+
+  // Which options exist with the choices above them, in the rows' order: any size; a finish
+  // made in the chosen size; a mount made in that size and finish; a glass made in that
+  // size, finish and mount. A variant with no colour suits every finish, and a finish no
+  // variant names (a product-level colour) never rules anything out. This only marks options
+  // as unavailable; choosing still goes through chooseVariantValue / chooseColor unchanged.
+  const variantColors = new Set(activeVariants.map((variant) => normalizeColor(variant.color)).filter(Boolean));
+  const fitsColor = (variant: ProductVariant, color: string) => !normalizeColor(variant.color) || !variantColors.has(normalizeColor(color)) || normalizeColor(variant.color) === normalizeColor(color);
+  const inSize = activeVariants.filter((variant) => variant.frameSize === selectedVariant?.frameSize);
+  const inFinish = inSize.filter((variant) => fitsColor(variant, effectiveColor));
+  const inMount = inFinish.filter((variant) => variant.mountType === selectedVariant?.mountType);
+  const finishAvailable = (color: string) => inSize.some((variant) => fitsColor(variant, color));
+  const mountAvailable = (mount: string) => inFinish.some((variant) => variant.mountType === mount);
+  const glassAvailable = (glass: string) => inMount.some((variant) => variant.glassType === glass);
+  const sizeContext = selectedVariant?.frameSize ? `${sizeLabel(selectedVariant.frameSize)} in` : 'this size';
+  const finishContext = [sizeContext, colorOption.name].filter(Boolean).join(', ');
+  const mountContext = [finishContext, hasOption(selectedVariant?.mountType) ? `mount ${optionLabel(selectedVariant?.mountType)}` : 'no mount'].join(', ');
+  const unavailableWith = (context: string) => `not available with ${context}`;
+
   const frameRatio = ratioFromFrameSize(selectedVariant?.frameSize);
   const cropKey = selectedVariant?.frameSize || 'default';
   const croppedImage = photoOwner === slug ? selectVariantPhoto(croppedImages, cropKey, photoSource) : '';
@@ -251,6 +273,9 @@ const CustomerProductDetailsPage: React.FC = () => {
     })),
   ];
 
+  // Size previews share one scale, so the largest size draws largest.
+  const largestSize = Math.max(1, ...frameSizes.map((size) => { const ratio = ratioFromFrameSize(size); return Math.max(ratio.width, ratio.height); }));
+
   const details: Array<[string, string]> = [
     ['Material', currentProduct.material || 'Standard'],
     ['Brand', currentProduct.brandName || 'FrameYaad'],
@@ -297,7 +322,7 @@ const CustomerProductDetailsPage: React.FC = () => {
                 </dl>
               </Accordion>
               {frameSizes.length > 0 && (
-                <Accordion title="FrameYaad size chart" defaultOpen hint={`${frameSizes.length} ${frameSizes.length === 1 ? 'size' : 'sizes'}`}>
+                <Accordion title="FrameYaad size chart" hint={`${frameSizes.length} ${frameSizes.length === 1 ? 'size' : 'sizes'}`}>
                   <SizeChart
                     sizes={frameSizes.map((size) => ({ size, variant: activeVariants.find((item) => item.frameSize === size) }))}
                     selected={selectedVariant?.frameSize}
@@ -331,52 +356,62 @@ const CustomerProductDetailsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Make it yours: the choices in the order a frame is put together. */}
-              <ol className="fy-steps" aria-label="Make it yours">
+              {/* Make it yours: one ruled row per choice, in the order a frame is put together. */}
+              <ul className="fy-cfg" aria-label="Make it yours">
                 {frameSizes.length > 0 && (
-                  <Step n={1} title="Size" value={selectedVariant?.frameSize ? `${selectedVariant.frameSize} in` : ''} done={Boolean(selectedVariant?.frameSize)}>
-                    <div className="fy-pdp__chips">
+                  <ConfigRow title="Size" value={selectedVariant?.frameSize ? `${sizeLabel(selectedVariant.frameSize)} in` : ''}>
+                    <div className="fy-cfg__tiles" role="group" aria-label="Frame size">
                       {frameSizes.map((size) => {
                         const variant = activeVariants.find((item) => item.frameSize === size);
+                        const ratio = ratioFromFrameSize(size);
                         return (
-                          <OptionChip key={size} active={selectedVariant?.frameSize === size} onClick={() => chooseVariantValue('frameSize', size)}>
-                            <span>{size}</span>
-                            <small>{formatPrice(getVariantPricing(variant).currentPrice)}</small>
-                          </OptionChip>
+                          <OptionTile
+                            key={size}
+                            active={selectedVariant?.frameSize === size}
+                            onClick={() => chooseVariantValue('frameSize', size)}
+                            preview={<ConfigGlyph kind="size" width={ratio.width / largestSize} height={ratio.height / largestSize} />}
+                            label={sizeLabel(size)}
+                            detail={formatPrice(getVariantPricing(variant).currentPrice)}
+                          />
                         );
                       })}
                     </div>
-                  </Step>
+                  </ConfigRow>
                 )}
                 {colors.length > 0 && (
-                  <Step n={2} title="Finish" value={colorOption.name} done>
-                    <div className="fy-pdp__swatches">
+                  <ConfigRow title="Finish" value={colorOption.name}>
+                    <div className="fy-cfg__swatches" role="group" aria-label="Frame finish">
                       {colors.map((color) => {
                         const option = resolveColorOption(color, colorCatalogue.colors, colorCatalogue.legacyColors);
+                        const blocked = effectiveColor !== color && !finishAvailable(color);
                         return (
-                          <button key={color} type="button" onClick={() => chooseColor(color)} aria-label={`Finish: ${option.name}`} aria-pressed={effectiveColor === color} title={option.name} className="fy-pdp__swatch">
-                            <ColorSwatch color={color} className="h-8 w-8" />
+                          <button key={color} type="button" onClick={() => chooseColor(color)} disabled={blocked} aria-label={`Finish: ${option.name}${blocked ? `, ${unavailableWith(sizeContext)}` : ''}`} aria-pressed={effectiveColor === color} title={blocked ? `${option.name}: ${unavailableWith(sizeContext)}` : option.name} className="fy-cfg__swatch">
+                            <ColorSwatch color={color} className="h-full w-full" />
                           </button>
                         );
                       })}
                     </div>
-                  </Step>
+                  </ConfigRow>
                 )}
                 {mountTypes.length > 0 && (
-                  <Step n={3} title="Mount" value={optionLabel(selectedVariant?.mountType)} done>
-                    <div className="fy-pdp__chips">
-                      {mountTypes.map((value) => <OptionChip key={value} active={selectedVariant?.mountType === value} onClick={() => chooseVariantValue('mountType', value)}>{optionLabel(value)}</OptionChip>)}
+                  <ConfigRow title="Mount" value={optionLabel(selectedVariant?.mountType)}>
+                    <div className="fy-cfg__tiles" role="group" aria-label="Mount">
+                      {mountTypes.map((value) => (
+                        <OptionTile key={value} active={selectedVariant?.mountType === value} unavailable={selectedVariant?.mountType !== value && !mountAvailable(value) ? unavailableWith(finishContext) : undefined} onClick={() => chooseVariantValue('mountType', value)} preview={<ConfigGlyph kind="mount" on={hasOption(value)} />} label={hasOption(value) ? optionLabel(value) : 'No mount'} />
+                      ))}
                     </div>
-                  </Step>
+                  </ConfigRow>
                 )}
                 {glassTypes.length > 0 && (
-                  <Step n={4} title="Glass" value={optionLabel(selectedVariant?.glassType)} done>
-                    <div className="fy-pdp__chips">
-                      {glassTypes.map((value) => <OptionChip key={value} active={selectedVariant?.glassType === value} onClick={() => chooseVariantValue('glassType', value)}>{optionLabel(value)}</OptionChip>)}
+                  <ConfigRow title="Glass" value={optionLabel(selectedVariant?.glassType)}>
+                    <div className="fy-cfg__tiles" role="group" aria-label="Glass">
+                      {glassTypes.map((value) => (
+                        <OptionTile key={value} active={selectedVariant?.glassType === value} unavailable={selectedVariant?.glassType !== value && !glassAvailable(value) ? unavailableWith(mountContext) : undefined} onClick={() => chooseVariantValue('glassType', value)} preview={<ConfigGlyph kind="glass" on={hasOption(value)} />} label={hasOption(value) ? optionLabel(value) : 'No glass'} />
+                      ))}
                     </div>
-                  </Step>
+                  </ConfigRow>
                 )}
-                <Step n={5} title="Your photo" value={croppedImage ? (needsRecrop ? 'Needs a crop' : 'Added') : 'Optional'} done={Boolean(croppedImage) && !needsRecrop}>
+                <ConfigRow title="Your photo" value={croppedImage ? (needsRecrop ? 'Needs a crop' : 'Added') : 'Optional'}>
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { handleFile(event.target.files?.[0]); event.currentTarget.value = ''; }} />
                   {croppedImage ? (
                     <div className="fy-upload fy-upload--done">
@@ -406,8 +441,8 @@ const CustomerProductDetailsPage: React.FC = () => {
                       <span className="fy-upload__hint">JPG, PNG or WebP. Max file size: {photoMaxMB} MB. You'll crop it to {frameRatio.label}.</span>
                     </button>
                   )}
-                </Step>
-              </ol>
+                </ConfigRow>
+              </ul>
 
               {/* Your frame: the whole order in one line, with its total. */}
               <div className="fy-summary">
@@ -477,23 +512,42 @@ const CustomerProductDetailsPage: React.FC = () => {
   );
 };
 
-/** One choice in "Make it yours": a numbered marker that turns into a tick once it's settled. */
-const Step: React.FC<React.PropsWithChildren<{ n: number; title: string; value?: string; done?: boolean }>> = ({ n, title, value, done = false, children }) => (
-  <li className="fy-step" data-done={done || undefined}>
-    <span className="fy-step__marker" aria-hidden="true">
-      <span className="fy-step__n">{n}</span>
-      <svg viewBox="0 0 16 16" className="fy-step__tick"><path d="M3.5 8.4l2.9 2.9 6-6.3" pathLength="100" /></svg>
-    </span>
-    <div className="fy-step__body">
-      <h2 className="fy-step__title">{title}{value && <span key={value}>{value}</span>}</h2>
-      {children}
-    </div>
+/** One ruled row of "Make it yours": a small caps label, the current choice opposite it, then its options. */
+const ConfigRow: React.FC<React.PropsWithChildren<{ title: string; value?: string }>> = ({ title, value, children }) => (
+  <li className="fy-cfg__row">
+    <h2 className="fy-cfg__head">
+      <span className="fy-cfg__label">{title}</span>
+      {value && <span className="fy-cfg__value">{value}</span>}
+    </h2>
+    {children}
   </li>
 );
 
-const OptionChip: React.FC<React.PropsWithChildren<{ active: boolean; onClick: () => void }>> = ({ active, onClick, children }) => (
-  <button type="button" onClick={onClick} aria-pressed={active} className="fy-pdp__chip">{children}</button>
+/**
+ * One option in a row of joined tiles. Selected inverts to black with white text; the
+ * rest stay white behind hairlines. Only colour and border change, never size or position.
+ */
+const OptionTile: React.FC<{ active: boolean; onClick: () => void; label: string; detail?: string; preview?: React.ReactNode; unavailable?: string }> = ({ active, onClick, label, detail, preview, unavailable }) => (
+  <button type="button" onClick={onClick} aria-pressed={active} disabled={Boolean(unavailable)} title={unavailable} className="fy-cfg__tile">
+    {preview && <span className="fy-cfg__preview" aria-hidden="true">{preview}</span>}
+    <span className="fy-cfg__name">{label}</span>
+    {detail && <span className="fy-cfg__detail">{detail}</span>}
+    {unavailable && <span className="sr-only">, {unavailable}</span>}
+  </button>
 );
+
+/**
+ * A line drawing of what an option does, in the tile's own colour: a size as its true
+ * proportions (on one shared scale), a frame with or without a mount, a pane with or
+ * without glass.
+ */
+const ConfigGlyph: React.FC<{ kind: 'size'; width: number; height: number } | { kind: 'mount' | 'glass'; on: boolean }> = (props) => {
+  if (props.kind === 'size') {
+    const side = (value: number) => `${Math.max(7, Math.round(value * 17))}px`;
+    return <span className="fy-cfg__glyph" style={{ width: side(props.width), height: side(props.height) }} />;
+  }
+  return <span className={`fy-cfg__glyph fy-cfg__glyph--${props.kind}`} data-on={props.on || undefined}><span /></span>;
+};
 
 /**
  * An expandable section. Its open state lives in React, so a re-render never forces it

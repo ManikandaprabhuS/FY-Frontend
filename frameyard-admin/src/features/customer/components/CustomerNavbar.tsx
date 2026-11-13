@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Heart, Menu, ShoppingBag, UserRound } from 'lucide-react';
 
-import fyLogoIcon from '../../../assets/fy-logo-icon.jpeg';
+import fyLogoIcon from '../../../assets/fy-logo-mark.png';
 import { useAuthStore } from '../../../store/authStore';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import { showWarning } from '../../../utils/toast';
@@ -111,13 +111,13 @@ const CustomerNavbar: React.FC = () => {
                 <Menu className="h-[22px] w-[22px]" strokeWidth={1.6} />
               </button>
               <Link to="/" aria-label={`${BRAND_NAME} home`} className="hidden items-center lg:flex">
-                <img src={fyLogoIcon} alt="" className="h-9 w-9 rounded-full object-contain" />
+                <img src={fyLogoIcon} alt="" className="fy-logo-mark h-[30px] w-[30px] object-contain" />
               </Link>
             </div>
 
             {/* Phones: logo and name together in the centre. Desktop: the name alone. */}
             <Link to="/" aria-label={`${BRAND_NAME} home`} className="flex items-center gap-1.5">
-              <img src={fyLogoIcon} alt="" className="fy-nav-overlay__mark h-6 w-6 rounded-full object-contain lg:hidden" />
+              <img src={fyLogoIcon} alt="" className="fy-logo-mark fy-nav-overlay__mark h-5 w-5 object-contain lg:hidden" />
               <span className="fy-display fy-nav-overlay__name fy-nav-wordmark leading-none">{BRAND_NAME}</span>
             </Link>
 
@@ -172,13 +172,13 @@ const CustomerNavbar: React.FC = () => {
               <Menu className="h-[22px] w-[22px]" strokeWidth={1.6} />
             </button>
             <Link to="/" aria-label={`${BRAND_NAME} home`} className="hidden items-center gap-3 lg:flex">
-              <img src={fyLogoIcon} alt="" className="h-9 w-9 rounded-full object-contain" />
+              <img src={fyLogoIcon} alt="" className="fy-logo-mark h-[30px] w-[30px] object-contain" />
               <span className="fy-display fy-nav-wordmark leading-none">{BRAND_NAME}</span>
             </Link>
           </div>
 
           <Link to="/" aria-label={`${BRAND_NAME} home`} className="flex items-center gap-2 lg:hidden">
-            <img src={fyLogoIcon} alt="" className="h-7 w-7 rounded-full object-contain" />
+            <img src={fyLogoIcon} alt="" className="fy-logo-mark h-6 w-6 object-contain" />
             <span className="fy-display fy-nav-wordmark leading-none">{BRAND_NAME}</span>
           </Link>
 

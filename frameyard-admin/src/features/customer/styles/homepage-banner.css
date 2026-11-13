@@ -6,7 +6,8 @@
 .fy-offer-banner__label {font-size:10px;font-weight:800;letter-spacing:.07em;}
 .fy-offer-banner__heading {margin:4px 0 0;font-size:clamp(28px,5cqw,48px);font-weight:800;line-height:1.05;letter-spacing:-.035em;}
 .fy-offer-banner__subtext {margin-top:7px;font-size:clamp(12px,1.5vw,17px);line-height:1.4;}
-.fy-offer-banner__shop {display:inline-flex;min-height:44px;align-items:center;gap:12px;margin-top:12px;padding:8px 18px;border-radius:999px;background:#0b0b0b;color:#fff;font-size:12px;font-weight:700;}
+.fy-offer-banner__shop {display:inline-flex;min-height:44px;align-items:center;gap:12px;margin-top:12px;padding:8px 18px;border-radius:999px;background:#0b0b0b;color:#fff;font-size:12px;font-weight:700;transition:background-color 250ms ease,color 250ms ease,box-shadow 250ms ease;}
+@media(hover:hover){.fy-offer-banner__shop:hover{background:#ffffff;color:#0b0b0b;box-shadow:inset 0 0 0 1px #0b0b0b;}}
 .fy-offer-banner__shop:focus-visible {outline:3px solid #101010;outline-offset:4px;}
 .fy-offer-banner__art {position:absolute;inset:0 0 0 auto;z-index:0;width:48%;height:100%;opacity:.65;}
 .fy-offer-banner::after {content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,transparent 45%,rgba(247,247,246,.5) 64%,transparent 85%);}

@@ -27,7 +27,7 @@
 @media (min-width: 1024px) {
   .fy-pdp__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr); gap: 56px; align-items: start; }
   .fy-pdp__left, .fy-pdp__right { display: block; min-width: 0; }
-  .fy-pdp__about { margin-top: 28px; }
+  .fy-pdp__about { margin-top: 0; }
   .fy-pdp__right .fy-rev { margin-top: 48px; }
 }
 
@@ -35,8 +35,8 @@
 
 .fy-gallery { display: grid; gap: 12px; }
 
-.fy-gallery__stage { --stage-h: 400px; --thumbs-h: 76px; position: relative; height: var(--stage-h); overflow: hidden; background: #f3f2ef; }
-@media (min-width: 640px) { .fy-gallery__stage { --stage-h: 480px; --thumbs-h: 84px; } }
+.fy-gallery__stage { --stage-h: 400px; --thumbs-h: 28px; position: relative; height: var(--stage-h); overflow: hidden; background: #f3f2ef; }
+@media (min-width: 640px) { .fy-gallery__stage { --stage-h: 480px; --thumbs-h: 32px; } }
 @media (min-width: 1024px) { .fy-gallery__stage { --stage-h: clamp(440px, 64vh, 580px); } }
 .fy-gallery__track { height: 100%; }
 
@@ -101,41 +101,53 @@
 
 .fy-gallery__count { position: absolute; right: 16px; top: 26px; z-index: 3; padding: 4px 8px; background: rgba(255, 255, 255, 0.9); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.fy-gallery__thumbs {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  z-index: 3;
+/* All frames: a dropdown under the image, closed by default so the frame stands alone.
+   A slim ruled toggle (label, count, chevron) opens a panel of thumbnails that eases
+   down and wraps into rows; closed, the panel is inert. On wide screens the Description
+   section's top rule sits directly beneath the toggle, so it carries no line of its own;
+   in the stacked (mobile) layout nothing follows it there, so it gets its own. */
+@media (max-width: 1023.98px) { .fy-gallery__drawer { border-bottom: 1px solid var(--color-rule); } }
+.fy-gallery__toggle {
   display: flex;
-  gap: 6px;
-  max-width: calc(100% - 24px);
-  padding: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px -14px rgba(17, 17, 17, 0.4);
-  transform: translateX(-50%);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: left;
 }
-.fy-gallery__thumbs::-webkit-scrollbar { display: none; }
+.fy-gallery__toggle-count { font-weight: 500; color: var(--color-mute); font-variant-numeric: tabular-nums; }
+.fy-gallery__toggle-icon { margin-left: auto; transition: transform 200ms var(--fy-ease-out); }
+.fy-gallery__drawer[data-open] .fy-gallery__toggle-icon { transform: rotate(180deg); }
+@media (hover: hover) { .fy-gallery__toggle:hover > span:first-child { text-decoration: underline; text-underline-offset: 4px; } }
+.fy-gallery__toggle:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+.fy-gallery__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 220ms var(--fy-ease-out); }
+.fy-gallery__drawer[data-open] .fy-gallery__panel { grid-template-rows: 1fr; }
+.fy-gallery__panel-inner { min-height: 0; overflow: hidden; }
+.fy-gallery__thumbs { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 2px 12px; opacity: 0; transition: opacity 180ms ease; }
+.fy-gallery__drawer[data-open] .fy-gallery__thumbs { opacity: 1; }
 
 .fy-gallery__thumb {
   position: relative;
   flex: none;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   overflow: hidden;
   background: #f3f2ef;
-  opacity: 0.55;
-  transition: opacity 250ms, transform 250ms var(--fy-ease-out);
+  opacity: 0.6;
+  transition: opacity 180ms ease;
 }
 .fy-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
-.fy-gallery__thumb::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--color-ink); opacity: 0; transition: opacity 250ms; }
-.fy-gallery__thumb:hover { opacity: 0.9; }
+.fy-gallery__thumb::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--color-ink); opacity: 0; transition: opacity 180ms ease; }
+@media (hover: hover) { .fy-gallery__thumb:hover { opacity: 0.9; } }
 .fy-gallery__thumb[aria-current] { opacity: 1; }
 .fy-gallery__thumb[aria-current]::after { opacity: 1; }
-.fy-gallery__thumb:focus-visible { outline: 2px solid var(--color-ink); outline-offset: -2px; }
-@media (min-width: 640px) { .fy-gallery__thumb { width: 56px; height: 56px; } }
+.fy-gallery__thumb:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+@media (min-width: 640px) { .fy-gallery__thumb { width: 60px; height: 60px; } }
 
 /* A product photo, whole, on the stage (and the in-photo preview when it has an opening). */
 .fy-pdp__photo { position: absolute; inset: 0; }
@@ -171,11 +183,28 @@
     inset -2px -2px 4px rgba(0, 0, 0, 0.3),
     0 3px 5px rgba(17, 17, 17, 0.14),
     0 28px 46px -20px rgba(17, 17, 17, 0.5);
-  transition: padding 550ms var(--fy-ease-out), background-color 450ms ease;
+  /* The colour itself switches once the wash below has swept across, so the wash always
+     travels over the old finish. */
+  transition: padding 550ms var(--fy-ease-out), background-color 1ms linear 660ms;
   animation: fy-studio-hang 700ms var(--fy-ease-out) backwards;
 }
 
+/* A new finish washes across the moulding from left to right, bevel and all. */
+.fy-studio__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--fs-color);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 38%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28), inset 2px 2px 3px rgba(255, 255, 255, 0.25), inset -2px -2px 4px rgba(0, 0, 0, 0.3);
+  animation: fy-studio-wash 640ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+@keyframes fy-studio-wash { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
 .fy-studio__mat {
+  position: relative;
+  z-index: 1;
   padding: var(--fs-mat);
   background: #fbfaf7;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), inset 1px 1px 3px rgba(0, 0, 0, 0.12);
@@ -193,7 +222,9 @@
   transition: width 550ms var(--fy-ease-out), height 550ms var(--fy-ease-out);
 }
 
-.fy-studio__photo { display: block; width: 100%; height: 100%; object-fit: cover; animation: fy-studio-photo 700ms var(--fy-ease-out) backwards; }
+/* A new photo develops into the opening: it rises into view from the bottom edge while it
+   settles from a slight zoom and its colour comes up, like a print being revealed. */
+.fy-studio__photo { display: block; width: 100%; height: 100%; object-fit: cover; animation: fy-studio-develop 1100ms var(--fy-ease-out) backwards; }
 
 .fy-studio__empty {
   display: grid;
@@ -216,16 +247,22 @@
 /* Glass: a soft sheen, and one sweep of light when the glass or the photo changes. */
 .fy-studio__glass { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 400ms; background: linear-gradient(120deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.28) 46%, rgba(255, 255, 255, 0) 60%); background-size: 260% 100%; background-position: 100% 0; }
 .fy-studio[data-glazed] .fy-studio__glass { opacity: 1; animation: fy-studio-sheen 1400ms 250ms var(--fy-ease-out) backwards; }
+/* After a new photo develops, the glass catches the light once. */
+.fy-studio[data-glazed] .fy-studio__glass[data-photo] { animation-delay: 700ms; }
 
 /* Size guides along the top and side, as on the homepage. */
 .fy-studio__dim { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: rgba(17, 17, 17, 0.55); pointer-events: none; }
-.fy-studio__dim span { padding: 0 6px; background: #ebe9e4; }
+.fy-studio__dim span { padding: 0 6px; background: #ebe9e4; animation: fy-pdp-tick 360ms var(--fy-ease-out) backwards; }
 .fy-studio__dim--w { left: 0; right: 0; top: -22px; height: 12px; border-inline: 1px solid rgba(17, 17, 17, 0.3); background: linear-gradient(rgba(17, 17, 17, 0.3), rgba(17, 17, 17, 0.3)) center / 100% 1px no-repeat; }
 .fy-studio__dim--h { top: 0; bottom: 0; left: -24px; width: 12px; border-block: 1px solid rgba(17, 17, 17, 0.3); background: linear-gradient(rgba(17, 17, 17, 0.3), rgba(17, 17, 17, 0.3)) center / 1px 100% no-repeat; }
 .fy-studio__dim--h span { writing-mode: vertical-rl; transform: rotate(180deg); padding: 6px 0; }
 
 @keyframes fy-studio-hang { from { opacity: 0; transform: translate3d(0, -10px, 0); } }
-@keyframes fy-studio-photo { from { opacity: 0; transform: scale(1.06); filter: blur(6px); } }
+@keyframes fy-studio-develop {
+  0% { clip-path: inset(100% 0 0 0); transform: scale(1.08); filter: saturate(0.15) brightness(1.2) blur(3px); animation-timing-function: cubic-bezier(0.55, 0, 0.25, 1); }
+  70% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); transform: none; filter: none; }
+}
 @keyframes fy-studio-sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
 /* Thumbnail for the studio slide: a tiny frame in the selected finish. */
@@ -255,39 +292,6 @@
 .fy-pdp__group { margin-top: 24px; }
 .fy-pdp__group-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; font-size: 14px; font-weight: 700; }
 .fy-pdp__group-title span { font-weight: 400; color: var(--color-mute); animation: fy-pdp-tick 320ms var(--fy-ease-out) backwards; }
-
-.fy-pdp__chips { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.fy-pdp__chip {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 72px;
-  min-height: 48px;
-  padding: 6px 16px;
-  border: 1px solid rgba(17, 17, 17, 0.2);
-  font-size: 14px;
-  font-weight: 600;
-  overflow: hidden;
-  isolation: isolate;
-  transition: color 260ms, border-color 260ms, transform 150ms;
-}
-.fy-pdp__chip small { font-size: 12px; font-weight: 500; opacity: 0.7; }
-/* Selecting fills the chip from the bottom. */
-.fy-pdp__chip::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--color-ink); transform: scaleY(0); transform-origin: bottom; transition: transform 300ms var(--fy-ease-out); }
-.fy-pdp__chip:hover { border-color: var(--color-ink); }
-.fy-pdp__chip:active { transform: scale(0.97); }
-.fy-pdp__chip[aria-pressed='true'] { border-color: var(--color-ink); color: #ffffff; }
-.fy-pdp__chip[aria-pressed='true']::before { transform: scaleY(1); }
-.fy-pdp__chip:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
-
-.fy-pdp__swatches { display: flex; flex-wrap: wrap; gap: 10px; }
-.fy-pdp__swatch { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow 260ms, transform 200ms var(--fy-ease-spring); }
-.fy-pdp__swatch:hover { transform: scale(1.06); }
-.fy-pdp__swatch[aria-pressed='true'] { box-shadow: inset 0 0 0 2px var(--color-ink); }
-.fy-pdp__swatch:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
 
 /* Upload: a drop zone, then the cropped photo with its actions. */
 .fy-upload {
@@ -328,8 +332,8 @@
 .fy-qty span { min-width: 28px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* The shared button, set larger and solid here: this is the page's main action. */
-.fy-cart.fy-pdp__cart { flex: 1; min-height: 52px; margin-top: 0; background: var(--color-ink); color: #ffffff; font-size: 15px; }
-@media (hover: hover) { .fy-cart.fy-pdp__cart[data-state='idle']:hover { background: #2a2a2a; } }
+.fy-cart.fy-pdp__cart { flex: 1; min-height: 52px; margin-top: 0; background: var(--color-ink); color: #ffffff; font-size: 15px; border-color: var(--color-ink); }
+@media (hover: hover) { .fy-cart.fy-pdp__cart[data-state='idle']:hover { background: #ffffff; color: var(--color-ink); } }
 
 .fy-wish.fy-pdp__wish { position: relative; top: auto; right: auto; width: 52px; height: 52px; border: 1px solid rgba(17, 17, 17, 0.25); background: #ffffff; box-shadow: none; }
 .fy-wish.fy-pdp__wish::before { inset: 0; }
@@ -395,9 +399,11 @@
 /* ---------- Reduced motion: still, but every state still changes ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .fy-gallery__slide > *, .fy-studio__frame, .fy-studio__mat, .fy-studio__opening, .fy-pdp__chip::before, .fy-gallery__progress span::after { transition: none; }
+  .fy-gallery__slide > *, .fy-studio__frame, .fy-studio__mat, .fy-studio__opening, .fy-gallery__progress span::after, .fy-cfg__tile, .fy-cfg__swatch { transition: none; }
+  .fy-studio__wash { display: none; }
+  .fy-gallery__panel, .fy-gallery__thumbs, .fy-gallery__toggle-icon { transition: none; }
   .fy-gallery__slide:not([data-active]) > * { opacity: 1; }
-  .fy-studio__frame, .fy-studio__photo, .fy-studio__glass, .fy-pdp__now, .fy-pdp__save, .fy-pdp__group-title span, .fy-upload--done, .fy-pdp__acc-body { animation: none !important; }
+  .fy-studio__frame, .fy-studio__photo, .fy-studio__glass, .fy-studio__dim span, .fy-pdp__now, .fy-pdp__save, .fy-pdp__group-title span, .fy-upload--done, .fy-pdp__acc-body { animation: none !important; }
   .fy-pdp__sticky { transition: none; }
 }
 
@@ -425,21 +431,6 @@
 .fy-pdp__rating-link > span { margin-top: 0; }
 .fy-pdp__head .fy-pdp__price { margin-top: 10px; }
 .fy-pdp__head .fy-pdp__stock { margin-top: 6px; }
-
-/* Make it yours: numbered steps joined by a thin line; each marker turns into a tick. */
-.fy-steps { position: relative; display: grid; gap: 22px; margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--color-rule); }
-.fy-step { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
-.fy-step:not(:last-child)::before { content: ''; position: absolute; left: 13.5px; top: 32px; bottom: -18px; width: 1px; background: var(--color-rule); }
-.fy-step__marker { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgba(17, 17, 17, 0.3); background: #ffffff; font-size: 12px; font-weight: 700; transition: background-color 300ms, border-color 300ms, color 300ms; }
-.fy-step__marker > * { grid-area: 1 / 1; }
-.fy-step__n { transition: opacity 200ms, transform 300ms var(--fy-ease-out); }
-.fy-step__tick { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 420ms 120ms var(--fy-ease-out); }
-.fy-step[data-done] .fy-step__marker { border-color: var(--color-ink); background: var(--color-ink); color: #ffffff; }
-.fy-step[data-done] .fy-step__n { opacity: 0; transform: scale(0.5); }
-.fy-step[data-done] .fy-step__tick { stroke-dashoffset: 0; }
-.fy-step__body { min-width: 0; }
-.fy-step__title { display: flex; align-items: baseline; gap: 10px; min-height: 28px; margin-bottom: 10px; font-size: 14.5px; font-weight: 700; }
-.fy-step__title span { font-weight: 400; color: var(--color-mute); animation: fy-pdp-tick 320ms var(--fy-ease-out) backwards; }
 
 /* Your frame: the order in one line, with its total. */
 .fy-summary { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-top: 26px; padding: 14px; background: #f6f5f2; }
@@ -498,42 +489,37 @@
 .fy-sizes__note { margin-top: 10px; font-size: 12.5px; color: var(--color-mute); }
 
 @media (prefers-reduced-motion: reduce) {
-  .fy-pdp__acc[open] > .fy-pdp__acc-body, .fy-step__title span, .fy-summary__total strong { animation: none; }
-  .fy-step__marker, .fy-step__n, .fy-step__tick, .fy-sizes__frame { transition: none; }
+  .fy-pdp__acc[open] > .fy-pdp__acc-body, .fy-summary__total strong { animation: none; }
+  .fy-sizes__frame { transition: none; }
 }
 
 /* ======================================================================
-   v4: phone polish, and the uploaded photo's green "ready" glow.
+   v4: phone polish, and the uploaded photo's "in your frame" state.
    ====================================================================== */
 
-/* Uploaded: the photo's frame breathes a soft green three times, then keeps a quiet ring;
-   the card's edge turns green with it. */
-.fy-upload--done { border-color: rgba(47, 125, 74, 0.45); box-shadow: inset 3px 0 0 #2f7d4a; }
+/* Uploaded: the photo develops into a small mounted print (a white mat inside a hairline
+   ink ring), and the card's border settles from grey to ink once, as the print does.
+   Black and white only; "In your frame" says what happened, not a colour. */
+.fy-upload--done {
+  border-color: var(--color-ink);
+  box-shadow: none;
+  animation: fy-pdp-tick 420ms var(--fy-ease-out) backwards, fy-upload-settle 600ms ease 300ms backwards;
+}
 .fy-upload--done .fy-upload__thumb {
-  box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(47, 125, 74, 0.55), 0 0 0 10px rgba(47, 125, 74, 0.12);
-  animation: fy-upload-glow 1.6s ease-in-out 3;
+  box-shadow: 0 0 0 5px #ffffff, 0 0 0 6px var(--color-ink);
+  animation: fy-studio-develop 1000ms var(--fy-ease-out) 120ms backwards;
 }
-.fy-upload--done .fy-upload__title { color: #23633a; }
-@keyframes fy-upload-glow {
-  0%, 100% { box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(47, 125, 74, 0.55), 0 0 0 10px rgba(47, 125, 74, 0.12); }
-  50% { box-shadow: 0 0 0 4px #ffffff, 0 0 0 6px rgba(47, 125, 74, 0.9), 0 0 0 18px rgba(47, 125, 74, 0.22), 0 0 28px 8px rgba(47, 125, 74, 0.25); }
-}
-/* A photo that still needs a crop for this size keeps the black edge instead. */
-.fy-upload--done:has([data-emphasis]) { border-color: var(--color-rule); box-shadow: inset 3px 0 0 var(--color-ink); }
-.fy-upload--done:has([data-emphasis]) .fy-upload__thumb { animation: none; box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px rgba(17, 17, 17, 0.2); }
-.fy-upload--done:has([data-emphasis]) .fy-upload__title { color: var(--color-ink); }
+.fy-upload--done .fy-upload__title { color: var(--color-ink); }
+@keyframes fy-upload-settle { from { border-color: var(--color-rule); } }
+/* Room for the print's 6px mat-and-ring on every side (the drop zone's tighter gap must not
+   reach the uploaded card). */
+.fy-upload.fy-upload--done { gap: 18px; padding: 14px; }
+/* A photo that still needs a crop for this size: grey border with a black bar on its
+   left edge, so it reads as "one more step", not done. */
+.fy-upload--done:has([data-emphasis]) { border-color: var(--color-rule); box-shadow: inset 3px 0 0 var(--color-ink); animation: fy-pdp-tick 420ms var(--fy-ease-out) backwards; }
+.fy-upload--done:has([data-emphasis]) .fy-upload__thumb { box-shadow: 0 0 0 5px #ffffff, 0 0 0 6px rgba(17, 17, 17, 0.2); }
 
 @media (max-width: 639.98px) {
-  /* Steps: the marker sits beside the title; the options and the upload card use the full
-     width beneath, lined up with the "Your frame" summary. */
-  .fy-step { grid-template-columns: 28px minmax(0, 1fr); grid-template-areas: 'marker title' 'body body'; column-gap: 12px; }
-  .fy-step:not(:last-child)::before { display: none; }
-  .fy-step__marker { grid-area: marker; }
-  .fy-step__body { display: contents; }
-  .fy-step__title { grid-area: title; align-self: center; margin-bottom: 0; }
-  .fy-step__body > :not(.fy-step__title) { grid-column: 1 / -1; margin-top: 10px; }
-  .fy-steps { gap: 20px; }
-
   /* Buy row: a narrower quantity, Add to cart filling the rest with its label centred. */
   .fy-pdp__buy { gap: 8px; }
   .fy-qty button { width: 34px; height: 52px; }
@@ -578,12 +564,6 @@
 .fy-pdp__now { font-size: 28px; }
 .fy-pdp__head .fy-pdp__stock { margin-top: 2px; }
 
-.fy-steps { gap: 16px; margin-top: 18px; padding-top: 18px; }
-.fy-step:not(:last-child)::before { bottom: -12px; }
-.fy-step__title { margin-bottom: 8px; }
-.fy-pdp__chip { min-height: 44px; padding: 4px 14px; }
-.fy-pdp__swatches { gap: 8px; }
-.fy-pdp__swatch { width: 44px; height: 44px; }
 
 .fy-upload { gap: 4px; padding: 14px 14px 16px; }
 .fy-upload__icon { width: 36px; height: 36px; }
@@ -594,10 +574,6 @@
 .fy-buynow { margin-top: 8px; }
 .fy-pdp__trust { margin-top: 16px; padding-top: 14px; }
 
-@media (max-width: 639.98px) {
-  .fy-steps { gap: 18px; }
-  .fy-step__body > :not(.fy-step__title) { margin-top: 8px; }
-}
 
 /* v6: the sticky bar repeats the page's buy row — quantity, Add to cart, wishlist — under a
    slim line with the total, size and finish. */
@@ -609,3 +585,76 @@
 .fy-pdp__buy--sticky .fy-cart.fy-pdp__cart { max-width: none; margin-left: 0; min-height: 48px; }
 .fy-pdp__buy--sticky .fy-qty button { height: 48px; }
 .fy-pdp__buy--sticky .fy-wish.fy-pdp__wish { width: 48px; height: 48px; }
+
+/* ======================================================================
+   Configurator: "Make it yours" as ruled rows. Each row is a small-caps
+   label with the current choice opposite it, then the options as joined
+   tiles behind shared hairlines. Selected inverts to black on white;
+   hover darkens the border and underlines the name; nothing moves,
+   scales or ticks. Colour and border fade over 180ms.
+   ====================================================================== */
+.fy-cfg { margin-top: 16px; border-top: 1px solid var(--color-rule); }
+.fy-cfg__row { padding: 12px 0 14px; border-bottom: 1px solid var(--color-rule); }
+.fy-cfg__row:last-child { padding-bottom: 0; border-bottom: 0; }
+.fy-cfg__head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.fy-cfg__label { flex: none; font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink); }
+.fy-cfg__value { min-width: 0; overflow: hidden; font-size: 14px; color: var(--color-mute); white-space: nowrap; text-overflow: ellipsis; }
+
+/* Joined tiles: each overlaps its neighbour by 1px so borders are shared, never doubled.
+   Tiles keep a compact width (about 92-115px) and sit left-aligned under the label,
+   rather than stretching across the panel. */
+.fy-cfg__tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); padding: 1px 0 0 1px; }
+.fy-cfg__tile {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 56px;
+  margin: -1px 0 0 -1px;
+  padding: 6px;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+.fy-cfg__name { text-decoration: underline; text-decoration-color: transparent; text-decoration-thickness: 1px; text-underline-offset: 4px; transition: text-decoration-color 180ms ease; }
+.fy-cfg__detail { font-size: 11.5px; font-weight: 500; color: var(--color-mute); transition: color 180ms ease; }
+@media (hover: hover) {
+  .fy-cfg__tile:not([aria-pressed='true'], :disabled):hover { z-index: 1; border-color: var(--color-ink); }
+  .fy-cfg__tile:not([aria-pressed='true'], :disabled):hover .fy-cfg__name { text-decoration-color: currentColor; }
+}
+.fy-cfg__tile[aria-pressed='true'] { z-index: 2; border-color: var(--color-ink); background: var(--color-ink); color: #ffffff; }
+.fy-cfg__tile[aria-pressed='true'] .fy-cfg__detail { color: rgba(255, 255, 255, 0.72); }
+.fy-cfg__tile:focus-visible { z-index: 3; outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.fy-cfg__tile:disabled { background: #fafafa; color: rgba(17, 17, 17, 0.4); cursor: not-allowed; }
+.fy-cfg__tile:disabled .fy-cfg__glyph { opacity: 0.6; }
+.fy-cfg__tile:disabled .fy-cfg__name { text-decoration-line: line-through; text-decoration-color: currentColor; }
+
+/* Previews, drawn in the tile's own colour so they invert with it. */
+.fy-cfg__preview { display: grid; place-items: center; height: 18px; }
+.fy-cfg__glyph { display: block; box-sizing: border-box; border: 1.5px solid currentColor; }
+.fy-cfg__glyph--mount,
+.fy-cfg__glyph--glass { display: grid; width: 22px; height: 16px; padding: 1.5px; }
+/* Mount: the photo fills the frame, or sits inside a visible mat. */
+.fy-cfg__glyph--mount > span { background: currentColor; opacity: 0.24; }
+.fy-cfg__glyph--mount[data-on] { padding: 3px 4px; }
+/* Glass: an open pane, or a pane catching two lines of light. */
+.fy-cfg__glyph--glass[data-on] > span { background: linear-gradient(125deg, transparent 36%, currentColor 37% 46%, transparent 47% 57%, currentColor 58% 62%, transparent 63%); opacity: 0.5; }
+
+/* Finish: square swatches; the chosen one is framed by a thin black line. */
+.fy-cfg__swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.fy-cfg__swatch { position: relative; display: grid; width: 44px; height: 44px; padding: 3px; border: 1px solid transparent; transition: border-color 180ms ease; }
+.fy-cfg__swatch > span { border-radius: 0; border-color: rgba(17, 17, 17, 0.15); box-shadow: none; }
+@media (hover: hover) {
+  .fy-cfg__swatch:not([aria-pressed='true'], :disabled):hover { border-color: rgba(17, 17, 17, 0.35); }
+}
+.fy-cfg__swatch[aria-pressed='true'] { border-color: var(--color-ink); }
+.fy-cfg__swatch:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+/* Unavailable: faded and struck through corner to corner, so it never relies on fading alone. */
+.fy-cfg__swatch:disabled { opacity: 0.4; cursor: not-allowed; }
+.fy-cfg__swatch:disabled::after { content: ""; position: absolute; inset: 3px; background: linear-gradient(to top right, transparent calc(50% - 0.75px), var(--color-ink) calc(50% - 0.75px), var(--color-ink) calc(50% + 0.75px), transparent calc(50% + 0.75px)); }

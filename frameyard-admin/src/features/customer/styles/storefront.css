@@ -121,8 +121,40 @@
   color: var(--fy-nav-fg);
 }
 .fy-nav-overlay[data-header-theme='on-dark'] .fy-nav-overlay__badge { background: #ffffff; color: #111111; }
-/* The logo is a black mark on white; inverted and screened, only a white mark shows. */
-.fy-nav-overlay[data-header-theme='on-dark'] img { filter: invert(1); mix-blend-mode: screen; }
+/* The logo is a transparent black mark and stays black everywhere: no theme, scroll or
+   hover state may tint, invert or fade it. */
+.fy-logo-mark,
+.fy-logo-mark:hover,
+:is(a, button):hover .fy-logo-mark {
+  background: transparent !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+/* ---- Buttons: one black-and-white inverse hover for every storefront button ----
+   Solid black buttons turn white with black text; solid white ones turn black with white
+   text. An inset ring stands in for the border so no button changes size. Disabled,
+   pressed/selected toggles and destructive (red) buttons keep their own styles. Custom CTA
+   classes (.fy-cart, .fy-buynow, .fy-pdp__cart, .fy-price__apply, .fy-offer-banner__shop)
+   follow the same rule in their own stylesheets. The footer's Subscribe button is the one
+   exception: it shares the Follow Us icons' copper hover (see Footer.tsx). */
+:is(.fy-store, .fy-store-portal) :is(button, a[href], [role='button']):is(.bg-black, .bg-ink),
+:is(.fy-store, .fy-store-portal) :is(button, a[href], [role='button']).bg-white:is(.text-black, .text-ink) {
+  transition: background-color 250ms ease, color 250ms ease, box-shadow 250ms ease, transform 150ms ease;
+}
+@media (hover: hover) {
+  :is(.fy-store, .fy-store-portal) :is(button, a[href], [role='button']):is(.bg-black, .bg-ink):not(:disabled, [aria-disabled='true'], [aria-pressed='true'], [aria-selected='true'], [role='tab']):hover {
+    background-color: #ffffff;
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-ink);
+  }
+  :is(.fy-store, .fy-store-portal) :is(button, a[href], [role='button']).bg-white:is(.text-black, .text-ink):not(:disabled, [aria-disabled='true'], [aria-pressed='true'], [aria-selected='true'], [role='tab']):hover {
+    background-color: var(--color-ink);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px #ffffff;
+  }
+}
 
 .fy-nav-overlay {
   --fy-nav-fg: #111111;

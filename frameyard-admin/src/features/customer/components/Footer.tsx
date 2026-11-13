@@ -126,7 +126,7 @@ const Footer: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-[#111827] transition hover:-translate-y-0.5 hover:bg-[#f7f3ef] hover:shadow-[0_18px_40px_rgba(255,255,255,0.12)] disabled:cursor-wait disabled:opacity-60 xl:w-auto"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white bg-white px-5 text-sm font-black text-[#111827] transition not-disabled:hover:scale-[1.04] not-disabled:hover:border-[#c07d42] not-disabled:hover:bg-[#c07d42] not-disabled:hover:text-white not-disabled:hover:shadow-[0_16px_36px_rgba(192,125,66,0.24)] xl:not-disabled:hover:scale-110 disabled:cursor-wait disabled:opacity-60 xl:w-auto"
                 >
                   {submitting ? 'Subscribing...' : 'Subscribe'} <Send className="h-4 w-4" aria-hidden="true" />
                 </button>

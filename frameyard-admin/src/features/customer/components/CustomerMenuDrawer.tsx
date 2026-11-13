@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { CalendarDays, ChevronRight, Heart, MessageCircle, Package, X } from 'lucide-react';
 
-import fyLogoIcon from '../../../assets/fy-logo-icon.jpeg';
+import fyLogoIcon from '../../../assets/fy-logo-mark.png';
 import { BRAND_NAME, STUDIO_PATH } from '../navigation';
 import { ButtonLink } from '../ui/Button';
 
@@ -71,7 +71,7 @@ const CustomerMenuDrawer: React.FC<Props> = ({ open, onClose, onOpenWishlist, wi
       >
         <div className="flex h-[60px] shrink-0 items-center justify-between px-5">
           <span className="flex items-center gap-2.5">
-            <img src={fyLogoIcon} alt="" className="h-8 w-8 rounded-full object-contain" />
+            <img src={fyLogoIcon} alt="" className="fy-logo-mark h-[26px] w-[26px] object-contain" />
             <span className="fy-display text-[20px]">{BRAND_NAME}</span>
           </span>
           <button
