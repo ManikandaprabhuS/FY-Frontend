@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store/authStore';
 import { showWarning } from '../../../utils/toast';
 import CheckoutOffers from '../components/CheckoutOffers';
+import '../styles/checkout.css';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,8 +32,14 @@ const CheckoutPage: React.FC = () => {
     return () => { active = false; };
   }, [checkAuth, navigate]);
 
-  if (checking) return <div className="mx-auto my-12 h-52 max-w-4xl animate-pulse rounded-2xl bg-black/5" />;
-  return <div className="mx-auto my-10 max-w-4xl rounded-2xl border border-black/10 bg-white p-8"><h1 className="text-3xl font-black text-black">Checkout</h1><CheckoutOffers /></div>;
+  if (checking) return (
+    <div className="fy-co fy-co--checking" role="status" aria-label="Preparing checkout">
+      <div className="fy-co-skel fy-co-skel--title" />
+      <div className="fy-co-skel fy-co-skel--steps" />
+      <div className="fy-co-skel fy-co-skel--tall" />
+    </div>
+  );
+  return <CheckoutOffers />;
 };
 
 export default CheckoutPage;

@@ -35,13 +35,14 @@ const AddToCartButton = ({ onAdd, available, label = 'Add to cart', soldOutLabel
       return;
     }
     setCartState('adding');
-    const walk = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 250 : WALK_MS;
+    // The same timing everywhere, reduced motion included: that setting removes the
+    // movement (the walker stands still, in CSS), not the time each state stays readable.
     timers.current.push(
-      window.setTimeout(() => setCartState('added'), walk),
+      window.setTimeout(() => setCartState('added'), WALK_MS),
       window.setTimeout(() => {
         setCartState('idle');
         busy.current = false;
-      }, walk + ADDED_MS),
+      }, WALK_MS + ADDED_MS),
     );
   };
 
@@ -60,7 +61,9 @@ const AddToCartButton = ({ onAdd, available, label = 'Add to cart', soldOutLabel
       <span className="fy-cart__label" aria-hidden={cartState !== 'idle'}>{available ? label : soldOutLabel}</span>
       {cartState === 'adding' && (
         <span className="fy-cart__walk" aria-hidden="true">
-          <Walker />
+          {/* A full-width track carries the walker across in % of the button's width,
+              so it needs no container-query units (unsupported before iOS 16). */}
+          <span className="fy-walker-track"><Walker /></span>
         </span>
       )}
       {cartState === 'added' && <span className="fy-cart__done"><AddedTick />Added</span>}

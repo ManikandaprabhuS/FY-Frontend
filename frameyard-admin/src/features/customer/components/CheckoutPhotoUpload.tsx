@@ -86,16 +86,16 @@ export default function CheckoutPhotoUpload({onChange,onBusy,items=[],maxAllowed
    showSuccess('Photo cleared',{id:'checkout-photo'});
   }catch{showError('Your photo could not be cleared. Please try again.',{id:'checkout-photo'});}
  };
- return <section className="rounded-xl border border-black/10 p-5" aria-labelledby="checkout-photo-title">
-  <h2 id="checkout-photo-title" className="text-lg font-black">Upload your photo (optional)</h2>
-  <p className="mt-2 text-sm text-black/65">Please upload the photo you'd like on your frame. You can skip this and share it with us later, and our team will contact you if needed.</p>
-  {photos.length>1&&<label className="mt-3 block text-sm font-bold">Choose one photo for this order<select disabled={disabled||progress!==null} value={selected} onChange={e=>{setSelected(e.target.value);setSaved(null);}} className="mt-2 min-h-11 w-full rounded border bg-white p-2"><option value="">Choose a photo</option>{photos.map(p=><option key={p.id} value={p.id}>{p.name} — {cart.find(i=>i.key===p.cartKey)?.name??'Your photo'}</option>)}</select></label>}
-  <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const file=e.dataTransfer.files[0];if(file&&!disabled&&progress===null)void choose(file);}} className="mt-4 rounded-lg border border-dashed border-black/25 p-4">
+ return <section className="fy-co-photo" aria-labelledby="checkout-photo-title">
+  <h2 id="checkout-photo-title" className="sr-only">Upload your photo (optional)</h2>
+  <p className="fy-co-hint">Please upload the photo you'd like on your frame. You can skip this and share it with us later, and our team will contact you if needed.</p>
+  {photos.length>1&&<label className="fy-co-photo__choose">Choose one photo for this order<select disabled={disabled||progress!==null} value={selected} onChange={e=>{setSelected(e.target.value);setSaved(null);}} className="fy-co-select"><option value="">Choose a photo</option>{photos.map(p=><option key={p.id} value={p.id}>{p.name} — {cart.find(i=>i.key===p.cartKey)?.name??'Your photo'}</option>)}</select></label>}
+  <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const file=e.dataTransfer.files[0];if(file&&!disabled&&progress===null)void choose(file);}} className="fy-co-drop">
    <input ref={input} aria-label="Choose your order photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled||progress!==null} className="sr-only" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void choose(f);}}/>
-   {preview?<img src={preview} alt="Your locally selected photo" className="mb-3 h-24 w-24 rounded-lg object-contain"/>:<ImagePlus aria-hidden="true" className="mb-2 h-7 w-7"/>}
+   {preview?<img src={preview} alt="Your locally selected photo" className="fy-co-drop__preview"/>:<ImagePlus aria-hidden="true" className="fy-co-drop__icon"/>}
    {(file||saved)&&<p className="break-words text-sm font-bold">{file?.name??saved?.fileName}<span className="block text-xs text-black/60">{((size??0)/1024/1024).toFixed(1)} MB</span></p>}
    {progress!==null&&<p role="status" className="font-bold">Please wait… {progress}%</p>}
-   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={disabled||progress!==null} onClick={()=>input.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-black px-4 text-sm font-bold text-white"><Upload size={16}/>{file||saved?'Replace photo':'Choose photo'}</button>{(photos.length>0||saved)&&<button type="button" disabled={disabled||progress!==null} onClick={()=>void clear()} className="min-h-11 px-3 text-sm font-bold underline">Clear</button>}</div>
+   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={disabled||progress!==null} onClick={()=>input.current?.click()} className="fy-co-btn fy-co-btn--solid fy-co-btn--sm"><Upload size={16}/>{file||saved?'Replace photo':'Choose photo'}</button>{(photos.length>0||saved)&&<button type="button" disabled={disabled||progress!==null} onClick={()=>void clear()} className="fy-co-btn fy-co-btn--quiet fy-co-btn--sm">Clear</button>}</div>
   </div>
   {limitingItem&&<p className="mt-2 text-xs text-black/60">Limit set by {limitingItem.name} ({limitingItem.variant})</p>}
   <p className="mt-2 text-xs text-black/60">One photo per order. JPG, PNG or WebP, up to {maxAllowedMB} MB.</p>

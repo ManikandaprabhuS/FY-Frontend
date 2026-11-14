@@ -16,9 +16,10 @@ const CustomerLayout: React.FC = () => {
   const userId = useAuthStore((state) => state.user?.role === 'CUSTOMER' ? state.user.id : null);
   const loadWishlist = useCustomerCommerceStore((state) => state.loadWishlist);
   const { pathname } = useLocation();
-  // Full-screen pages (log in / sign up) hide the banner, navbar, footer and dock.
+  // Full-screen pages (log in / sign up) hide the banner, navbar and footer. The mobile
+  // dock stays: it is the way around the store on phones (and never shows from 1024px).
   const bare = useStorefrontChrome((state) => state.bare);
-  const showDock = isDockRoute(pathname) && !bare;
+  const showDock = isDockRoute(pathname);
 
 
 
@@ -39,7 +40,7 @@ const CustomerLayout: React.FC = () => {
 
       {/* One footer for every storefront page, at every screen size. */}
       {!bare && <Footer />}
-      {!bare && <MobileDock routeHidden={!showDock} />}
+      <MobileDock routeHidden={!showDock} />
     </div>
   );
 };

@@ -51,6 +51,17 @@ const PhotoToFrameSection: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
+  // The stage is drawn in container units (cqw). iPhones before iOS 16 don't have them, so
+  // there the stage's width is measured and handed to the CSS as --u (one hundredth of it).
+  const stageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || typeof CSS === 'undefined' || CSS.supports('width', '1cqw') || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => stage.style.setProperty('--u', `${entry.contentRect.width / 100}px`));
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+
   // Step one: the empty frame tries on each finish in turn.
   useEffect(() => {
     if (step !== 0 || paused || reducedMotion) return;
@@ -93,7 +104,7 @@ const PhotoToFrameSection: React.FC = () => {
                       <span className="fy-story__step-detail"><span>{item.detail}</span></span>
                     </span>
                     <span className="fy-story__progress" aria-hidden="true">
-                      {active && <span key={step} className="fy-story__fill" data-long={index === 2 || undefined} onAnimationEnd={next} />}
+                      {active && <span key={step} className="fy-story__fill" data-long={index === 2 || undefined} data-motion-timer onAnimationEnd={(event) => { if (event.animationName === 'fy-story-fill') next(); }} />}
                     </span>
                   </button>
                 </li>
@@ -103,7 +114,7 @@ const PhotoToFrameSection: React.FC = () => {
         </div>
 
         {/* The stage: one frame becoming a framed memory. */}
-        <div className="fy-story__stage" data-step={step} aria-hidden="true">
+        <div ref={stageRef} className="fy-story__stage" data-step={step} aria-hidden="true">
           <span className="fy-story__glow" />
           <span className="fy-story__floor" />
 
