@@ -7,6 +7,7 @@ import GlobalAdminSearch from '../components/admin/GlobalAdminSearch';
 import fyLogoIcon from '../assets/fy-logo-icon.jpeg';
 import { 
   XCircle,
+  Trash2,
   LayoutDashboard, 
   Package, 
   ShoppingCart, 
@@ -68,8 +69,7 @@ export const AdminLayout: React.FC = () => {
     { name: 'Wishlists', path: '/admin/wishlists', icon: Heart },
     { name: 'Reviews & Ratings', path: '/admin/reviews', icon: Star },
     { name: 'Offers', path: '/admin/offers', icon: BadgePercent },
-
-
+    { name: 'Photo Cleanup', path: '/admin/photo-cleanup', icon: Trash2 },
     { name: 'Newsletter', path: '/admin/newsletter', icon: Mail },
     { name: 'Appointments', path: '/admin/appointments', icon: CalendarDays },
     { name: 'Notifications', path: '/admin/notifications', icon: Bell },

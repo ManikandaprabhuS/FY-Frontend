@@ -20,6 +20,7 @@ type BackendOrderItem = {
 
 type BackendOrder = import('../types').OrderRefundFields & {
   photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
+  photoDeleted?:boolean;photoDeletedAt?:string|null;photoDeletedBy?:string|null;
   id: string;
   orderNumber: string;
   userId: string;
@@ -109,7 +110,7 @@ const historyFrom=(value:unknown):NonNullable<Order["statusHistory"]>=>Array.isA
  return[{status:e.status,changedAt:e.changedAt,changedBy:{id:by.id,role:by.role},...(typeof e.note==="string"?{note:e.note}:{}),...(typeof e.previousStatus==="string"?{previousStatus:e.previousStatus}:{})}];
 }):[];
 export const normalizeOrder = (order: BackendOrder): Order => ({
-  photoId:order.photoId,photoFileName:order.photoFileName,photoSizeBytes:order.photoSizeBytes,
+  photoId:order.photoId,photoFileName:order.photoFileName,photoSizeBytes:order.photoSizeBytes,photoDeleted:order.photoDeleted,photoDeletedAt:order.photoDeletedAt,photoDeletedBy:order.photoDeletedBy,
   statusHistory:historyFrom(order.statusHistory),
   cancelledBy:order.cancelledBy,cancelledAt:order.cancelledAt,cancellationReason:order.cancellationReason,refundStatus:order.refundStatus,refundInitiatedAt:order.refundInitiatedAt,refundCompletedAt:order.refundCompletedAt,refundUpdatedBy:order.refundUpdatedBy,refundHistory:order.refundHistory,
   id: order.id,
@@ -227,7 +228,7 @@ export const orderService = {
         order.orderStatus,
         String(order.totalAmount),
         order.createdAt,
-        order.photoFileName ? 'Yes' : 'No', order.photoFileName ?? '-',order.refundStatus??'-',order.refundInitiatedAt??'-',order.refundCompletedAt??'-',order.orderStatus==='CANCELLED'?'Excluded from revenue':'Included',
+        order.photoDeleted?'Deleted':order.photoFileName ? 'Yes' : 'No', order.photoFileName ?? '-',order.refundStatus??'-',order.refundInitiatedAt??'-',order.refundCompletedAt??'-',order.orderStatus==='CANCELLED'?'Excluded from revenue':'Included',
       ]),
     ];
     return new Blob([rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(',')).join('\n')], {

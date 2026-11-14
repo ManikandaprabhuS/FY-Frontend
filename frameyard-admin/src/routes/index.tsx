@@ -18,6 +18,7 @@ const ProductDetailsPage = lazy(() => import('../pages/products/ProductDetailsPa
 const OrdersPage = lazy(() => import('../pages/orders/OrdersPage'));
 const CustomersPage = lazy(() => import('../pages/customers/CustomersPage'));
 const CustomerDetailsPage = lazy(() => import('../pages/customers/CustomerDetailsPage'));
+const PhotoCleanupPage = lazy(() => import("../pages/photo-cleanup/PhotoCleanupPage"));
 const OffersPage = lazy(() => import("../pages/offers/OffersPage"));
 const ReviewsPage = lazy(() => import("../pages/reviews/ReviewsPage"));
 const NotificationsPage = lazy(() => import('../pages/notifications/NotificationsPage'));
@@ -106,6 +107,7 @@ export const router = createBrowserRouter([
             element: <WishlistAnalyticsPage />,
           },
           { path: 'offers', element: <OffersPage /> },
+          { path: 'photo-cleanup', element: <PhotoCleanupPage /> },
           {
             path: 'reviews',
             element: <ReviewsPage />,

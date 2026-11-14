@@ -122,6 +122,7 @@ export interface OrderRefundFields {
 }
 export interface Order extends OrderRefundFields {
   photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
+  photoDeleted?:boolean;photoDeletedAt?:string|null;photoDeletedBy?:string|null;
   statusHistory?: OrderStatusHistoryEntry[];
   id: string;
   userId: string;

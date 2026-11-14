@@ -5,6 +5,7 @@ import { getOrderStatusStyle, orderStatusLabel } from '../components/ui/order-st
 export interface RevenueReportItem { productId?: string | null; productIdentifier?: string | null; productName?: string; frameSize?: string; colorName?: string | null; colorHex?: string | null; material?: string | null; quantity: number; price: number | string; subtotal?: number | string }
 export interface RevenueReportOrder {
   refundStatus?:string|null;refundInitiatedAt?:string|null;refundCompletedAt?:string|null;excludedFromRevenue?:boolean;
+  photoDeleted?:boolean;
   photoUploaded?: boolean; photoFileName?: string|null;
   orderItems?: RevenueReportItem[];
   createdAt: string;
@@ -83,7 +84,7 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
     autoTable(doc, {
       startY: ordersBottom + 9, margin: { left: margin, right: margin, top: 16, bottom: 20 },
       head: [['Order ID', 'Photo uploaded', 'Customer photo file name']],
-      body: data.orders.map(order => [order.orderNumber, order.photoUploaded ? 'Yes' : 'No', order.photoFileName || '-']),
+      body: data.orders.map(order => [order.orderNumber, order.photoDeleted?'Deleted':order.photoUploaded ? 'Yes' : 'No', order.photoFileName || '-']),
       theme: 'grid', showHead: 'everyPage', rowPageBreak: 'avoid',
       headStyles: { fillColor: '#111827', textColor: '#ffffff', fontStyle: 'bold' },
       styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', textColor: '#111827' },

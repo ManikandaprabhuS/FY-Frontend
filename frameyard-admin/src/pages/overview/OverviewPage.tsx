@@ -1,3 +1,4 @@
+import StorageWidget from "../../components/admin/StorageWidget";
 import {orderService} from "../../services/order.service";
 import { getStockStatus, normalizeStock } from '../../utils/stock';
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
@@ -156,6 +157,7 @@ export const OverviewPage: React.FC = () => {
         <p className="text-sm text-on-surface-variant">Your store's performance at a glance.</p>
       </div>
 
+      <StorageWidget/>
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard
