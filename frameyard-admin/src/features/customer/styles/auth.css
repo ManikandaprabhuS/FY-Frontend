@@ -1,0 +1,229 @@
+/* ======================================================================
+   Customer log in / sign up, as a page of its own (no storefront chrome).
+   A black doodle ground filled with small frame sketches, the logo top
+   left, one white card: a centered monochrome frame illustration and the
+   form beside it. Desktop fits exactly
+   one screen and never scrolls; tablet stacks; phones turn the figure into
+   a header and the form into a sheet over it. Motion: one entrance, a
+   cross-fade between forms, and the celebration overlay after success.
+   ====================================================================== */
+.fy-auth { --auth-grey: #f3f3f3; --auth-red: #b42318; position: relative; isolation: isolate; overflow: hidden; min-height: 100vh; min-height: 100dvh; padding: 96px 24px 64px; background: #ffffff; color: var(--color-ink); }
+
+/* Retained as harmless layout hooks for older auth themes. */
+.fy-auth__blob { position: absolute; z-index: -1; pointer-events: none; }
+.fy-auth__blob--a { top: -140px; left: -150px; width: 440px; height: 400px; border-radius: 62% 38% 55% 45% / 48% 60% 40% 52%; background: var(--color-ink); }
+.fy-auth__blob--b { top: 48px; right: -90px; width: 300px; height: 260px; border-radius: 45% 55% 38% 62% / 55% 42% 58% 45%; background: #dedede; }
+.fy-auth__blob--c { right: -170px; bottom: -190px; width: 480px; height: 420px; border-radius: 38% 62% 47% 53% / 58% 45% 55% 42%; background: var(--color-ink); }
+
+/* The way home, since the navbar is hidden here. White over the ink shape. */
+.fy-auth__brand { position: absolute; top: 24px; left: 28px; z-index: 3; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--color-ink); font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+.fy-auth__brand img { width: 30px; height: 30px; filter: none; }
+
+/* Quiet repeated frame doodles keep the black ground from feeling empty. */
+.fy-auth__doodle-field { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: .72; }
+.fy-auth__mini-frame { position: absolute; width: 72px; height: 54px; border: 2px solid #555; transform: rotate(-8deg); box-shadow: inset 0 0 0 5px #eeeeee, inset 0 0 0 7px #777; }
+.fy-auth__mini-frame::after { content: ''; position: absolute; inset: 9px; border: 1px solid #303030; }
+.fy-auth__mini-frame:nth-child(3n) { border-color: #aaa; transform: rotate(9deg) scale(.72); }
+.fy-auth__mini-frame:nth-child(4n) { transform: rotate(-15deg) scale(.84); opacity: .62; }
+.fy-auth__mini-frame--1 { top: 9%; left: 5%; }
+.fy-auth__mini-frame--2 { top: 20%; left: 22%; }
+.fy-auth__mini-frame--3 { top: 7%; right: 7%; }
+.fy-auth__mini-frame--4 { top: 32%; right: 18%; }
+.fy-auth__mini-frame--5 { top: 58%; left: 6%; }
+.fy-auth__mini-frame--6 { top: 76%; left: 20%; }
+.fy-auth__mini-frame--7 { top: 85%; right: 7%; }
+.fy-auth__mini-frame--8 { top: 49%; right: 4%; }
+.fy-auth__mini-frame--9 { top: 15%; left: 42%; }
+.fy-auth__mini-frame--10 { top: 67%; left: 43%; }
+.fy-auth__mini-frame--11 { top: 39%; left: 3%; }
+.fy-auth__mini-frame--12 { top: 25%; right: 3%; }
+.fy-auth__mini-frame--13 { top: 90%; left: 4%; }
+.fy-auth__mini-frame--14 { top: 3%; left: 30%; }
+.fy-auth__mini-frame--15 { top: 53%; left: 23%; }
+.fy-auth__mini-frame--16 { top: 45%; right: 24%; }
+.fy-auth__mini-frame--17 { top: 72%; right: 28%; }
+.fy-auth__mini-frame--18 { top: 13%; right: 29%; }
+.fy-auth__mini-frame--19 { top: 89%; left: 34%; }
+.fy-auth__mini-frame--20 { top: 35%; left: 30%; }
+
+.fy-auth__card { position: relative; display: grid; max-width: 1040px; margin: 0 auto; border-radius: 28px; background: #ffffff; box-shadow: 0 40px 90px -40px rgba(17, 17, 17, 0.35); animation: fy-auth-rise 620ms var(--fy-ease-out) both; }
+
+/* The supplied frame doodle sits centered on the black visual panel. */
+.fy-auth__visual { position: relative; min-width: 0; overflow: hidden; background: #000; }
+.fy-auth__figure { position: absolute; left: 50%; top: 50%; display: block; width: min(88%, 620px); height: auto; translate: -50% -50%; overflow: visible; animation: fy-auth-fade 820ms var(--fy-ease-out) 120ms both; }
+
+.fy-auth__body { display: flex; flex-direction: column; min-width: 0; padding: 36px 56px 44px; }
+@media (min-width: 1280px) { .fy-auth__body { padding: 40px 72px 48px; } }
+.fy-auth__rules { position: absolute; top: 24px; right: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; width: 50%; }
+.fy-auth__rule { display: block; height: 2px; background: var(--color-ink); }
+.fy-auth__rule--long { width: 100%; }
+.fy-auth__rule--short { width: 58%; }
+@media (min-width: 1280px) { .fy-auth__rules { top: 28px; right: 0; } }
+
+/* ---------- Desktop: exactly one screen, no scrolling ---------- */
+@media (min-width: 1024px) {
+  .fy-auth { display: grid; place-items: center; height: 100vh; height: 100dvh; min-height: 0; padding: 104px 40px 32px; }
+  .fy-auth__card { width: 100%; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); max-height: calc(100dvh - 136px); min-height: min(600px, calc(100dvh - 136px)); }
+  /* The form starts below the floating pill, so a long one-line heading never runs under it.
+     If errors make it taller than the card on a short screen, it scrolls inside the card;
+     the page itself never scrolls. */
+  .fy-auth__card { grid-template-rows: minmax(0, 1fr); }
+  .fy-auth__body { position: relative; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-top: 36px; }
+  .fy-auth__form { margin-top: 0; }
+  /* Sign up keeps its heading to one line here. */
+  [data-mode='register'] .fy-auth__title span { display: inline; }
+  .fy-auth__visual { border-radius: 28px 0 0 28px; }
+}
+
+/* Mode switch: a corner pill (wider screens) or a two-way control (phones). */
+.fy-auth__corner { display: none; }
+.fy-auth__pill { min-height: 44px; padding: 0 20px; border: 1px solid var(--color-ink); border-radius: 999px; background: #ffffff; font-size: 13.5px; font-weight: 700; color: var(--color-ink); transition: background-color 180ms ease, color 180ms ease; }
+@media (hover: hover) { .fy-auth__pill:hover { background: var(--color-ink); color: #ffffff; } }
+.fy-auth__tabs { display: none; }
+
+.fy-auth__swap { animation: fy-auth-swap 280ms ease both; }
+.fy-auth__form { display: grid; margin-top: 28px; }
+
+.fy-auth__title { font-size: clamp(34px, 3.6vw, 44px); font-weight: 800; line-height: 1.04; letter-spacing: -0.025em; }
+.fy-auth__title span { display: block; font-weight: 400; color: rgba(17, 17, 17, 0.62); }
+.fy-auth__lead { max-width: 42ch; margin-top: 14px; font-size: 15px; line-height: 1.55; color: var(--color-mute); }
+
+.fy-auth__fields { display: grid; gap: 16px; margin-top: 28px; }
+@media (min-width: 480px) { .fy-auth__fields--grid { grid-template-columns: 1fr 1fr; } .fy-auth__span { grid-column: 1 / -1; } }
+
+.fy-auth__field label, .fy-auth__choice legend { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.fy-auth__field label span { font-weight: 400; color: var(--color-mute); }
+.fy-auth__control { position: relative; }
+.fy-auth__control input { width: 100%; min-height: 52px; padding: 0 16px; border: 1px solid transparent; border-radius: 12px; background: var(--auth-grey); font-size: 16px; color: var(--color-ink); outline: none; transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+.fy-auth__control:has(.fy-auth__reveal) input { padding-right: 54px; }
+.fy-auth__control input:hover { border-color: #d4d4d4; }
+.fy-auth__control input:focus { border-color: var(--color-ink); background: #ffffff; box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08); }
+.fy-auth__field[data-invalid] input { border-color: var(--auth-red); background: #fff8f7; }
+.fy-auth__reveal { position: absolute; top: 50%; right: 4px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: var(--color-mute); transform: translateY(-50%); transition: color 160ms ease, background-color 160ms ease; }
+.fy-auth__reveal svg { width: 18px; height: 18px; }
+@media (hover: hover) { .fy-auth__reveal:hover { background: #ebebeb; color: var(--color-ink); } }
+.fy-auth__hint { margin-top: 6px; font-size: 12.5px; color: var(--color-mute); }
+.fy-auth__error { margin-top: 6px; font-size: 12.5px; font-weight: 600; color: var(--auth-red); animation: fy-auth-fade 160ms ease both; }
+
+.fy-auth__choice { min-width: 0; margin: 0; padding: 0; border: 0; }
+.fy-auth__choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fy-auth__choice-option { position: relative; display: block; cursor: pointer; }
+.fy-auth__choice-option input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.fy-auth__choice-option span { display: grid; place-items: center; min-height: 52px; border: 1px solid #d4d4d4; border-radius: 12px; font-size: 14.5px; font-weight: 600; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+@media (hover: hover) { .fy-auth__choice-option:hover span { border-color: var(--color-ink); } }
+.fy-auth__choice-option input:checked + span { border-color: var(--color-ink); background: var(--color-ink); color: #ffffff; }
+.fy-auth__choice-option input:focus-visible + span { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.fy-auth__choice[aria-invalid] .fy-auth__choice-option span { border-color: var(--auth-red); }
+
+.fy-auth__forgot { display: flex; justify-content: flex-end; }
+.fy-auth__forgot a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13.5px; font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+
+.fy-auth__alert { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px 14px; border: 1px solid #f1c0bb; border-radius: 12px; background: #fef3f2; font-size: 13.5px; font-weight: 600; line-height: 1.45; color: var(--auth-red); animation: fy-auth-fade 200ms ease both; }
+.fy-auth__alert svg { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+
+.fy-auth__submit { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; margin-top: 18px; border-radius: 12px; background: var(--color-ink); font-size: 15px; font-weight: 700; color: #ffffff; transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+.fy-auth__submit svg { width: 18px; height: 18px; }
+@media (hover: hover) { .fy-auth__submit:not(:disabled):hover { background: #ffffff; color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-ink); } }
+.fy-auth__submit:disabled { cursor: progress; opacity: 0.78; }
+.fy-auth__spin { animation: fy-auth-spin 800ms linear infinite; }
+
+.fy-auth__alt { margin-top: 20px; font-size: 14px; color: var(--color-mute); text-align: center; }
+.fy-auth__alt button { min-height: 44px; font-weight: 700; color: var(--color-ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+
+.fy-auth :is(a, button):focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+/* ---------- Tablet: the doodle stands above the form ---------- */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  .fy-auth { padding: 150px 32px 64px; }
+  .fy-auth__card { max-width: 640px; }
+  .fy-auth__visual { height: 300px; border-bottom: 1px solid #222; }
+  .fy-auth__figure { width: 310px; }
+  .fy-auth__body { padding: 28px 40px 44px; }
+  .fy-auth__rules { display: none; }
+}
+
+/* ---------- Phones: the doodle as a header, the form a sheet over it ---------- */
+@media (max-width: 639.98px) {
+  .fy-auth { padding: 0; background: #ffffff; }
+  .fy-auth__brand { top: 12px; left: 16px; color: var(--color-ink); font-size: 18px; }
+  .fy-auth__brand img { width: 26px; height: 26px; filter: none; }
+  .fy-auth__blob--b, .fy-auth__blob--c { display: none; }
+  .fy-auth__blob--a { top: 40px; left: auto; right: -120px; width: 280px; height: 260px; z-index: 0; }
+  .fy-auth__card { border-radius: 0; background: transparent; box-shadow: none; animation: none; }
+  .fy-auth__visual { height: 175px; overflow: hidden; background: #ffffff; }
+  .fy-auth__figure { --frame-doodle-bg: #ffffff; top: 72%; width: 170px; z-index: 1; animation: fy-auth-fade 600ms ease both; }
+  .fy-auth__body { position: relative; z-index: 2; margin-top: -12px; padding: 20px 20px 36px; border-radius: 28px 28px 0 0; background: #ffffff; animation: fy-auth-rise 560ms var(--fy-ease-out) 80ms both; }
+  .fy-auth__corner { display: none; }
+  .fy-auth__rules { display: none; }
+  .fy-auth__tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--auth-grey); }
+  .fy-auth__tabs button { min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 700; color: var(--color-mute); transition: background-color 180ms ease, color 180ms ease; }
+  .fy-auth__tabs button[aria-pressed='true'] { background: var(--color-ink); color: #ffffff; }
+  .fy-auth__form { margin-top: 24px; }
+  .fy-auth__title { font-size: 32px; }
+  .fy-auth__lead { font-size: 14.5px; }
+  .fy-auth__fields { margin-top: 22px; }
+}
+
+/* ---------- Shorter desktop screens: tighten the form so it still fits without scrolling ---------- */
+@media (min-width: 1024px) and (max-height: 960px) {
+  .fy-auth { padding-bottom: 24px; }
+  .fy-auth__card { max-height: calc(100dvh - 128px); min-height: min(600px, calc(100dvh - 128px)); }
+  .fy-auth__body { padding-top: 70px; padding-bottom: 24px; }
+  .fy-auth__corner { top: 18px; }
+  .fy-auth__title { font-size: 34px; }
+  .fy-auth__lead { margin-top: 8px; font-size: 14px; }
+  .fy-auth__fields { gap: 12px; margin-top: 18px; }
+  .fy-auth__control input, .fy-auth__choice-option span { min-height: 46px; }
+  .fy-auth__submit { min-height: 48px; margin-top: 12px; }
+  .fy-auth__alt { margin-top: 8px; }
+  [data-mode='register'] .fy-auth__lead, [data-mode='register'] .fy-auth__hint { display: none; }
+}
+@media (min-width: 1024px) and (max-height: 720px) {
+  .fy-auth__title { font-size: 30px; }
+  .fy-auth__fields { gap: 10px; margin-top: 14px; }
+  .fy-auth__field label, .fy-auth__choice legend { margin-bottom: 4px; }
+  .fy-auth__control input, .fy-auth__choice-option span { min-height: 44px; }
+  .fy-auth__lead { display: none; }
+}
+
+@keyframes fy-auth-rise { from { opacity: 0; transform: translate3d(0, 18px, 0); } }
+@keyframes fy-auth-slide { from { opacity: 0; transform: translate3d(-22px, 0, 0); } }
+@keyframes fy-auth-swap { from { opacity: 0; transform: translate3d(0, 8px, 0); } }
+@keyframes fy-auth-fade { from { opacity: 0; } }
+@keyframes fy-auth-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Celebration overlay ---------- */
+.fy-celebrate { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 24px; background: #ffffff; color: var(--color-ink); text-align: center; animation: fy-auth-fade 260ms ease both; transition: opacity 320ms ease; }
+.fy-celebrate[data-leaving] { opacity: 0; }
+.fy-celebrate__welcome, .fy-celebrate__created { display: grid; justify-items: center; max-width: 440px; }
+.fy-celebrate__mark { width: 56px; height: 56px; animation: fy-celebrate-in 520ms var(--fy-ease-out) both; }
+.fy-celebrate__rule { display: block; width: 64px; height: 2px; margin: 22px 0 20px; background: var(--color-ink); transform-origin: center; animation: fy-celebrate-rule 520ms var(--fy-ease-out) 240ms both; }
+.fy-celebrate__title { font-size: clamp(28px, 4vw, 38px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; animation: fy-auth-rise 520ms var(--fy-ease-out) 360ms both; }
+.fy-celebrate__sub { margin-top: 10px; font-size: 15px; line-height: 1.5; color: var(--color-mute); animation: fy-auth-rise 520ms var(--fy-ease-out) 480ms both; }
+.fy-celebrate__sub strong { color: var(--color-ink); }
+
+/* Account created: the frame draws itself, then the portrait develops inside it. */
+.fy-celebrate__frame { position: relative; width: 176px; height: 220px; margin-bottom: 28px; animation: fy-celebrate-hang 1400ms ease 1000ms both; }
+.fy-celebrate__outline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fy-celebrate__outline rect { fill: none; stroke: var(--color-ink); stroke-width: 8; stroke-dasharray: 100; stroke-dashoffset: 100; animation: fy-celebrate-draw 900ms cubic-bezier(0.65, 0, 0.35, 1) 150ms forwards; }
+.fy-celebrate__opening { position: absolute; inset: 18px; overflow: hidden; background: var(--auth-grey, #f3f3f3); box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.12); }
+.fy-celebrate__opening { background: #ffffff; }
+.fy-celebrate__figure { display: block; width: 100%; height: 100%; animation: fy-celebrate-develop 1000ms var(--fy-ease-out) 950ms both; }
+.fy-celebrate[data-kind='created'] .fy-celebrate__title { animation-delay: 1500ms; }
+.fy-celebrate[data-kind='created'] .fy-celebrate__sub { animation-delay: 1620ms; }
+.fy-celebrate__action { max-width: 260px; margin-top: 24px; animation: fy-auth-rise 520ms var(--fy-ease-out) 1700ms both; }
+
+@keyframes fy-celebrate-in { from { opacity: 0; transform: scale(0.94); } }
+@keyframes fy-celebrate-rule { from { transform: scaleX(0); } }
+@keyframes fy-celebrate-draw { to { stroke-dashoffset: 0; } }
+@keyframes fy-celebrate-develop {
+  0% { clip-path: inset(100% 0 0 0); transform: scale(1.08); filter: brightness(1.25) blur(3px); }
+  70% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); transform: none; filter: none; }
+}
+@keyframes fy-celebrate-hang { to { filter: drop-shadow(0 22px 26px rgba(17, 17, 17, 0.22)); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-auth *, .fy-auth, .fy-celebrate, .fy-celebrate * { animation: none !important; transition: none !important; }
+  .fy-celebrate__outline rect { stroke-dashoffset: 0; }
+}

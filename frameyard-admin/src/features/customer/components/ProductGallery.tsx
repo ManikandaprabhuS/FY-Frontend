@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export type GallerySlide = {
   key: string;
@@ -18,12 +18,13 @@ type ProductGalleryProps = {
 /**
  * The product gallery: a horizontal track that snaps slide to slide. Touch and trackpad swipe
  * come from native scrolling; arrows, thumbnails and the keyboard (← →) move it too. A
- * segmented bar along the top shows where you are.
+ * segmented bar along the top shows where you are. The thumbnails live in a dropdown under
+ * the image, closed by default, so the frame image stands alone.
  */
 const ProductGallery = ({ slides, jump }: ProductGalleryProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  const thumbsRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  const [thumbsOpen, setThumbsOpen] = useState(false);
   const count = slides.length;
 
   const goTo = useCallback((next: number, smooth = true) => {
@@ -56,14 +57,6 @@ const ProductGallery = ({ slides, jump }: ProductGalleryProps) => {
   useEffect(() => {
     if (jump) goTo(jump.index);
   }, [jump, goTo]);
-
-  // Keep the active thumbnail in view in the strip.
-  useEffect(() => {
-    // Scrolls only the strip, sideways — never the page.
-    const strip = thumbsRef.current;
-    const thumb = strip?.children[index] as HTMLElement | undefined;
-    if (strip && thumb) strip.scrollTo({ left: thumb.offsetLeft - (strip.clientWidth - thumb.offsetWidth) / 2, behavior: 'smooth' });
-  }, [index]);
 
   // Mouse and pen drag (touch already swipes natively): follow the pointer, then settle on
   // the next or previous slide once the drag passes a short threshold.
@@ -154,24 +147,42 @@ const ProductGallery = ({ slides, jump }: ProductGalleryProps) => {
             <p className="fy-gallery__count" aria-live="polite">{current + 1} / {count}</p>
           </>
         )}
-        {count > 1 && (
-          <div ref={thumbsRef} className="fy-gallery__thumbs">
-            {slides.map((slide, position) => (
-              <button
-                key={slide.key}
-                type="button"
-                className="fy-gallery__thumb"
-                aria-label={`Show ${slide.label}`}
-                aria-current={position === current || undefined}
-                onClick={() => goTo(position)}
-              >
-                {slide.thumb}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
+      {/* All frames: a dropdown under the image, closed by default. */}
+      {count > 1 && (
+        <div className="fy-gallery__drawer" data-open={thumbsOpen || undefined}>
+          <button
+            type="button"
+            className="fy-gallery__toggle"
+            aria-expanded={thumbsOpen}
+            aria-controls="fy-gallery-thumbs"
+            onClick={() => setThumbsOpen((open) => !open)}
+          >
+            <span>All frames</span>
+            <span className="fy-gallery__toggle-count">{count}</span>
+            <ChevronDown className="fy-gallery__toggle-icon h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <div className="fy-gallery__panel" id="fy-gallery-thumbs" inert={!thumbsOpen || undefined}>
+            <div className="fy-gallery__panel-inner">
+              <div className="fy-gallery__thumbs">
+                {slides.map((slide, position) => (
+                  <button
+                    key={slide.key}
+                    type="button"
+                    className="fy-gallery__thumb"
+                    aria-label={`Show ${slide.label}`}
+                    aria-current={position === current || undefined}
+                    onClick={() => goTo(position)}
+                  >
+                    {slide.thumb}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -13,12 +13,14 @@ const steps = [
 /** Four finishes (the hero's black, walnut and grey, plus sandal gold); the empty frame tries them on in step one. */
 const finishes = ['black', 'walnut', 'grey', 'sandal'] as const;
 
+/** Playback speed of the whole story: 1.5 runs it half again as fast as the original timing. */
+const PLAYBACK_RATE = 1.5;
 /** How long each step stays before the story moves on (the progress bar fills over it). */
-const STEP_MS = 4200;
+const STEP_MS = Math.round(4200 / PLAYBACK_RATE);
 /** Step three runs longer: the framed photo is shown, packed, and driven away. */
-const SHIP_MS = 6400;
+const SHIP_MS = Math.round(6400 / PLAYBACK_RATE);
 /** How often the empty frame changes finish while it is being "chosen". */
-const FINISH_MS = 900;
+const FINISH_MS = Math.round(900 / PLAYBACK_RATE);
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
@@ -29,17 +31,17 @@ const prefersReducedMotion = () =>
  * around it. Step two: a phone slides in and the chosen photo flies from its screen into
  * the mount. Step three: the finished piece hangs on a lit wall, then
  * is packed in a box and driven away on a truck.
- * The story plays on its own while on screen (pausing on hover), and each step can be
- * picked directly.
+ * The story loops on its own, continuously, whenever it is on screen. Hovering never pauses
+ * it; it only rests while scrolled out of view, so it does not run unseen. Each step can
+ * still be picked directly.
  */
 const PhotoToFrameSection: React.FC = () => {
   const ref = useRef<HTMLElement>(null);
   const [step, setStep] = useState(0);
   const [finish, setFinish] = useState(0);
-  const [hovered, setHovered] = useState(false);
   const [inView, setInView] = useState(false);
   const [reducedMotion] = useState(prefersReducedMotion);
-  const paused = hovered || !inView;
+  const paused = !inView;
 
   useEffect(() => {
     const node = ref.current;
@@ -67,8 +69,6 @@ const PhotoToFrameSection: React.FC = () => {
       data-paused={paused || undefined}
       data-static={reducedMotion || undefined}
       style={{ '--step-ms': `${STEP_MS}ms`, '--ship-ms': `${SHIP_MS}ms` } as React.CSSProperties}
-      onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
-      onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false); }}
     >
       <div className="fy-story__layout">
         <div className="fy-story__intro">

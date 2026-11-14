@@ -49,7 +49,7 @@ const CustomerWishlistDrawer: React.FC<Props> = ({ open, onClose }) => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[250]" role="dialog" aria-modal="true" aria-labelledby="customer-wishlist-title">
+    <div className="fy-store-portal fixed inset-0 z-[250]" role="dialog" aria-modal="true" aria-labelledby="customer-wishlist-title">
       <button type="button" aria-label="Close wishlist" onClick={onClose} className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-[-18px_0_55px_rgba(0,0,0,0.18)]">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-black/10 px-5">
