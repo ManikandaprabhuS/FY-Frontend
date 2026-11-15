@@ -228,3 +228,11 @@
   .fy-rd__backdrop, .fy-rd__panel, .fy-rf__star-icon, .fy-rf__word, .fy-rev__drop[open] > .fy-rev__panel { animation: none !important; }
   .fy-rf__star, .fy-rd__close { transition: none; }
 }
+
+/* "Write a review" on order pages: a quiet text button that opens the review dialog in place. */
+.fy-oir { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: 12.5px; font-weight: 600; color: #111111; text-decoration: underline; text-underline-offset: 3px; -webkit-tap-highlight-color: transparent; }
+.fy-oir svg { width: 14px; height: 14px; flex: none; }
+.fy-oir:active { opacity: 0.6; }
+.fy-oir:focus-visible { outline: 2px solid #111111; outline-offset: 2px; }
+.fy-oir.fy-oir--done { gap: 0; font-weight: 500; color: #777777; text-decoration: none; animation: fy-rd-fade 260ms ease both; }
+@media (pointer: coarse) { .fy-oir { min-height: 44px; } }

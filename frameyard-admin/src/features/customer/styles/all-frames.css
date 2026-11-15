@@ -682,17 +682,27 @@
   background: rgba(255, 255, 255, 0.22);
 }
 
-.fy-walker {
+/* A track as wide as the button slides from one full width left (the walker, sitting near
+   its right end, starts just off the left edge) to 28px right (the walker leaves past the
+   right edge). Percentages here are of the track, i.e. the button: no container units. */
+.fy-walker-track {
   position: absolute;
   left: 0;
   bottom: 9px;
-  color: #ffffff;
+  width: 100%;
+  height: 24px;
   animation: fy-walk-across 950ms linear forwards;
+}
+.fy-walker {
+  position: absolute;
+  left: calc(100% - 24px);
+  bottom: 0;
+  color: #ffffff;
 }
 
 @keyframes fy-walk-across {
-  from { transform: translateX(-24px); }
-  to { transform: translateX(calc(100cqw + 4px)); }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(28px); }
 }
 
 /* Legs and the bag arm swing on a short cycle; the body bobs. */
@@ -767,6 +777,8 @@
   .fy-frame-loader * { animation: none !important; stroke-dashoffset: 0; opacity: 0.8; }
   .fy-card:hover .fy-card__img { transform: none; }
   .fy-wish__heart, .fy-wish__ring, .fy-cart__done, .fy-check__box svg, .fy-tick, .fy-tick * { animation: none !important; transition: none; }
-  .fy-walker { animation: none; left: 50%; transform: translateX(-50%); }
+  /* The walker stands still in the middle; the states keep their usual timing. */
+  .fy-walker-track { animation: none !important; transform: none; }
+  .fy-walker { left: 50%; transform: translateX(-50%); }
   .fy-walker * { animation: none !important; }
 }

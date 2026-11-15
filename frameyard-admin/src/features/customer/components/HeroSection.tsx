@@ -163,31 +163,56 @@ type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
-/** Slide 2: the video set in the admin (Settings → Homepage). Plays, looping, only while showing. */
+/**
+ * Slide 2: the video set in the admin (Settings → Homepage). Plays, looping, only while showing.
+ * iOS Safari only autoplays a video that is muted *and* inline, and checks the muted state at
+ * play() time; React sets `muted` as a property only, so it is set (and the attribute added)
+ * before every play. When iOS still refuses (Low Power Mode blocks all autoplay), the slide
+ * keeps the video's first frame (the #t= fragment makes iOS draw it without playing) and a
+ * tap on it starts playback, which a user gesture is always allowed to do.
+ */
 const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onFailed: () => void }> = ({ video, playing, onFailed }) => {
   const ref = useRef<HTMLVideoElement>(null);
+
+  const start = useCallback((element: HTMLVideoElement) => {
+    element.muted = true;
+    element.defaultMuted = true;
+    element.setAttribute('muted', '');
+    // A blocked autoplay rejects with NotAllowedError; the still first frame stays up.
+    element.play().catch(() => undefined);
+  }, []);
+
+  // Muted from the start, attribute included, as iOS reads it when it first loads the video.
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    element.muted = true;
+    element.defaultMuted = true;
+    element.setAttribute('muted', '');
+  }, []);
 
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
     if (playing) {
-      element.currentTime = 0;
-      element.play().catch(() => undefined);
+      try { element.currentTime = 0; } catch { /* not seekable yet: it starts from 0 anyway */ }
+      start(element);
     } else {
       element.pause();
     }
-  }, [playing]);
+  }, [playing, start]);
 
   return (
     <video
       ref={ref}
       className="fy-hero__video"
-      src={video.url}
+      src={`${video.url}#t=0.001`}
       muted
       playsInline
       loop
       preload="metadata"
       onError={onFailed}
+      onClick={(event) => { if (playing && event.currentTarget.paused) start(event.currentTarget); }}
       aria-label="FrameYaad frames at home"
     />
   );

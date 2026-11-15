@@ -67,8 +67,12 @@
   animation: fy-item-in 420ms var(--fy-ease-out) both;
 }
 
+/* Reduced motion (on by default for many iPhone owners): animations and transitions settle
+   at once. Elements marked data-motion-timer are left alone: they keep time (a progress
+   bar whose end moves a story on), and squeezing them to 1ms would make that content race
+   or, if switched off, never move at all. */
 @media (prefers-reduced-motion: reduce) {
-  .fy-store *,
+  .fy-store *:not([data-motion-timer]),
   .fy-store *::before,
   .fy-store *::after {
     animation-duration: 1ms !important;

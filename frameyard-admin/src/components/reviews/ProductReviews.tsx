@@ -143,7 +143,7 @@ export default function ProductReviews({ productId, productName, productImage, i
  * the right; on phones a sheet that rises from the bottom. Escape or the backdrop closes it,
  * the page behind stays still, and focus starts on the stars and returns afterwards.
  */
-function ReviewDialog({ productName, productImage, onClose, children }: React.PropsWithChildren<{ productName?: string; productImage?: string; onClose: () => void }>) {
+export function ReviewDialog({ productName, productImage, onClose, children }: React.PropsWithChildren<{ productName?: string; productImage?: string; onClose: () => void }>) {
   const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;

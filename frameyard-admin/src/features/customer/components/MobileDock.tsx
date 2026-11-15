@@ -217,16 +217,24 @@ const MobileDock: React.FC<{ routeHidden?: boolean }> = ({ routeHidden = false }
   }, []);
 
   const hidden = routeHidden || scrollHidden;
+  // Lets bars that sit above the dock (the cart's checkout bar) drop down when it tucks away.
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-dock-tucked', hidden);
+    return () => document.documentElement.removeAttribute('data-dock-tucked');
+  }, [hidden]);
   const BubbleIcon = bubbleItem === null ? null : dockItems[bubbleItem].icon;
   const featuredSeated = seated === FEATURED_INDEX;
 
   return (
-    <div className="fy-dock-enter fixed inset-x-0 bottom-0 z-[90] lg:hidden">
+    // The wrapper only positions the dock; it never takes taps itself. When the dock slides
+    // away (on routes like the product page, or while scrolling) the empty wrapper stays in
+    // place, and it must not block what's beneath it, such as the product page's buy bar.
+    <div className="fy-dock-enter pointer-events-none fixed inset-x-0 bottom-0 z-[90] lg:hidden">
       <nav
         aria-label="Quick navigation"
         aria-hidden={routeHidden || undefined}
         inert={routeHidden}
-        className={`transition-transform duration-500 ease-[var(--fy-ease-out)] ${hidden ? 'pointer-events-none translate-y-[calc(100%+12px)]' : 'translate-y-0'}`}
+        className={`transition-transform duration-500 ease-[var(--fy-ease-out)] ${hidden ? 'pointer-events-none translate-y-[calc(100%+12px)]' : 'pointer-events-auto translate-y-0'}`}
       >
         <div ref={barRef} className="relative" style={{ height: EDGE + BAR }}>
           <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible drop-shadow-[0_-6px_18px_rgba(17,17,17,0.08)]" aria-hidden="true">
