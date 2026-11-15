@@ -728,3 +728,44 @@ Verification:
 - Disposable component fixture checked at 320px, 768px and 1440px: readable cards/table/widget, full-width mobile search, no document overflow and no console errors.
 - Destructive storage calls were tested with mocks only. Real-file deletion and authenticated end-to-end deletion should be verified by you with a disposable photo after downloading anything needed.
 - The temporary verification server was stopped; the backend remains stopped to avoid duplicate port-5000 processes.
+
+## Homepage banner login and loading fix (15 November 2026)
+
+Cause: the public banner used strict optional authentication, so an expired token could reject the request; the frontend also cleared the banner on request errors and replaced it with a skeleton whenever auth changed.
+Fix: banner-only tolerant authentication treats invalid credentials as guest; existing protected APIs stay strict. The frontend retains the last successful banner through auth checking, login/logout, and failed refreshes.
+
+- Added GET /api/v1/home/banner/public for public settings only, with Cache-Control: public, max-age=30, stale-while-revalidate=60. Personalized GET /api/v1/home/banner remains private, no-store. The existing 30-second in-memory cache never stores eligibility and still invalidates on admin offer/banner/image changes.
+- FIRST_ORDER eligibility is one parameterized normalized email/phone history query. Accounts alone do not count; positive-value real orders do. Real cancelled orders continue counting as history, preserving the existing checkout anti-abuse policy. Failed/abandoned statuses and zero-value records do not count for this informational banner. Checkout rules and historical orders are unchanged.
+- BIG_ORDER bypasses token validation and order-history queries entirely. Invalid/expired tokens and auth-provider errors on this informational endpoint are treated as guests.
+- App bootstrap starts loading before React renders the hero. Public content is cached in sessionStorage (24-hour maximum stale fallback), revalidated in the background, and never replaced with an error result. Identity changes trigger fresh eligibility; stale responses are ignored. One silent retry handles request failures. Auth-checking changes do not hide or refetch the banner.
+- Public banner images now preload with high priority and render eagerly with fixed dimensions; admin preview remains lazy. Existing object-fit/crop/fallback behavior is unchanged. Existing JPEG/PNG uploads are NOT automatically converted to WebP by this patch; no image-processing dependency or stored image rewrite was introduced.
+- Validation: frontend production build and changed-file lint passed; backend TypeScript and changed-file lint passed. 16 backend banner tests, 4 relevant existing frontend banner tests, and 5 new cache/state regression tests passed.
+- Read-only real-database measurements: cold public configuration 731.68 ms; 30 warm cached calls mean 0.0038 ms, max 0.0244 ms; normalized history query 107.70 ms. These are service/query timings, not full HTTP or browser timings, and exclude Supabase token verification. No valid customer access token was supplied, so live authenticated HTTP/Slow 3G/mobile layout and token-verification latency remain to be tested. The under-100-ms authenticated endpoint target is not claimed.
+- No database schema, customer/order data, checkout discount rules, or unrelated UI was changed.
+
+## iOS animation compatibility (15 November 2026)
+
+Diagnosis: current Playwright WebKit reproduced the truck remaining off-screen with reduced motion, but normal-motion cart/truck playback already worked. The existing packing timeline animated left/bottom/width/height, and the dock compared raw rubber-band scroll offsets.
+The cart uses an inline SVG walking-bag animation (as in the supplied video), not offset-path or a lazy-loaded truck asset. No unsupported scroll-timeline dependency was found in these three components; collection scroll-timeline rules are already feature-guarded.
+A narrow iPhone visual check also showed the shipped pill covering the truck cab. Real iPhone/Low Power Mode behavior cannot be established by desktop WebKit emulation alone.
+
+### Scoped changes
+
+- Shared configuration: src/features/customer/animationConfig.ts centralizes principal cart/story/dock durations, reduced-motion detection, iOS detection, timeline capability detection, and scroll clamping.
+- Truck/story: observe the animation stage itself, measure its unit width in pixels on resize, and use an iOS JS step clock rather than relying exclusively on CSS animationend. iOS packing animates transform and opacity only. The SVG truck has explicit compositing/transform origin hints; the iPhone shipped label sits above it instead of covering the cab. Reduced motion shows a stationary packed truck, not an invisible off-screen one.
+- Dock: iOS transition is 400 ms with cubic-bezier(0.32, 0.72, 0, 1), with bottom safe-area padding. Negative/beyond-document offsets are ignored and clamped before direction changes; the existing 8 px threshold remains. Android/desktop retain the original 500 ms hide/show transition and 680 ms selection motion.
+- Cart: preserve the real button click handler and existing walking-bag design, add touch-action: manipulation, a WebKit animation declaration, and compositing hint. Cart mutation still happens before visual feedback, so CSS playback does not delay the count or cart operation. No new fly-to-cart effect or business logic was introduced.
+- No backend, API, database, route, product, or order changes.
+
+### Verification
+
+- Isolated fixture uses the real components: tests/fixtures/ios-motion.html. No customer data or backend API is needed.
+- Browser runner: tests/ios-motion-browser.mjs. Supply PLAYWRIGHT_MODULE pointing to an installed Playwright module, or install Playwright separately for development; then run node tests/ios-motion-browser.mjs while Vite serves port 5174. MOTION_ENGINE=webkit or chromium runs one engine.
+- WebKit uses iPhone 14/15/16/17 profiles, normal and reduced motion. Chromium compares Pixel 7 and Desktop Chrome, normal and reduced motion. Assertions cover tap/count feedback, truck visibility and drive-out, no page overflow, no runtime errors, dock duration, and synthetic negative rubber-band offsets. Device profiles emulate viewport/UA/touch, not historical iOS OS releases.
+- Shared-helper unit tests: node --test tests/animation-config.test.mjs (3 passed). Changed-component lint and production build passed.
+- The browser cart fixture verifies an immediate local count increment and the visual animation, not a live authenticated cart API.
+- Manual hardware checklist (pending, not claimed as tested): real iPhone Safari and Chrome iOS, each with Low Power Mode OFF and ON; normal/reduced motion; tap add-to-cart; scroll truck fully into view and out; rotate; bounce at document top/bottom; check bottom safe area and cart badge.
+
+Final browser result: all 12 scenarios passed (8 WebKit iPhone cases and 4 Chromium Android/desktop cases), including normal/reduced motion, dock timing, synthetic overscroll, cart feedback, visible truck and complete drive-out. No runtime errors or horizontal overflow were found in the fixture.
+
+Mobile Profile (15 November 2026): removed Orders/Saved stat cards from the shared mobile/tablet hub below 1024px; header padding, Quick access, desktop cards, and shared order/wishlist counts remain unchanged.

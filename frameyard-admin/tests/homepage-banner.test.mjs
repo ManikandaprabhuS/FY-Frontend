@@ -19,10 +19,11 @@ test("public and admin preview share live-value copy, safe shop link and decorat
 });
 test("no public banner means no empty region, while initial loading reserves matching height",async()=>{
  const source=await read("features/customer/components/HomepageOfferBanner.tsx");
- const build=state=>compile(source,{react:{...React,useEffect(){},useState:()=>[state,()=>{}]},"../../../store/authStore":{useAuthStore:selector=>selector({status:"unauthenticated",user:null})},"../../../services/homepage-banner.service":{homepageBannerService:{}},"./HomepageBannerVisual":{__esModule:true,default:()=>null}}).default;
- assert.equal(renderToStaticMarkup(createElement(build({owner:"guest",banner:null}))),"");
+ const build=banner=>compile(source,{"../../../store/homepageBannerStore":{useHomepageBannerStore:selector=>selector({banner})},"./HomepageBannerVisual":{__esModule:true,default:()=>createElement("span",null,"Offer")}}).default;
+ assert.equal(renderToStaticMarkup(createElement(build(null))),"");
  assert.match(renderToStaticMarkup(createElement(build(undefined))),/Loading homepage offer/);
- assert.match(source,/30000/);assert.match(source,/document.hidden/);
+ assert.match(renderToStaticMarkup(createElement(build(big))),/Offer/);
+ assert.doesNotMatch(source,/status==="checking"/);
 });
 function tree(node){if(!node||typeof node!=="object")return[];return[node,...[node.props?.children].flat(Infinity).flatMap(tree)];}
 async function harness(){

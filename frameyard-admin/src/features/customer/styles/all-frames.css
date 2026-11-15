@@ -691,7 +691,9 @@
   bottom: 9px;
   width: 100%;
   height: 24px;
-  animation: fy-walk-across 950ms linear forwards;
+  animation: fy-walk-across var(--cart-walk-ms, 950ms) linear forwards;
+  -webkit-animation: fy-walk-across var(--cart-walk-ms, 950ms) linear forwards;
+  will-change: transform;
 }
 .fy-walker {
   position: absolute;

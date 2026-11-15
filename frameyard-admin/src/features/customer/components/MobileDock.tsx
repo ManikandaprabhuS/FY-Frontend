@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import { dockItems, isActivePath } from '../navigation';
+import {MOTION_TIMING,IOS_MOTION_EASE,isIOSWebKit,prefersReducedMotion,clampScrollPosition} from '../animationConfig';
 
 /*
  * Mobile bottom bar with a "liquid" active indicator.
@@ -17,7 +18,7 @@ import { dockItems, isActivePath } from '../navigation';
 const EDGE = 26; // space above the bar's top edge for the bubble and Customize
 const BAR = 60; // bar height below the edge
 const LIFT = 26; // how far the bubble rises while travelling
-const DURATION = 680;
+const DURATION = isIOSWebKit()?MOTION_TIMING.dockIOS:MOTION_TIMING.dockDefault;
 const FEATURED_INDEX = dockItems.findIndex((item) => item.featured);
 
 type Geometry = { x: number; size: number; depth: number; halfWidth: number };
@@ -58,9 +59,6 @@ const barPath = (width: number, x: number, depth: number, halfWidth: number) => 
 };
 
 type Frame = { x: number; notch: number; depth: number; halfWidth: number; size: number; lift: number; opacity: number };
-
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const SCROLL_DELTA = 8;
 const REVEAL_ZONE = 120;
@@ -193,7 +191,7 @@ const MobileDock: React.FC<{ routeHidden?: boolean }> = ({ routeHidden = false }
 
   useEffect(() => {
     currentPath.current = pathname;
-    lastY.current = window.scrollY;
+    lastY.current = clampScrollPosition(window.scrollY,document.documentElement.scrollHeight-window.innerHeight);
   }, [pathname]);
 
   useEffect(() => {
@@ -202,7 +200,9 @@ const MobileDock: React.FC<{ routeHidden?: boolean }> = ({ routeHidden = false }
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        const y = window.scrollY;
+        const max=document.documentElement.scrollHeight-window.innerHeight;
+        const y = clampScrollPosition(window.scrollY,max);
+        if(window.scrollY<0||window.scrollY>max){lastY.current=y;return;}
         const delta = y - lastY.current;
         if (y < REVEAL_ZONE || delta < -SCROLL_DELTA) setHiddenOnPath(null);
         else if (delta > SCROLL_DELTA) setHiddenOnPath(currentPath.current);
@@ -232,6 +232,7 @@ const MobileDock: React.FC<{ routeHidden?: boolean }> = ({ routeHidden = false }
     <div className="fy-dock-enter pointer-events-none fixed inset-x-0 bottom-0 z-[90] lg:hidden">
       <nav
         aria-label="Quick navigation"
+        style={isIOSWebKit()?{transitionDuration:MOTION_TIMING.dockSlideIOS+"ms",transitionTimingFunction:IOS_MOTION_EASE,willChange:"transform",paddingBottom:"env(safe-area-inset-bottom, 0px)",background:"#fff"}:undefined}
         aria-hidden={routeHidden || undefined}
         inert={routeHidden}
         className={`transition-transform duration-500 ease-[var(--fy-ease-out)] ${hidden ? 'pointer-events-none translate-y-[calc(100%+12px)]' : 'pointer-events-auto translate-y-0'}`}

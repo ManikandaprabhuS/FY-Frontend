@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import '../styles/all-frames.css';
+import {MOTION_TIMING,prefersReducedMotion} from '../animationConfig';
 
 /** How long the walker takes to cross the button, and how long "Added" stays. */
-const WALK_MS = 950;
-const ADDED_MS = 1500;
+const WALK_MS = MOTION_TIMING.cartWalk;
+const ADDED_MS = MOTION_TIMING.cartAdded;
 
 type CartState = 'idle' | 'adding' | 'added';
 
@@ -57,6 +58,8 @@ const AddToCartButton = ({ onAdd, available, label = 'Add to cart', soldOutLabel
       }}
       className={`fy-cart ${className}`}
       data-state={available ? cartState : 'sold'}
+      data-reduced-motion={prefersReducedMotion() || undefined}
+      style={{'--cart-walk-ms': WALK_MS+'ms',touchAction:'manipulation'} as React.CSSProperties}
     >
       <span className="fy-cart__label" aria-hidden={cartState !== 'idle'}>{available ? label : soldOutLabel}</span>
       {cartState === 'adding' && (

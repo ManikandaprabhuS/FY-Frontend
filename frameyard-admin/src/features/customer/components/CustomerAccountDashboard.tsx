@@ -216,7 +216,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
                 <Link to={open('details')} className="fy-acct__edit">Edit profile</Link>
               </div>
             </div>
-            <div className="fy-acct__stats">
+            <div className="fy-acct__stats fy-acct__desk-only">
               <Link to={open('orders')} className="fy-acct__stat">
                 <span className="fy-acct__icon" aria-hidden="true"><ShoppingBag /></span>
                 <span><strong>{orderCount ?? '–'}</strong><small>{orderCount === 1 ? 'Order' : 'Orders'}</small></span>

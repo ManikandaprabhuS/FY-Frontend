@@ -1,0 +1,10 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {BrowserRouter} from "react-router-dom";
+import CustomerAccountDashboard from "../../src/features/customer/components/CustomerAccountDashboard";
+import {useCustomerCommerceStore} from "../../src/store/customerCommerceStore";
+import type {User} from "../../src/types";
+import "../../src/index.css";
+useCustomerCommerceStore.setState({loadWishlist:async()=>{},wishlistItems:[],wishlistLoading:false});
+const user={id:"profile-fixture",name:"Test Customer",email:"test@example.invalid",role:"CUSTOMER",createdAt:"2026-11-01T00:00:00Z"} as User;
+createRoot(document.getElementById("root")!).render(<BrowserRouter><CustomerAccountDashboard user={user} loading={false} error={null} onUpdate={async()=>true} onLogout={()=>{}} onChangePassword={async()=>true}/></BrowserRouter>);
