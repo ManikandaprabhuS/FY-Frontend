@@ -1,136 +1,110 @@
-import React, { useEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
-import { CalendarDays, ChevronRight, Heart, MessageCircle, Package, X } from 'lucide-react';
-
+import React,{useEffect,useRef} from 'react';
+import {createPortal} from 'react-dom';
+import {Link,NavLink,useNavigate,useLocation} from 'react-router-dom';
+import {ArrowRight,CalendarDays,ChevronRight,Heart,House,Image,Layers,MessageCircle,Package,UserRound,X} from 'lucide-react';
 import fyLogoIcon from '../../../assets/fy-logo-mark.png';
-import { BRAND_NAME, STUDIO_PATH } from '../navigation';
-import { ButtonLink } from '../ui/Button';
+import {useAuthStore} from '../../../store/authStore';
+import {showWarning} from '../../../utils/toast';
+import {BRAND_NAME,STUDIO_PATH} from '../navigation';
+import '../styles/menu-drawer.css';
 
-type Props = {
-  open: boolean;
-  onClose: () => void;
-  onOpenWishlist: () => void;
-  wishlistCount: number;
-  customerName: string | null;
-  returnFocusTo: React.RefObject<HTMLButtonElement | null>;
+type Props={
+ open:boolean;
+ onClose:()=>void;
+ onOpenWishlist:()=>void;
+ wishlistCount:number;
+ returnFocusTo:React.RefObject<HTMLButtonElement|null>;
 };
-
-const exploreLinks = [
-  { name: 'Home', path: '/' },
-  { name: 'Shop all frames', path: '/products' },
-  { name: 'Customize a frame', path: STUDIO_PATH },
+const primary=[
+ {name:'Home',path:'/',icon:House},
+ {name:'Shop all frames',path:'/products',icon:Layers},
+ {name:'Customize a frame',path:STUDIO_PATH,icon:Image},
 ];
-
-const serviceLinks = [
-  { name: 'Your orders', path: '/orders', icon: Package },
-  { name: 'Book appointment', path: '/book-appointment', icon: CalendarDays },
-  { name: 'Contact us', path: '/contact-us', icon: MessageCircle },
+const services=[
+ {name:'Your orders',path:'/profile#orders',icon:Package,protected:true},
+ {name:'Book appointment',path:'/book-appointment',icon:CalendarDays},
+ {name:'Contact us',path:'/contact-us',icon:MessageCircle},
 ];
-
-/** Left-side slide-out menu for secondary navigation on mobile. */
-const CustomerMenuDrawer: React.FC<Props> = ({ open, onClose, onOpenWishlist, wishlistCount, customerName, returnFocusTo }) => {
-  const closeButton = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const trigger = returnFocusTo.current;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    closeButton.current?.focus({ preventScroll: true });
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-      trigger?.focus({ preventScroll: true });
-    };
-  }, [onClose, open, returnFocusTo]);
-
-  const enter = open ? 'fy-menu-item' : '';
-
-  const exploreClass = ({ isActive }: { isActive: boolean }) =>
-    `fy-display flex min-h-14 items-center justify-between border-b border-rule text-[26px] leading-tight transition-colors ${isActive ? 'text-ink' : 'text-ink/70 hover:text-ink'}`;
-
-  const serviceClass = ({ isActive }: { isActive: boolean }) =>
-    `flex min-h-12 items-center gap-3 text-[15px] transition-colors ${isActive ? 'font-semibold text-ink' : 'text-ink/75 hover:text-ink'}`;
-
-  return (
-    <div className="lg:hidden" inert={!open}>
-      <div
-        className={`fixed inset-0 z-[150] bg-ink/30 transition-opacity duration-300 ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menu"
-        className={`fixed inset-y-0 left-0 z-[160] flex w-[min(88vw,380px)] flex-col overflow-y-auto bg-white pb-[calc(24px+env(safe-area-inset-bottom,0px))] shadow-[18px_0_48px_rgba(17,17,17,0.16)] transition-transform duration-[650ms] ${open ? 'translate-x-0 ease-[var(--fy-ease-spring)]' : '-translate-x-[105%] ease-[var(--fy-ease-out)]'}`}
-      >
-        <div className="flex h-[60px] shrink-0 items-center justify-between px-5">
-          <span className="flex items-center gap-2.5">
-            <img src={fyLogoIcon} alt="" className="fy-logo-mark h-[26px] w-[26px] object-contain" />
-            <span className="fy-display text-[20px]">{BRAND_NAME}</span>
-          </span>
-          <button
-            ref={closeButton}
-            type="button"
-            onClick={onClose}
-            aria-label="Close menu"
-            className="-mr-2 grid h-11 w-11 place-items-center rounded-full transition-transform duration-300 active:scale-90"
-          >
-            <X className="h-[22px] w-[22px]" strokeWidth={1.6} />
-          </button>
-        </div>
-
-        {/* Entrance classes are applied only while open, so the stagger replays on each open
-            and the content stays visible while the panel slides out. */}
-        <div className="flex flex-1 flex-col px-5">
-            <p className={`${enter} mt-4 text-[15px] text-mute`} style={{ animationDelay: '60ms' }}>
-              {customerName ? `Hello, ${customerName}` : 'Sign in to save frames and track orders.'}
-            </p>
-
-            <nav aria-label="Explore" className="mt-4">
-              {exploreLinks.map((link, index) => (
-                <NavLink
-                  key={link.path}
-                  to={link.path}
-                  end={link.path === '/'}
-                  onClick={onClose}
-                  className={(state) => `${enter} ${exploreClass(state)}`}
-                  style={{ animationDelay: `${100 + index * 45}ms` }}
-                >
-                  {link.name}
-                  <ChevronRight className="h-5 w-5 text-mute" strokeWidth={1.5} aria-hidden="true" />
-                </NavLink>
-              ))}
-            </nav>
-
-            <nav aria-label="Your account and services" className={`${enter} mt-6`} style={{ animationDelay: '300ms' }}>
-              <button type="button" onClick={onOpenWishlist} className="flex min-h-12 w-full items-center gap-3 text-left text-[15px] text-ink/75 transition-colors hover:text-ink">
-                <Heart className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
-                <span className="flex-1">Wishlist</span>
-                {wishlistCount > 0 && <span className="text-[13px] text-mute">{wishlistCount} saved</span>}
-              </button>
-              {serviceLinks.map((link) => (
-                <NavLink key={link.path} to={link.path} onClick={onClose} className={serviceClass}>
-                  <link.icon className="h-[18px] w-[18px]" strokeWidth={1.6} aria-hidden="true" />
-                  {link.name}
-                </NavLink>
-              ))}
-            </nav>
-
-            <div className={`${enter} mt-auto pt-8`} style={{ animationDelay: '360ms' }}>
-              <ButtonLink to="/profile" onClick={onClose} variant={customerName ? 'secondary' : 'primary'} className="w-full">
-                {customerName ? 'Your account' : 'Sign in or create account'}
-              </ButtonLink>
-            </div>
-          </div>
-      </aside>
+export default function CustomerMenuDrawer({open,onClose,onOpenWishlist,wishlistCount,returnFocusTo}:Props){
+ const status=useAuthStore(s=>s.status),user=useAuthStore(s=>s.user);
+ const authenticated=useAuthStore(s=>s.isAuthenticated);
+ const checking=status==='checking';
+ const customer=!checking&&authenticated&&user?.role==='CUSTOMER';
+ const fullName=user?.name?.trim()||'Your account';
+ const panel=useRef<HTMLElement>(null),close=useRef<HTMLButtonElement>(null);
+ const navigate=useNavigate(),location=useLocation();
+ useEffect(()=>{
+  if(!open)return;
+  const trigger=returnFocusTo.current,y=Math.max(0,window.scrollY);
+  const body=document.body;
+  const old={overflow:body.style.overflow,position:body.style.position,top:body.style.top,width:body.style.width};
+  body.style.overflow='hidden';body.style.position='fixed';body.style.top=-y+'px';body.style.width='100%';
+  const frame=requestAnimationFrame(()=>close.current?.focus({preventScroll:true}));
+  const focusable=()=>Array.from(panel.current?.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),[tabindex="0"]')??[]).filter(node=>node.getClientRects().length>0);
+  const keydown=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();onClose();return;}
+   if(event.key!=='Tab')return;
+   const nodes=focusable(),first=nodes[0];
+   if(!first){event.preventDefault();panel.current?.focus();return;}
+   const index=nodes.indexOf(document.activeElement as HTMLElement);
+   const next=index<0?(event.shiftKey?nodes.length-1:0):(index+(event.shiftKey?-1:1)+nodes.length)%nodes.length;
+   event.preventDefault();nodes[next].focus();
+  };
+  const focusin=(event:FocusEvent)=>{if(!panel.current?.contains(event.target as Node))close.current?.focus({preventScroll:true});};
+  const desktop=window.matchMedia('(min-width:1024px)');
+  const resize=()=>{if(desktop.matches)onClose();};
+  document.addEventListener('keydown',keydown);document.addEventListener('focusin',focusin);desktop.addEventListener('change',resize);
+  return()=>{
+   cancelAnimationFrame(frame);document.removeEventListener('keydown',keydown);document.removeEventListener('focusin',focusin);desktop.removeEventListener('change',resize);
+   Object.assign(body.style,old);window.scrollTo(0,y);(trigger?.isConnected?trigger:document.querySelector<HTMLButtonElement>('button[aria-label="Open menu"]'))?.focus({preventScroll:true});
+  };
+ },[open,onClose,returnFocusTo]);
+ const protectedLink=(event:React.MouseEvent,destination:string)=>{
+  if(checking){event.preventDefault();return;}
+  if(customer){onClose();return;}
+  event.preventDefault();onClose();
+  showWarning('Please login / create an account to continue',{id:'mobile-menu-login'});
+  navigate('/profile',{state:{returnTo:destination}});
+ };
+ const wishlist=()=>{
+  if(checking)return;
+  if(!customer){
+   onClose();showWarning('Please login / create an account to continue',{id:'mobile-menu-login'});
+   navigate('/profile',{state:{returnTo:'/profile#wishlist'}});return;
+  }
+  onClose();onOpenWishlist();
+ };
+ return createPortal(
+  <div className="fy-mobile-menu" data-open={open} aria-hidden={!open} inert={!open}>
+   <button className="fy-mobile-menu__backdrop" type="button" aria-label="Close navigation drawer" onClick={onClose} tabIndex={-1}/>
+   <aside ref={panel} className="fy-mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Mobile navigation" tabIndex={-1}>
+    <header className="fy-mobile-menu__header">
+     <Link to="/" onClick={onClose} className="fy-mobile-menu__brand" aria-label="FrameYaad home"><img src={fyLogoIcon} alt=""/><span>{BRAND_NAME}</span></Link>
+     <button ref={close} type="button" className="fy-mobile-menu__close" aria-label="Close menu" onClick={onClose}><X aria-hidden="true"/></button>
+    </header>
+    <div className="fy-mobile-menu__scroll">
+     {checking?<div className="fy-mobile-menu__skeleton" role="status" aria-label="Checking account"><span/><span/></div>:customer?
+      <Link to="/profile" onClick={onClose} className="fy-mobile-menu__account">
+       <span className="fy-mobile-menu__avatar" aria-hidden="true">{Array.from(fullName)[0]?.toUpperCase()}</span>
+       <span className="fy-mobile-menu__identity"><small>Hello,</small><strong title={fullName}>{fullName}</strong></span><ChevronRight aria-hidden="true"/>
+      </Link>:
+      <div className="fy-mobile-menu__guest">
+       <div className="fy-mobile-menu__pitch"><span className="fy-mobile-menu__picture" aria-hidden="true"><Image/></span><strong>Sign in to save frames, track orders and more.</strong></div>
+       <div className="fy-mobile-menu__benefits">
+        <span><Heart aria-hidden="true"/><span>Save<br/>favorites</span></span><span><Package aria-hidden="true"/><span>Track<br/>orders</span></span><span><CalendarDays aria-hidden="true"/><span>Book<br/>appointments</span></span>
+       </div>
+      </div>}
+     <nav aria-label="Explore" className="fy-mobile-menu__primary">
+      {primary.map(({name,path,icon:Icon})=><NavLink key={path} to={path} end={path==='/'} onClick={onClose} className={({isActive})=>'fy-mobile-menu__link'+(isActive?' is-active':'')}><Icon aria-hidden="true"/><span>{name}</span>{path!=='/'&&<ChevronRight className="fy-mobile-menu__chevron" aria-hidden="true"/>}</NavLink>)}
+     </nav>
+     <nav aria-label="Your account and services" className="fy-mobile-menu__secondary">
+      <button type="button" onClick={wishlist} disabled={checking} className={"fy-mobile-menu__link"+(location.pathname==="/profile"&&location.hash==="#wishlist"?" is-active":"")}><Heart aria-hidden="true"/><span>Wishlist</span>{customer&&wishlistCount>0&&<span className="fy-mobile-menu__saved">{wishlistCount} saved</span>}</button>
+      {services.map(({name,path,icon:Icon,protected:requiresAuth})=><NavLink key={path} to={path} aria-disabled={checking&&requiresAuth||undefined} onClick={event=>requiresAuth?protectedLink(event,path):onClose()} className={({isActive})=>'fy-mobile-menu__link'+(isActive&&(!requiresAuth||location.hash==='#orders')?' is-active':'')}><Icon aria-hidden="true"/><span>{name}</span></NavLink>)}
+     </nav>
     </div>
-  );
-};
-
-export default CustomerMenuDrawer;
+    <footer className="fy-mobile-menu__footer">
+     {checking?<div className="fy-mobile-menu__footer-skeleton" aria-hidden="true"/>:<Link to="/profile" onClick={onClose} className="fy-mobile-menu__cta"><UserRound aria-hidden="true"/><span>{customer?'Your account':'Sign in or create account'}</span>{customer&&<ArrowRight aria-hidden="true"/>}</Link>}
+    </footer>
+   </aside>
+  </div>,document.body);
+}

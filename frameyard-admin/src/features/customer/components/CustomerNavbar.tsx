@@ -145,7 +145,6 @@ const CustomerNavbar: React.FC = () => {
           onClose={closeMenu}
           onOpenWishlist={openWishlist}
           wishlistCount={wishlistCount}
-          customerName={firstName}
           returnFocusTo={menuButton}
         />
         <CustomerWishlistDrawer open={wishlistOpen} onClose={() => setWishlistOpen(false)} />
@@ -241,7 +240,6 @@ const CustomerNavbar: React.FC = () => {
         onClose={closeMenu}
         onOpenWishlist={openWishlist}
         wishlistCount={wishlistCount}
-        customerName={firstName}
         returnFocusTo={menuButton}
       />
       <CustomerWishlistDrawer open={wishlistOpen} onClose={() => setWishlistOpen(false)} />

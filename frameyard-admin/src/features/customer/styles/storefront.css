@@ -49,11 +49,6 @@
   to { transform: translate3d(0, 0, 0); }
 }
 
-@keyframes fy-item-in {
-  from { opacity: 0; transform: translate3d(-12px, 0, 0); }
-  to { opacity: 1; transform: none; }
-}
-
 @keyframes fy-badge-pop {
   0% { transform: scale(0.4); }
   100% { transform: scale(1); }
@@ -63,9 +58,6 @@
   animation: fy-dock-rise 720ms var(--fy-ease-spring) 180ms both;
 }
 
-.fy-menu-item {
-  animation: fy-item-in 420ms var(--fy-ease-out) both;
-}
 
 /* Reduced motion (on by default for many iPhone owners): animations and transitions settle
    at once. Elements marked data-motion-timer are left alone: they keep time (a progress
