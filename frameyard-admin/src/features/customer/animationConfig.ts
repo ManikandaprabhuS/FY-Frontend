@@ -1,6 +1,5 @@
 export const MOTION_TIMING={
  cartWalk:950,cartAdded:1500,
- storyStep:Math.round(4200/1.5),storyShip:Math.round(6400/1.5),storyFinish:Math.round(900/1.5),
  dockDefault:680,dockIOS:400,dockSlideDefault:500,dockSlideIOS:400,
 } as const;
 export const IOS_MOTION_EASE="cubic-bezier(0.32, 0.72, 0, 1)";

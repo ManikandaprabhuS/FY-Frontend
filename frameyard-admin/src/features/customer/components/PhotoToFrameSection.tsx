@@ -3,7 +3,6 @@ import { Check, Truck as TruckIcon } from 'lucide-react';
 
 import { fallbackHeroPhotos } from '../data/heroShowcase';
 import '../styles/photo-to-frame.css';
-import {MOTION_TIMING,prefersReducedMotion,isIOSWebKit} from '../animationConfig';
 
 const steps = [
   { title: 'Choose your frame', detail: 'Select the frame style and size that suit your wall.' },
@@ -14,7 +13,17 @@ const steps = [
 /** Four finishes (the hero's black, walnut and grey, plus sandal gold); the empty frame tries them on in step one. */
 const finishes = ['black', 'walnut', 'grey', 'sandal'] as const;
 
-const STEP_MS=MOTION_TIMING.storyStep,SHIP_MS=MOTION_TIMING.storyShip,FINISH_MS=MOTION_TIMING.storyFinish;
+/** Playback speed of the whole story: 1.5 runs it half again as fast as the original timing. */
+const PLAYBACK_RATE = 1.5;
+/** How long each step stays before the story moves on (the progress bar fills over it). */
+const STEP_MS = Math.round(4200 / PLAYBACK_RATE);
+/** Step three runs longer: the framed photo is shown, packed, and driven away. */
+const SHIP_MS = Math.round(6400 / PLAYBACK_RATE);
+/** How often the empty frame changes finish while it is being "chosen". */
+const FINISH_MS = Math.round(900 / PLAYBACK_RATE);
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
 /**
  * Homepage "How it works": one frame, three moments. A single stage tells the story while
@@ -28,46 +37,30 @@ const STEP_MS=MOTION_TIMING.storyStep,SHIP_MS=MOTION_TIMING.storyShip,FINISH_MS=
  */
 const PhotoToFrameSection: React.FC = () => {
   const ref = useRef<HTMLElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   const [finish, setFinish] = useState(0);
-  const [inView, setInView] = useState(()=>typeof IntersectionObserver==='undefined');
+  const [inView, setInView] = useState(false);
   const [reducedMotion] = useState(prefersReducedMotion);
   const paused = !inView;
 
   useEffect(() => {
-    const node = stageRef.current;
-    if (!node) return;
-    if(typeof IntersectionObserver==='undefined')return;
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.35 });
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
 
-  // Keep stage geometry in measured pixels, including WebKit versions with partial
-  // container-unit animation support. ResizeObserver keeps rotation/resizing accurate.
+  // The stage is drawn in container units (cqw). iPhones before iOS 16 don't have them, so
+  // there the stage's width is measured and handed to the CSS as --u (one hundredth of it).
+  const stageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
-    const measure=()=>{
-      const {width:w,height:h}=stage.getBoundingClientRect();
-      if(!w||!h)return;
-      stage.style.setProperty('--u',w/100+'px');
-      if(isIOSWebKit()){
-        const mobile=window.matchMedia('(max-width: 639.98px)').matches;
-        const bedW=(mobile?.15:.13)*w,bedH=(mobile?.115:.10)*w;
-        const boxW=(mobile?.48:.40)*w,boxH=(mobile?.70:.82)*h;
-        const dx=((mobile?.26:.30)-(mobile?.335:.345))*w;
-        const dy=-((mobile?.26:.14)*h-(.02*h+.066*w));
-        stage.style.setProperty('--pack-dx',dx+'px');stage.style.setProperty('--pack-dy',dy+'px');
-        stage.style.setProperty('--pack-sx',String(boxW/bedW));stage.style.setProperty('--pack-sy',String(boxH/bedH));
-      }
-    };
-    measure();
-    const observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(measure):null;
-    observer?.observe(stage);window.addEventListener('resize',measure,{passive:true});
-    return()=>{observer?.disconnect();window.removeEventListener('resize',measure);};  }, []);
-
+    if (!stage || typeof CSS === 'undefined' || CSS.supports('width', '1cqw') || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => stage.style.setProperty('--u', `${entry.contentRect.width / 100}px`));
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
   // Step one: the empty frame tries on each finish in turn.
   useEffect(() => {
     if (step !== 0 || paused || reducedMotion) return;
@@ -75,11 +68,6 @@ const PhotoToFrameSection: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [step, paused, reducedMotion]);
 
-  useEffect(()=>{
-    if(!isIOSWebKit()||paused||reducedMotion)return;
-    const timer=window.setTimeout(()=>setStep(current=>(current+1)%steps.length),step===2?SHIP_MS:STEP_MS);
-    return()=>window.clearTimeout(timer);
-  },[step,paused,reducedMotion]);
   const next = () => setStep((current) => (current + 1) % steps.length);
   const photos = fallbackHeroPhotos;
 
@@ -90,7 +78,6 @@ const PhotoToFrameSection: React.FC = () => {
       aria-labelledby="fy-story-title"
       data-paused={paused || undefined}
       data-static={reducedMotion || undefined}
-      data-ios-motion={isIOSWebKit() || undefined}
       style={{ '--step-ms': `${STEP_MS}ms`, '--ship-ms': `${SHIP_MS}ms` } as React.CSSProperties}
     >
       <div className="fy-story__layout">
@@ -116,7 +103,7 @@ const PhotoToFrameSection: React.FC = () => {
                       <span className="fy-story__step-detail"><span>{item.detail}</span></span>
                     </span>
                     <span className="fy-story__progress" aria-hidden="true">
-                      {active && <span key={step} className="fy-story__fill" data-long={index === 2 || undefined} data-motion-timer onAnimationEnd={(event) => { if (!isIOSWebKit() && event.animationName === 'fy-story-fill') next(); }} />}
+                      {active && <span key={step} className="fy-story__fill" data-long={index === 2 || undefined} data-motion-timer onAnimationEnd={(event) => { if (event.animationName === 'fy-story-fill') next(); }} />}
                     </span>
                   </button>
                 </li>

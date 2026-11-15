@@ -41,8 +41,7 @@ for(const engine of [webkit,chromium].filter(engine=>!process.env.MOTION_ENGINE|
    if(!baseline){
     assert.equal(errors.length,0);assert.equal(story.paused,false);assert.equal(story.width<=story.viewport,true);
     assert.equal(story.static,reducedMotion==="reduce");
-    assert.equal(story.truckVisible,true);
-    if(reducedMotion==="no-preference"){assert.equal(cart.state,"adding");assert.notEqual(cart.track,"none");await page.waitForTimeout(1100);const exit=await page.locator(".fy-story__truck").evaluate(node=>getComputedStyle(node).transform);assert.notEqual(exit,story.transform);}
+    if(reducedMotion==="no-preference"){assert.equal(story.truckVisible,true);assert.equal(cart.state,"adding");assert.notEqual(cart.track,"none");await page.waitForTimeout(1100);const exit=await page.locator(".fy-story__truck").evaluate(node=>getComputedStyle(node).transform);assert.notEqual(exit,story.transform);}
    }
    await context.close();
   }

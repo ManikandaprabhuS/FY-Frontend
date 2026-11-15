@@ -1,6 +1,6 @@
 import {create} from "zustand";
 import {useAuthStore} from "./authStore";
-import {homepageBannerService,type BannerOffer} from "../services/homepage-banner.service";
+import {type BannerOffer} from "../services/homepage-banner.service";
 import api from "../services/api";
 
 const KEY="fy_home_banner_v1";
@@ -24,13 +24,12 @@ const preload=(banner:BannerOffer|null)=>{
  if(Array.from(document.querySelectorAll<HTMLLinkElement>('link[data-home-banner]')).some(link=>link.href===url))return;
  const link=document.createElement("link");link.rel="preload";link.as="image";link.href=url;link.fetchPriority="high";link.dataset.homeBanner="true";document.head.append(link);
 };
-const refresh=async(personal:boolean)=>{
+const refresh=async()=>{
  const generation=++epoch;
  for(let attempt=0;attempt<2;attempt++){
   try{
    let banner:BannerOffer|null;
-   if(personal)banner=await homepageBannerService.public();
-   else{
+   {
     const response=await fetch(api.getUri({url:"/home/banner/public"}),{credentials:"omit",signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw new Error("Banner unavailable");
     const payload=await response.json() as {data?:{banner?:unknown}};
@@ -40,7 +39,7 @@ const refresh=async(personal:boolean)=>{
    if(generation!==epoch)return;
    useHomepageBannerStore.setState({banner});preload(banner);
    // Only public content is shared across identities in session storage.
-   if(!personal){try{sessionStorage.setItem(KEY,JSON.stringify({at:Date.now(),banner}));}catch{/* Storage may be disabled. */}}
+   try{sessionStorage.setItem(KEY,JSON.stringify({at:Date.now(),banner}));}catch{/* Storage may be disabled. */}
    return;
   }catch{
    if(generation!==epoch)return;
@@ -57,9 +56,9 @@ export const startHomepageBanner=()=>{
   if(auth.status==="checking")return;
   const next=auth.status==="authenticated"?auth.user?.id??"guest":"guest";
   if(next===owner)return;
-  owner=next;void refresh(next!=="guest");
+  owner=next;void refresh();
  };
  // Start the public request before React renders the hero or auth resolves.
- void refresh(false);
+ void refresh();
  useAuthStore.subscribe(sync);sync();
 };

@@ -22,20 +22,22 @@ test("cached banner appears immediately and early public fetch does not wait for
  let calls=0;const h=harness({cached:banner,publicRequest:async()=>{calls++;return new Promise(()=>{});}});
  assert.equal(h.state().banner.title,banner.title);h.start();h.start();assert.equal(calls,1);
 });
-test("login keeps the current banner while personalized eligibility resolves",async()=>{
- let resolve;const h=harness({cached:banner,personal:()=>new Promise(r=>{resolve=r;})});
+test("login keeps the public banner and never requests personalized eligibility",async()=>{
+ let calls=0;
+ const h=harness({cached:banner,publicRequest:async()=>{calls++;return {ok:true,json:async()=>({data:{banner}})};},personal:()=>{throw new Error("Personalized banner must not be requested");}});
  h.start();await tick();h.auth({status:"authenticated",user:{id:"returning"}});
- assert.deepEqual(h.state().banner,banner);resolve(null);await tick();assert.equal(h.state().banner,null);
+ assert.deepEqual(h.state().banner,banner);await tick();assert.deepEqual(h.state().banner,banner);assert.equal(calls,2);
 });
 test("checking and logged-out auth resolution do not hide content or repeat the public request",async()=>{
  let calls=0;const h=harness({cached:banner,publicRequest:async()=>{calls++;return {ok:true,json:async()=>({data:{banner}})};}});
  h.start();await tick();h.auth({status:"checking",user:null});assert.equal(calls,1);assert.deepEqual(h.state().banner,banner);
  h.auth({status:"unauthenticated",user:null});await tick();assert.equal(calls,1);assert.deepEqual(h.state().banner,banner);
 });
-test("out-of-order personal responses cannot overwrite a newer logged-out response",async()=>{
- let resolve;const h=harness({cached:banner,personal:()=>new Promise(r=>{resolve=r;})});
- h.start();await tick();h.auth({status:"authenticated",user:{id:"a"}});h.auth({status:"unauthenticated",user:null});await tick();
- resolve(null);await tick();assert.deepEqual(h.state().banner,banner);
+test("login and logout both retain the banner from the same public endpoint",async()=>{
+ let calls=0;const h=harness({cached:banner,publicRequest:async()=>{calls++;return {ok:true,json:async()=>({data:{banner}})};}});
+ h.start();await tick();h.auth({status:"authenticated",user:{id:"returning"}});await tick();
+ h.auth({status:"unauthenticated",user:null});await tick();
+ assert.deepEqual(h.state().banner,banner);assert.equal(calls,3);
 });
 test("network failures retain the cached banner and silently retry once",async()=>{
  let calls=0;const h=harness({cached:banner,publicRequest:async()=>{calls++;throw new Error("offline");}});

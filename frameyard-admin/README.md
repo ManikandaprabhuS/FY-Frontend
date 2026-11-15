@@ -769,3 +769,7 @@ A narrow iPhone visual check also showed the shipped pill covering the truck cab
 Final browser result: all 12 scenarios passed (8 WebKit iPhone cases and 4 Chromium Android/desktop cases), including normal/reduced motion, dock timing, synthetic overscroll, cart feedback, visible truck and complete drive-out. No runtime errors or horizontal overflow were found in the fixture.
 
 Mobile Profile (15 November 2026): removed Orders/Saved stat cards from the shared mobile/tablet hub below 1024px; header padding, Quick access, desktop cards, and shared order/wishlist counts remain unchanged.
+
+Homepage banner visibility correction (15 November 2026): supersedes the earlier FIRST_ORDER banner eligibility rule. The enabled homepage banner and enabled featured offer now display to ALL visitors, including logged-in returning customers. Both banner endpoints return identical public, cacheable content without authentication or order-history lookups; the frontend always revalidates that public content and keeps it visible through login/logout. Checkout offer eligibility, discounts, orders, and admin enable/disable controls are unchanged. Deploy the backend and frontend changes together.
+
+Rollback (15 November 2026, requested): restored the previous How it works component, CSS animation clock, container-unit fallback, packing timeline, label position, and reduced-motion behavior. This supersedes the story/truck portion of the iOS compatibility note; cart, dock, banner, and profile changes remain intact.

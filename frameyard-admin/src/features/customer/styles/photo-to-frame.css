@@ -576,26 +576,3 @@
   .fy-story__stage *,
   .fy-story__step-detail { transition-duration: 1ms !important; transition-delay: 0ms !important; }
 }
-
-/* WebKit: measured pixel geometry avoids container-unit interpolation and
-   packing uses only transform/opacity, never animated width/height/position. */
-.fy-story[data-ios-motion] .fy-story__truck { will-change: transform; transform-box: border-box; transform-origin: center; -webkit-backface-visibility: hidden; }
-.fy-story[data-ios-motion] .fy-story__box { transform-origin: left bottom; will-change: transform, opacity; }
-.fy-story[data-ios-motion] .fy-story__stage[data-step='2'] .fy-story__box { animation-name: fy-ship-box-webkit; }
-@keyframes fy-ship-box-webkit {
-  0%,27% { opacity:0; transform:translate3d(var(--pack-dx),var(--pack-dy),0) scale(calc(var(--pack-sx) * 1.05),calc(var(--pack-sy) * 1.05)); }
-  37%,54% { opacity:1; transform:translate3d(var(--pack-dx),var(--pack-dy),0) scale(var(--pack-sx),var(--pack-sy)); }
-  68%,74% { opacity:1; transform:translate3d(0,0,0) scale(1); }
-  96%,100% { opacity:1; transform:translate3d(calc(80 * var(--u)),0,0) scale(1); }
-}
-@media(prefers-reduced-motion:reduce){
- .fy-story__stage[data-step='2'] .fy-story__truck { transform:none; }
- .fy-story__stage[data-step='2'] .fy-story__box { opacity:1; transform:none; }
- .fy-story__stage[data-step='2'] .fy-story__frame,
- .fy-story__stage[data-step='2'] .fy-story__tag--ready { opacity:0; }
- .fy-story__stage[data-step='2'] .fy-story__tag--shipped { opacity:1; transform:none; }
-}
-
-@media(max-width:639.98px){
- .fy-story[data-ios-motion] .fy-story__tag--shipped { bottom:28%; }
-}
