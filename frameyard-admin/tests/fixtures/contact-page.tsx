@@ -1,0 +1,14 @@
+import React from "react";
+import {createRoot} from "react-dom/client";
+import {MemoryRouter} from "react-router-dom";
+import ContactUsPage from "../../src/features/customer/pages/ContactUsPage";
+import SettingsPage from "../../src/pages/settings/SettingsPage";
+import CustomerNavbar from "../../src/features/customer/components/CustomerNavbar";
+import MobileDock from "../../src/features/customer/components/MobileDock";
+import {useAuthStore} from "../../src/store/authStore";
+import {Toaster} from "react-hot-toast";
+import "../../src/index.css";
+import "../../src/features/customer/styles/storefront.css";
+const params=new URLSearchParams(location.search),authenticated=params.get("auth")==="customer";
+useAuthStore.setState({status:authenticated?"authenticated":"unauthenticated",isAuthenticated:authenticated,user:authenticated?{id:"contact-fixture",name:"Test Customer",role:"CUSTOMER",email:"test@example.invalid"} as never:null});
+createRoot(document.getElementById("root")!).render(<MemoryRouter initialEntries={["/contact-us"]}>{params.get("admin")?<SettingsPage/>:<div className="fy-store"><CustomerNavbar/><ContactUsPage/><MobileDock/></div>}<Toaster/></MemoryRouter>);

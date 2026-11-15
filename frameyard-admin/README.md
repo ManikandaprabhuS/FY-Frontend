@@ -775,3 +775,18 @@ Homepage banner visibility correction (15 November 2026): supersedes the earlier
 Rollback (15 November 2026, requested): restored the previous How it works component, CSS animation clock, container-unit fallback, packing timeline, label position, and reduced-motion behavior. This supersedes the story/truck portion of the iOS compatibility note; cart, dock, banner, and profile changes remain intact.
 
 Mobile navigation drawer (15 November 2026): one shared CustomerMenuDrawer now renders a guest benefits/sign-in card or the signed-in customer avatar/full-name card, with live wishlist counts from existing state. Guest Wishlist/Orders links use the existing login return path; auth checking shows neutral skeletons. The 380 ms left-slide drawer includes focus trapping, Escape/backdrop/link closing, body scroll lock and safe-area/100dvh sizing; desktop navigation is unchanged. WebKit and Chromium checks passed at 320/375/414px for both variants, long names, counts 0/3/123, login return destinations, auth changes, active links, reduced motion and closing behavior; build and scoped lint passed.
+
+
+## Contact page and admin media (15 November 2026)
+
+The public Contact page now has a curved video hero, tap-to-play inline player, contact cards and a responsive Custom Framing banner. Book appointment, Home and bottom navigation are unchanged.
+
+Admin > Settings > Storyboard video manages the Contact video, optional poster and banner; Contact details manages public phone/email/studio/address. No verified business details were supplied, so those fields remain blank until configured.
+
+Public bucket site-media has backend-only writes. Limits: MP4/WebM 50 MB; JPG/PNG/WebP poster/banner 2 MB. Backend magic-byte checks, staff authorization, rate/concurrency limits and generated filenames protect uploads. Replacements/removals clean old files; failed writes compensate uploads, with a startup/daily orphan retry that rechecks active references. Private customer-photos is unchanged.
+
+Three records in site_contact_settings hold storyboard_video, custom_framing_banner and contact_details, including updater/time. Idempotent setup was applied: npx tsx prisma/setup-contact-media.ts --apply. SUPABASE_SITE_MEDIA_BUCKET defaults to site-media; existing service credentials stay backend-only. Namespaced contact.* changes use the existing offer_audit log's required BIG_ORDER partition, without changing offers.
+
+Default video references Home's current file without copying/changing it; poster/banner reuse the existing gallery-wall asset. Public GET /api/v1/site/contact-media is identical for guests/logged-in visitors, caches 60s and invalidates on changes. Media failures use defaults.
+
+Verified: backend suite 630 passed, frontend validation 3 passed, builds/type checks/scoped lint passed; WebKit/Chromium layouts at 320/375/768/1440, extreme-image crops/fallbacks and mocked admin image upload/removal passed. The real Home video played inline in both engines with mute/pause/resume and scroll/hidden-tab pausing. A live temporary PNG upload/public GET returned 200 and was deleted. Live 50 MB network upload and physical-iPhone checks remain manual. Restart/redeploy both applications.

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Settings, Globe, CreditCard, Lock, Bell, Store, Film } from 'lucide-react';
+import { Settings, Globe, CreditCard, Lock, Bell, Store, Film, Phone } from 'lucide-react';
 
 import HeroVideoSettings from './HeroVideoSettings';
+import ContactMediaSettings from './ContactMediaSettings';
+import ContactDetailsSettings from './ContactDetailsSettings';
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -9,6 +11,8 @@ export const SettingsPage: React.FC = () => {
   const tabs = [
     { id: 'general', label: 'General', icon: <Store className="w-4 h-4" /> },
     { id: 'homepage', label: 'Homepage', icon: <Film className="w-4 h-4" /> },
+    { id: 'storyboard', label: 'Storyboard video', icon: <Film className="w-4 h-4" /> },
+    { id: 'contact', label: 'Contact details', icon: <Phone className="w-4 h-4" /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell className="w-4 h-4" /> },
     { id: 'security', label: 'Security', icon: <Lock className="w-4 h-4" /> },
     { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" /> },
@@ -119,8 +123,10 @@ export const SettingsPage: React.FC = () => {
           )}
 
           {activeTab === 'homepage' && <HeroVideoSettings />}
+          {activeTab === 'storyboard' && <ContactMediaSettings />}
+          {activeTab === 'contact' && <ContactDetailsSettings />}
 
-          {activeTab !== 'general' && activeTab !== 'homepage' && (
+          {activeTab !== 'general' && activeTab !== 'homepage' && activeTab !== 'storyboard' && activeTab !== 'contact' && (
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-12 flex flex-col items-center justify-center text-center shadow-sm animate-fade-in">
               <div className="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mb-4 text-on-surface-variant">
                 <Settings className="w-8 h-8 opacity-50" />
