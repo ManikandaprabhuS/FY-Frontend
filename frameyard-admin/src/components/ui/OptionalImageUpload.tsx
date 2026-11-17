@@ -18,8 +18,9 @@ export default function OptionalImageUpload({ label, value, onChange, busy, onBu
   const [uploading, setUploading] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const lock = useRef(false);
-  return <div className={`min-w-0 rounded-lg border p-3 transition-colors ${value ? 'border-emerald-300 bg-emerald-50/50' : 'border-outline-variant bg-white'}`}>
+  return <div className={`fy-product-optional-upload min-w-0 rounded-lg border p-3 transition-colors ${value ? 'border-emerald-300 bg-emerald-50/50' : 'border-outline-variant bg-white'}`}>
     <button type="button" disabled={busy} onClick={() => input.current?.click()} aria-label={`${value ? 'Replace' : 'Upload'} ${label}`} className="flex min-h-24 w-full flex-col items-center justify-center gap-2 rounded-md px-2 py-3 text-center transition-colors hover:bg-black/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-60">
+      {value && <img src={value} alt={label} decoding="async"/>}
       {uploading ? <LoaderCircle aria-hidden="true" className="h-6 w-6 animate-spin text-black" /> : <Upload aria-hidden="true" className={`h-6 w-6 ${value ? 'text-emerald-700' : 'text-black'}`} />}
       <span className="break-words text-xs font-semibold text-on-surface">{label}</span>
       <span className={`flex items-center gap-1 text-[11px] ${value ? 'text-emerald-700' : 'text-on-surface-variant'}`}>

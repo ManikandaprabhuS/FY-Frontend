@@ -1,0 +1,11 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
+import '../../src/index.css';
+import AdminLayout from '../../src/layouts/AdminLayout';
+import Product from '../../src/pages/products/ProductDetailsPage';
+import Before from './product-form-before';
+import {useAuthStore} from '../../src/store/authStore';
+useAuthStore.setState({user:{id:'fixture-admin',name:'Test Admin',role:'ADMIN'} as any,status:'authenticated',isAuthenticated:true,loading:false});
+const q=new URLSearchParams(location.search),Page=q.has('before')?Before:Product;
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={[q.has('edit')?'/admin/products/fixture-product':'/admin/products/new']}><Routes><Route path="/admin" element={<AdminLayout/>}><Route path="products/:id" element={<Page/>}/><Route path="products" element={<div>Products route</div>}/></Route></Routes></MemoryRouter>);
