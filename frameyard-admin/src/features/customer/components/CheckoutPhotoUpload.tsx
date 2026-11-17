@@ -6,6 +6,7 @@ import {useCustomerCommerceStore} from '../../../store/customerCommerceStore';
 import {orderPhotoService,validateOrderPhoto,type OrderPhotoInfo} from '../../../services/order-photos.service';
 import {listLocalPhotos,saveLocalPhoto,removeLocalPhoto,removeCartPhotos,croppedPhotoFile,type LocalPhoto} from '../../../services/local-photos';
 import {showError,showLoading,showSuccess,showWarning} from '../../../utils/toast';
+import {FrameSpinner} from '../../../components/loaders/FrameLoader';
 export interface CheckoutPhotoHandle {prepare:(maxMB:number)=>Promise<OrderPhotoInfo|null>}
 export default function CheckoutPhotoUpload({onChange,onBusy,items=[],maxAllowedMB=DEFAULT_PHOTO_MAX_MB,limitingItem,disabled=false,ref}:{
  onChange:(photo:OrderPhotoInfo|null)=>void;onBusy:(busy:boolean)=>void;items?:CheckoutSelection[];
@@ -94,7 +95,7 @@ export default function CheckoutPhotoUpload({onChange,onBusy,items=[],maxAllowed
    <input ref={input} aria-label="Choose your order photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled||progress!==null} className="sr-only" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void choose(f);}}/>
    {preview?<img src={preview} alt="Your locally selected photo" className="fy-co-drop__preview"/>:<ImagePlus aria-hidden="true" className="fy-co-drop__icon"/>}
    {(file||saved)&&<p className="break-words text-sm font-bold">{file?.name??saved?.fileName}<span className="block text-xs text-black/60">{((size??0)/1024/1024).toFixed(1)} MB</span></p>}
-   {progress!==null&&<p role="status" className="font-bold">Please wait… {progress}%</p>}
+   {progress!==null&&<p role="status" className="inline-flex items-center gap-2 font-bold"><FrameSpinner/>Uploading your photo… {progress}%</p>}
    <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={disabled||progress!==null} onClick={()=>input.current?.click()} className="fy-co-btn fy-co-btn--solid fy-co-btn--sm"><Upload size={16}/>{file||saved?'Replace photo':'Choose photo'}</button>{(photos.length>0||saved)&&<button type="button" disabled={disabled||progress!==null} onClick={()=>void clear()} className="fy-co-btn fy-co-btn--quiet fy-co-btn--sm">Clear</button>}</div>
   </div>
   {limitingItem&&<p className="mt-2 text-xs text-black/60">Limit set by {limitingItem.name} ({limitingItem.variant})</p>}

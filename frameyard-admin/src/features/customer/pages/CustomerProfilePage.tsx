@@ -18,6 +18,7 @@ import CustomerAccountDashboard from '../components/CustomerAccountDashboard';
 import { AuthCelebration, CustomerAuthScreen, type AuthMode, type Celebration } from '../components/CustomerAuth';
 import { Navigate, useLocation } from 'react-router-dom';
 import AuthPendingScreen from '../../../components/auth/AuthPendingScreen';
+import { FrameSpinner } from '../../../components/loaders/FrameLoader';
 import { useStorefrontChrome } from '../storefrontChrome';
 import { safeAuthReturnPath } from '../../../utils/auth-return-path';
 
@@ -232,7 +233,7 @@ const CustomerAccount: React.FC<{
             </div>
             <AuthError message={error} />
             <div className="mt-7 flex justify-end border-t border-black/10 pt-5">
-              <button type="submit" disabled={loading || !isDirty} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-black px-6 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-35 sm:w-auto"><Save className="h-4 w-4" />{loading ? 'Saving…' : 'Save profile'}</button>
+              <button type="submit" disabled={loading || !isDirty} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-black px-6 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-35 sm:w-auto"><Save className="h-4 w-4" />{loading ? <><FrameSpinner />Saving…</> : 'Save profile'}</button>
             </div>
           </form>
         </div>

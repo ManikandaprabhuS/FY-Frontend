@@ -1,6 +1,7 @@
 import { getStockStatus, normalizeStock } from '../../../utils/stock';
 import {getPhotoMaxBytes,PHOTO_MB_BYTES} from '../../../utils/photo-limits';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Skeleton } from '../../../components/loaders/FrameLoader';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
@@ -630,9 +631,9 @@ const SizeChart: React.FC<{ sizes: Array<{ size: string; variant?: ProductVarian
 };
 
 const ProductDetailsSkeleton = () => (
-  <div className="fy-pdp"><div className="fy-pdp__wrap"><div className="fy-pdp__grid animate-pulse">
-    <div className="aspect-[4/5] bg-mat" />
-    <div className="space-y-5"><div className="h-9 w-3/4 bg-mat" /><div className="h-7 w-1/3 bg-mat" />{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-14 bg-mat/60" />)}</div>
+  <div className="fy-pdp"><div className="fy-pdp__wrap"><div className="fy-pdp__grid" role="status" aria-label="Loading frame">
+    <Skeleton className="aspect-[4/5]" />
+    <div className="space-y-5"><Skeleton className="h-9 w-3/4" /><Skeleton className="h-7 w-1/3" />{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-14" />)}</div>
   </div></div></div>
 );
 

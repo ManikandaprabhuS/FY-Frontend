@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { FrameSpinner } from '../../../components/loaders/FrameLoader';
 
 import fyLogoMark from '../../../assets/fy-logo-mark.png';
 import AnimeFramer from './AnimeFramer';
@@ -153,7 +154,7 @@ const ServerError: React.FC<{ message: string | null }> = ({ message }) => messa
 
 const SubmitButton: React.FC<{ loading: boolean; label: string; busyLabel: string }> = ({ loading, label, busyLabel }) => (
   <button type="submit" disabled={loading} aria-busy={loading || undefined} className="fy-auth__submit">
-    {loading ? <><LoaderCircle className="fy-auth__spin" aria-hidden="true" />{busyLabel}</> : <>{label}<ArrowRight aria-hidden="true" /></>}
+    {loading ? <><FrameSpinner />{busyLabel}</> : <>{label}<ArrowRight aria-hidden="true" /></>}
   </button>
 );
 

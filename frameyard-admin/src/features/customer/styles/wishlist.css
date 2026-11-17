@@ -1,0 +1,54 @@
+/* Wishlist gallery: the All Frames cards, in a grid that sizes to the space it is given
+   (the full-width wishlist view or the Profile column), not to the whole screen. */
+
+.fy-wl__bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; margin-bottom: 22px; border-bottom: 1px solid var(--color-rule); }
+.fy-wl__count { font-size: 13px; color: var(--color-mute); font-variant-numeric: tabular-nums; }
+
+.fy-wl-grid {
+  display: grid;
+  /* Two columns on phones, three or four on wider areas: the shop's card width. */
+  grid-template-columns: repeat(auto-fill, minmax(clamp(148px, 40%, 236px), 1fr));
+  gap: 36px 14px;
+}
+@media (min-width: 768px) { .fy-wl-grid { gap: 48px 24px; } }
+@media (min-width: 1280px) { .fy-wl-grid { gap: 56px 28px; } }
+.fy-wl-grid__cell { min-width: 0; animation: fy-wl-rise 480ms var(--fy-ease-out, ease-out) both; animation-delay: var(--d, 0ms); }
+
+.fy-wl__more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 40px auto 0; padding: 0 28px; border: 1px solid var(--color-ink); font-size: 14px; font-weight: 600; transition: background-color 200ms, color 200ms, transform 140ms; }
+.fy-wl__more:active:not(:disabled) { transform: scale(0.98); }
+.fy-wl__more:disabled { opacity: 0.5; }
+@media (hover: hover) { .fy-wl__more:hover:not(:disabled) { background: var(--color-ink); color: #fff; } }
+
+
+.fy-wl-empty { display: grid; justify-items: center; gap: 8px; padding: 48px 16px; text-align: center; }
+.fy-wl-empty__mark { display: grid; place-items: center; width: 64px; height: 76px; margin-bottom: 8px; border: 3px solid var(--color-ink); outline: 1px solid var(--color-rule); outline-offset: 5px; color: var(--color-mute); }
+.fy-wl-empty__mark svg { width: 22px; height: 22px; }
+.fy-wl-empty h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.fy-wl-empty p { font-size: 14px; color: var(--color-mute); }
+.fy-wl-empty__cta { display: inline-flex; align-items: center; min-height: 48px; margin-top: 12px; padding: 0 26px; background: var(--color-ink); color: #fff; font-size: 14px; font-weight: 600; transition: background-color 200ms, transform 140ms; }
+.fy-wl-empty__cta:active { transform: scale(0.98); }
+@media (hover: hover) { .fy-wl-empty__cta:hover { background: #333; } }
+
+/* ---------- The wishlist view (navbar heart): a full-screen gallery over the store ---------- */
+
+.fy-wishview { position: fixed; inset: 0; z-index: 250; display: flex; flex-direction: column; background: #fff; animation: fy-wl-in 420ms var(--fy-ease-out, ease-out) both; }
+.fy-wishview__head { flex: none; border-bottom: 1px solid var(--color-rule); padding-top: env(safe-area-inset-top, 0px); }
+.fy-wishview__head > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1280px; min-height: 64px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 640px) { .fy-wishview__head > div { padding: 0 24px; } }
+@media (min-width: 1024px) { .fy-wishview__head > div { padding: 0 32px; min-height: 76px; } }
+.fy-wishview__title { font-size: clamp(22px, 3vw, 30px); font-weight: 600; letter-spacing: -0.03em; }
+.fy-wishview__close { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -8px; transition: transform 160ms; }
+.fy-wishview__close:active { transform: scale(0.9); }
+.fy-wishview__close svg { width: 22px; height: 22px; }
+.fy-wishview__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.fy-wishview__body > div { max-width: 1280px; margin: 0 auto; padding: 20px 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 640px) { .fy-wishview__body > div { padding-inline: 24px; } }
+@media (min-width: 1024px) { .fy-wishview__body > div { padding: 32px 32px 56px; } }
+
+@keyframes fy-wl-rise { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
+@keyframes fy-wl-in { from { opacity: 0; transform: translate3d(0, 16px, 0); } }
+@keyframes fy-wl-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-wl-grid__cell, .fy-wishview { animation: none !important; }
+}

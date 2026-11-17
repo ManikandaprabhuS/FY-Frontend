@@ -269,7 +269,7 @@
 .fy-co-trust { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-rule); font-size: 12px; color: var(--color-mute); }
 .fy-co-trust svg { width: 14px; height: 14px; }
 
-.fy-co-skel { height: 96px; margin-top: 14px; background: linear-gradient(90deg, var(--co-soft) 0%, #fafafa 50%, var(--co-soft) 100%); background-size: 200% 100%; animation: fy-co-shimmer 1.4s linear infinite; }
+.fy-co-skel { height: 96px; margin-top: 14px; }
 .fy-co-skel--tall { height: 160px; }
 .fy-co-skel--title { width: 180px; height: 40px; margin-top: 0; }
 .fy-co-skel--steps { height: 48px; }

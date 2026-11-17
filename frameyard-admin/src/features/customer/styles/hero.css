@@ -775,11 +775,8 @@
   to { stroke-dashoffset: 0; }
 }
 
-/* Reduced motion (set from the same media query in the component): a full, still ring. */
-.fy-hero__dots[data-static] .fy-hero__ring-fill {
-  stroke-dashoffset: 0;
-  animation: none;
-}
+/* Reduced motion keeps the ring filling: it is the carousel's timer (data-motion-timer), and
+   with it stopped the carousel never moved on to the video. The slides cut instead of sliding. */
 
 @media (max-width: 639.98px) {
   .fy-hero__dots {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, Mail, MapPin, Phone, Plus, Tag, Truck, Wallet } from "lucide-react";
 import ColorSwatch from "./ColorSwatch";
+import { Skeleton } from "../../../components/loaders/FrameLoader";
 import { useTweened } from "../hooks/useTweened";
 import "../styles/checkout.css";
 import { checkoutService, type CheckoutQuote, type OfferCode } from "../../../services/checkout.service";
@@ -106,7 +107,7 @@ export default function CheckoutOffers(){
    <span className="fy-co-items__info"><span className="fy-co-items__name">{item.name}</span><span className="fy-co-items__meta">{[item.frameSize,item.material].filter(Boolean).join(" · ")}</span>{item.color&&<span className="fy-co-items__meta fy-co-items__swatch"><ColorSwatch color={item.color} className="h-3 w-3"/>{item.colorName&&!item.colorName.startsWith("#")?item.colorName:"Color"}</span>}</span>
    <span className="fy-co-items__price">{money(item.unitPrice*item.quantity)}</span>
   </li>)}</ul>
-  {loading?<div className="fy-co-skel" aria-label="Loading order totals" role="status"/>:<dl className="fy-co-totals">
+  {loading?<div role="status" aria-label="Loading order totals"><Skeleton className="fy-co-skel"/></div>:<dl className="fy-co-totals">
    <div><dt>Subtotal</dt><dd><Money value={subtotal}/></dd></div>
    {selected&&<div className="fy-co-totals__offer" key={selected.code}><dt>{selected.title} ({selected.percent}%)</dt><dd>−<Money value={selected.discountAmount}/></dd></div>}
    <div><dt>Delivery</dt><dd>Free</dd></div>
@@ -151,7 +152,7 @@ export default function CheckoutOffers(){
     </Section>
 
     <Section id="co-address" n={2} title="Delivery address" aside={savedAddresses.length>0&&!adding?<button type="button" className="fy-co-link" disabled={busy} onClick={()=>setAdding(true)}><Plus aria-hidden="true"/>Add new address</button>:undefined}>
-     {loading&&!quote&&<div className="fy-co-skel fy-co-skel--tall" role="status" aria-label="Loading your addresses"/>}
+     {loading&&!quote&&<div role="status" aria-label="Loading your addresses"><Skeleton className="fy-co-skel fy-co-skel--tall"/></div>}
      {error&&<button type="button" onClick={()=>{setError(false);setRevision(v=>v+1);}} className="fy-co-btn fy-co-btn--line">Retry loading checkout</button>}
      {savedAddresses.length>0&&!adding&&<div className="fy-co-choices" role="radiogroup" aria-label="Saved addresses">
       {savedAddresses.map(a=><label key={a.id} className="fy-co-choice" data-active={a.id===address||undefined}>

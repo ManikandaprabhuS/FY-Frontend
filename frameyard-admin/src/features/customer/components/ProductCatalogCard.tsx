@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ProductRating from '../../../components/reviews/ProductRating';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -10,6 +10,7 @@ import type { CatalogPricing } from '../utils/catalog-product';
 import AddToCartButton from './AddToCartButton';
 import WishlistHeart from './WishlistHeart';
 import '../styles/all-frames.css';
+import '../../../components/loaders/loaders.css';
 
 type ProductCatalogCardProps = {
   product: Product;
@@ -53,12 +54,18 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
   const isNew = Number.isFinite(createdAt) && LOADED_AT - createdAt < NEW_FOR_MS;
   const saving = pricing.originalPrice - pricing.currentPrice;
   const sizes = [...new Set(product.variants.filter((variant) => variant.isActive !== false).map((variant) => variant.frameSize?.trim()).filter(Boolean))];
+  // The photo sits on a soft loading sweep until it has actually arrived (cached photos skip it).
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const imageLoading = loadedSrc !== image;
   const wishPending = useCustomerCommerceStore((state) => Boolean(product.productIdentifier && state.wishlistPending[product.productIdentifier]));
 
   return (
     <article className="fy-card" data-sold-out={!inStock} onClick={() => navigate(productPath)}>
-      <div className="fy-card__media">
+      <div className="fy-card__media fy-img-wait" data-loading={imageLoading || undefined}>
         <img
+          ref={(node) => { if (node?.complete && node.naturalWidth > 0 && loadedSrc !== image) setLoadedSrc(image); }}
+          onLoad={() => setLoadedSrc(image)}
+          onError={() => setLoadedSrc(image)}
           src={image}
           alt={product.name}
           loading={priority ? 'eager' : 'lazy'}

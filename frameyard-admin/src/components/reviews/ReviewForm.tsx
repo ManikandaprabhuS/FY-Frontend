@@ -3,6 +3,7 @@ import { Lock, Star } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { reviewService, type ReviewInput } from '../../services/review.service';
 import { reviewValidation } from '../../utils/review-validation';
+import { FrameSpinner } from '../loaders/FrameLoader';
 import { getApiErrorMessage } from '../../services/api';
 import { showApiError, showLoading, showSuccess, showWarning } from '../../utils/toast';
 
@@ -91,7 +92,7 @@ export default function ReviewForm({ productId, onSubmitted, onCancel }: { produ
 
       <div className="fy-rf__actions">
         <button type="button" onClick={onCancel} disabled={busy} className="fy-rf__cancel">Cancel</button>
-        <button type="submit" disabled={!valid || busy} aria-disabled={!valid || busy} className="fy-rf__submit">{busy ? 'Submitting…' : 'Submit review'}</button>
+        <button type="submit" disabled={!valid || busy} aria-disabled={!valid || busy} className="fy-rf__submit">{busy ? <><FrameSpinner />Submitting…</> : 'Submit review'}</button>
       </div>
     </form>
   );
