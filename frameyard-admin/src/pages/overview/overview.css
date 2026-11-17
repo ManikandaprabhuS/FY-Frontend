@@ -1,0 +1,66 @@
+/* Overview-only presentation; shared data and navigation behavior are unchanged. */
+.fy-overview{max-width:1440px;margin-inline:auto;color:#111827;min-width:0}
+.fy-overview> *+*{margin-top:22px}
+.admin-monochrome:has(.fy-overview),.admin-monochrome:has(.fy-overview) main{background:#f7f7f7}
+.admin-monochrome:has(.fy-overview)>div>header{background:#fff;border-color:#e5e7eb;box-shadow:none}
+.fy-overview__header{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.fy-overview__header h2{font-size:28px;line-height:1.2;letter-spacing:-.6px;margin-bottom:6px}
+.fy-overview__header p{color:#4b5563}
+.fy-overview__controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.fy-overview__range{display:flex;align-items:center;gap:8px;min-height:44px;padding-left:12px;background:#fff;border:1px solid #dedfe3;border-radius:11px;box-shadow:0 1px 2px #00000005}
+.fy-overview__range select{height:42px;border:0;background:transparent;text-align:left;padding-right:12px;min-width:130px}
+.fy-overview__controls>button{min-height:44px;padding-inline:16px;border-radius:11px;gap:8px}
+.fy-overview__controls>input{min-height:44px;background:white;border-color:#dedfe3}
+.fy-overview :is(button,a,select,input):focus-visible{outline:2px solid #2563eb;outline-offset:3px}
+.fy-overview :is(.fy-storage,.fy-overview__middle>div,.fy-overview__tables>div){background:white;border:1px solid #dedfe3;border-radius:16px;box-shadow:0 2px 3px #11182705,0 8px 24px #11182703;min-width:0}
+.fy-overview .fy-storage{padding:16px 22px}
+.fy-overview .fy-storage h3{font-size:18px}
+.fy-overview .fy-storage button{border-color:#dedfe3;background:#fff;border-radius:12px}
+.fy-storage__body{display:grid;grid-template-columns:1fr;gap:18px;margin-top:14px;min-height:84px}
+.fy-storage__usage{display:flex;gap:16px;align-items:flex-start}
+.fy-storage__usage>div{flex:1;min-width:0}
+.fy-storage__icon{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:50%;background:#f3f4f6;color:#111827}
+.fy-storage__usage>div>p:first-child{font-size:13px}
+.fy-storage__usage>div>p:nth-child(2){font-size:21px;font-weight:750;margin-top:4px;line-height:1.3}
+.fy-storage__usage>div>p:last-child:not(:nth-child(2)){margin-top:5px;font-size:12px}
+.fy-storage__note a{margin-top:0;min-height:44px;display:flex;align-items:center;font-size:13px;padding:0}
+.fy-storage__note p{font-size:12px;color:#4b5563;line-height:1.65}
+.fy-storage__body> *+*{border-top:1px solid #ececef;padding-top:18px}
+.fy-overview__kpis{gap:18px}
+.fy-overview__kpis>div{position:relative;min-height:118px;padding:20px 18px 20px 74px;border-radius:16px;border:1px solid #f1dfca;background:linear-gradient(120deg,#fff9f1,#fffdf9);box-shadow:0 2px 3px #11182704}
+.fy-overview__kpis>div:nth-child(2){background:linear-gradient(120deg,#f2f7ff,#f8fbff);border-color:#dce7fa}
+.fy-overview__kpis>div:nth-child(3){background:linear-gradient(120deg,#f0fbf2,#f9fdf9);border-color:#dbefdf}
+.fy-overview__kpis>div:nth-child(4){background:linear-gradient(120deg,#f6f2ff,#fbfaff);border-color:#e9e0fa}
+.fy-overview__kpis>div>div:first-child{margin-bottom:12px}
+.fy-overview__kpis>div>div:first-child>span{font-size:10px;font-weight:750;letter-spacing:.7px;color:#374151}
+.fy-overview__kpis>div>div:first-child>div{position:absolute;top:19px;left:18px;width:40px;height:40px;padding:10px;background:#ffecd1;border:0;box-shadow:none;border-radius:13px}
+.fy-overview__kpis>div:nth-child(2)>div:first-child>div{background:#e0edff;color:#1d4ed8}
+.fy-overview__kpis>div:nth-child(3)>div:first-child>div{background:#ddf8e1;color:#15803d}
+.fy-overview__kpis>div:nth-child(4)>div:first-child>div{background:#ede4ff;color:#5b21b6}
+.fy-overview__kpis>div>div:last-child>div:first-child{font-size:27px;line-height:1.2;overflow-wrap:anywhere}
+.fy-overview__middle,.fy-overview__tables{gap:20px}
+.fy-overview__middle>div{padding:20px}
+.fy-overview__middle h3,.fy-overview__tables h3{letter-spacing:0;font-size:13px;color:#111827}
+.fy-overview__middle>div>div:first-child{margin-bottom:16px}
+.fy-overview__middle>div:first-child>div:last-child{height:258px;min-width:0}
+.fy-overview__fulfillment{min-height:44px;background:white;border-color:#e1e2e6;border-radius:11px;padding:10px 13px;text-align:left;width:100%;box-shadow:0 1px 2px #00000003}
+.fy-overview__fulfillment:hover{background:#fafafa}
+.fy-overview__tables>div>div:first-child{padding:15px 20px;border-color:#e5e7eb}
+.fy-overview__tables a{min-height:44px;align-items:center;font-size:11px;color:#111827}
+.fy-overview__tables table{min-width:540px;table-layout:fixed}
+.fy-overview__tables th{background:#f7f7f8;font-size:10px;letter-spacing:0;line-height:1.2;padding:10px 14px;color:#374151}
+.fy-overview__tables td{padding:14px;font-size:11px;vertical-align:top;overflow-wrap:anywhere;line-height:1.45}
+.fy-overview__tables tbody tr{border-color:#ececef}
+.fy-overview__tables tbody tr:hover{background:#fafafa}
+.fy-overview__tables td:first-child,.fy-overview__tables td:nth-last-child(2){font-weight:750}
+.fy-overview__tables th:last-child{width:124px}
+.fy-overview__tables td:last-child{white-space:nowrap}
+.fy-overview__tables .fy-overview__empty{text-align:center;padding:36px 18px;color:#6b7280;font-weight:400}
+.fy-overview__tables td:last-child>span{font-size:10px}
+.fy-overview__tables td:last-child>span[class~="text-amber-600"]{border:1px solid #fed7aa;background:#fff7ed;color:#a34a00}
+.admin-monochrome:has(.fy-overview) header .w-64{width:clamp(256px,25vw,400px)}
+.admin-monochrome:has(.fy-overview) header button{min-height:44px;min-width:44px}
+.admin-monochrome:has(.fy-overview) header button>.bg-error{background:#dc2626;color:white}
+@media(min-width:768px){.fy-storage__body{grid-template-columns:1fr 1fr 1.5fr;gap:20px}.fy-storage__body> *+*{border-top:0;border-left:1px solid #ececef;padding-top:0;padding-left:20px}.fy-overview__kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.fy-overview__kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.fy-overview__middle{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}.fy-overview__middle>div:first-child{grid-column:auto}.fy-overview__tables{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){.fy-overview> *+*{margin-top:18px}.fy-overview__header h2{font-size:25px}.fy-overview__controls{justify-content:flex-start;width:100%}.fy-overview__controls>input{max-width:100%;flex:1}.fy-overview .fy-storage{padding:16px}.fy-overview__middle>div{padding:16px}.fy-overview__tables>div>div:first-child{padding:12px 14px}.fy-overview__middle>div:first-child>div:last-child{height:250px}}

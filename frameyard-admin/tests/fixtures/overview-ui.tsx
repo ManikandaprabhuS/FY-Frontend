@@ -1,0 +1,20 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import '../../src/index.css';
+import Overview from '../../src/pages/overview/OverviewPage';
+import {useProductStore} from '../../src/store/productStore';
+import {useOrderStore} from '../../src/store/orderStore';
+import {useCustomerStore} from '../../src/store/customerStore';
+import {orderService} from '../../src/services/order.service';
+import {photoCleanupService} from '../../src/services/photo-cleanup.service';
+const empty=new URLSearchParams(location.search).has('empty');
+const calls:unknown[]=[];(window as any).overviewCalls=calls;
+const orders=empty?[]:[{id:'one',orderNumber:'FY-1015',user:{name:'Narmatha G'},addressLine:'Dindigul',totalAmount:900,orderStatus:'CANCELLED',createdAt:new Date().toISOString()},{id:'two',orderNumber:'FY-4682',user:{name:'Manikandaprabhu S with a very long customer name'},addressLine:'KSK Complex, Gandhi Nagar, Oddanchatram, Tamil Nadu, India',totalAmount:690,orderStatus:'READY_TO_SHIP',createdAt:new Date().toISOString()}];
+useProductStore.setState({products:empty?[]:[{id:'p',name:'Modern Family Frame - Test with a long product name',variants:[{frameSize:'12 X 10',stockQuantity:5},{frameSize:'8 X 10',stockQuantity:0}]}] as any,pagination:{page:1,limit:50,total:empty?0:5,totalPages:1},fetchProducts:async(...a)=>{calls.push(['products',a]);}});
+useOrderStore.setState({orders:orders as any,summary:{totalCount:6,pendingCount:0,processingCount:5,shippedCount:1,deliveredCount:0,cancelledCount:3},fetchOrders:async(...a)=>{calls.push(['orders',a]);}});
+useCustomerStore.setState({total:7,fetchCustomers:async(...a)=>{calls.push(['customers',a]);}});
+orderService.revenue=async(...a)=>{calls.push(['revenue',a]);return {totalRevenue:15000.2,totalOrders:6,summary:{totalRevenue:7405.2,orderCount:2,averageOrderValue:3702.6},orders:orders as any};};
+photoCleanupService.usage=async(...a)=>{calls.push(['storage',a]);return {database:{bytes:15802040,limitBytes:null},photos:{bytes:0,limitBytes:null},pending:{count:0,bytes:0},generatedAt:new Date().toISOString(),includesBanners:false};};
+createRoot(document.getElementById('root')!).render(<MemoryRouter><main className="admin-monochrome min-h-screen bg-[#f7f7f7] p-4 md:p-7"><Overview/></main></MemoryRouter>);
+

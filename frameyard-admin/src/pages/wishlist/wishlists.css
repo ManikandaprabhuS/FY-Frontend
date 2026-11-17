@@ -1,0 +1,44 @@
+.fy-wishlists{max-width:1240px;margin-inline:auto;min-width:0;color:#111827}
+.admin-monochrome:has(.fy-wishlists),.admin-monochrome:has(.fy-wishlists) main{background:#faf9fa;min-width:0}
+.admin-monochrome:has(.fy-wishlists)>div:last-child{min-width:0}
+.admin-monochrome:has(.fy-wishlists) header{background:white;border-color:#e6e3e6;box-shadow:none}
+.admin-monochrome:has(.fy-wishlists) header .w-64{width:clamp(256px,25vw,380px)}
+.admin-monochrome:has(.fy-wishlists) header button{min-height:44px;min-width:44px}
+.admin-monochrome:has(.fy-wishlists) header button>.bg-error{background:#dc2626;color:white}
+.admin-monochrome:has(.fy-wishlists) header button[aria-label="Account menu"]{background:#fff0e3;border-color:#f6dfc9;color:#8e4913}
+.fy-wishlists__heading{display:flex;align-items:center;gap:16px;border:1px solid #f3e9ed;background:linear-gradient(110deg,#fff1f5,#fff 80%);padding:22px 24px;border-radius:16px;margin-bottom:22px}
+.fy-wishlists__heading>span{display:grid;place-items:center;flex-shrink:0;width:52px;height:52px;border-radius:15px;background:#ffe3eb;color:#b82750}
+.fy-wishlists__heading h1{font-size:27px;letter-spacing:-.6px;line-height:1.2}
+.fy-wishlists__heading p{font-size:13px;line-height:1.6;color:#6b626b;margin-top:6px}
+.fy-wishlists__card{background:#fff;border:1px solid #e2dfe3;border-radius:16px;box-shadow:0 2px 4px #11182705,0 8px 24px #11182703;overflow:hidden;padding:12px 18px}
+.fy-wishlists table{width:100%;table-layout:fixed;border-collapse:collapse}
+.fy-wishlists__heading>div{min-width:0}
+.fy-wishlists__card{min-width:0;max-width:100%}
+.fy-wishlists td{min-width:0;overflow:hidden}
+.fy-wishlists__name{max-width:100%;flex:1}
+.fy-wishlists th{background:#f6f5f7;font-size:10px;letter-spacing:.4px;color:#57515b;font-weight:700;padding:14px 12px;border-bottom:1px solid #e6e2e7;text-transform:uppercase;text-align:left}
+.fy-wishlists th:first-child{width:66px;border-radius:10px 0 0 0}
+.fy-wishlists th:last-child{width:190px;text-align:right;border-radius:0 10px 0 0}
+.fy-wishlists tbody tr{border-bottom:1px solid #efedf0;transition:background .15s}
+.fy-wishlists tbody tr:hover{background:#fcfafb}
+.fy-wishlists tbody tr[data-rank="1"]{background:linear-gradient(90deg,#fff8e9,#fff8f4 70%,#fffaf6)}
+.fy-wishlists td{padding:14px 12px;font-size:13px;color:#1f1922}
+.fy-wishlists__rank{display:inline-flex;gap:3px;align-items:center;justify-content:center;min-width:30px;height:28px;padding:0 7px;border-radius:10px;background:#f1f0f3;font-weight:750;color:#514b56;font-size:12px}
+[data-rank="1"] .fy-wishlists__rank{background:#fff0bd;color:#805508}
+.fy-wishlists__product{display:flex;align-items:center;gap:14px;min-width:0}
+.fy-wishlists__image{display:grid;place-items:center;flex-shrink:0;width:46px;height:46px;border-radius:9px;border:1px solid #e4dfe4;background:#f5f3f2;color:#8b8188}
+.fy-wishlists__name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;min-width:0}
+.fy-wishlists__count{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:55px;padding:7px 11px;background:#fff0f4;color:#ac294d;border-radius:11px;font-size:13px;font-weight:750}
+.fy-wishlists td:last-child{text-align:right}
+.fy-wishlists__state{padding:42px 18px!important;text-align:center!important;color:#6b626b!important}
+.fy-wishlists__state>svg{display:block;margin:0 auto 12px;color:#be4865}
+.fy-wishlists__error{color:#b91c1c!important}
+.fy-wishlists__skeleton{display:block;height:14px;max-width:240px;border-radius:6px;background:#eeecef;animation:fy-wishlist-pulse 1.5s ease-in-out infinite}
+.fy-wishlists tr[aria-hidden="true"] td{height:74px}
+.fy-wishlists__card>nav{margin-top:0;padding:16px 0 5px;font-size:12px}
+.fy-wishlists__card>nav>div>span{background:#111827;color:#fff;padding:10px 12px;border-radius:10px;font-weight:650}
+.fy-wishlists__card>nav button{min-height:44px;min-width:44px;border-color:#e2dfe4;background:white;border-radius:10px}
+.fy-wishlists :is(button,a,input,select):focus-visible{outline:2px solid #2563eb;outline-offset:3px}
+@keyframes fy-wishlist-pulse{50%{opacity:.4}}
+@media(prefers-reduced-motion:reduce){.fy-wishlists__skeleton{animation:none}}
+@media(max-width:767px){.fy-wishlists__heading{padding:18px 14px;gap:12px}.fy-wishlists__heading>span{width:44px;height:44px}.fy-wishlists__heading h1{font-size:24px}.fy-wishlists__heading p{font-size:12px}.fy-wishlists__card{padding:8px}.fy-wishlists th{font-size:9px;padding:12px 6px;letter-spacing:0}.fy-wishlists th:first-child{width:42px}.fy-wishlists th:last-child{width:95px}.fy-wishlists td{padding:14px 6px;font-size:12px}.fy-wishlists__product{gap:8px}.fy-wishlists__image{width:36px;height:40px}.fy-wishlists__count{min-width:44px;padding:7px;gap:4px;font-size:12px}.fy-wishlists__rank{min-width:26px;padding:0 4px;font-size:11px;gap:1px}.fy-wishlists__rank svg{width:11px}.fy-wishlists__card>nav{gap:12px;justify-content:center}.fy-wishlists__card>nav>span{width:100%;text-align:center}}

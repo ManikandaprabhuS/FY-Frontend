@@ -1,3 +1,4 @@
+import './overview.css';
 import StorageWidget from "../../components/admin/StorageWidget";
 import {orderService} from "../../services/order.service";
 import { getStockStatus, normalizeStock } from '../../utils/stock';
@@ -18,7 +19,8 @@ import {
   Package, 
   ArrowRight,
   IndianRupee,
-  Download
+  Download,
+  CalendarDays
 } from 'lucide-react';
 
 import {revenueDateParts,revenueDateRange,revenueChartData,type RevenueRange as ReportRange} from "./revenue-calendar";
@@ -151,15 +153,55 @@ export const OverviewPage: React.FC = () => {
 
   const getStockStatusBadge = (status: ReturnType<typeof getStockStatus>) => <Badge type={status.type} className="font-bold">{status.label}</Badge>;
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h2 className="text-2xl font-bold text-on-surface mb-1">Overview</h2>
-        <p className="text-sm text-on-surface-variant">Your store's performance at a glance.</p>
+    <div className="fy-overview space-y-8 animate-fade-in">
+      <div className="fy-overview__header">
+        <div><h2 className="text-2xl font-bold text-on-surface mb-1">Overview</h2>
+        <p className="text-sm text-on-surface-variant">Your store's performance at a glance.</p></div>
+            <div className="fy-overview__controls">
+              <span className="fy-overview__range"><CalendarDays size={17} aria-hidden="true" /><select
+                aria-label="Revenue date range"
+                value={reportRange}
+                onChange={(event) => setReportRange(event.target.value as ReportRange)}
+                className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-center text-xs font-semibold text-on-surface outline-none [text-align-last:center]"
+              >
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select></span>
+              {reportRange === 'custom' && (
+                <>
+                  <input
+                    aria-label="Revenue date"
+                    type="date"
+                    value={reportFromDate}
+                    onChange={(event) => setReportFromDate(event.target.value)}
+                    className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none"
+                  />
+                  <input
+                    type="date"
+                    value={reportToDate}
+                    onChange={(event) => setReportToDate(event.target.value)}
+                    className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none"
+                  />
+                </>
+              )}
+              <button
+                onClick={handleDownloadRevenueReport}
+                disabled={generatingReport}
+                aria-busy={generatingReport}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#111827] bg-[#111827] px-3 text-xs font-semibold text-white transition-colors hover:bg-black"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Report PDF
+            </button>
+            </div>
       </div>
 
       <StorageWidget/>
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="fy-overview__kpis grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard
           title="Total Revenue"
           value={`₹${calculatedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -186,7 +228,7 @@ export const OverviewPage: React.FC = () => {
       </div>
 
       {/* Recharts Chart & Fulfillment Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="fy-overview__middle grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Revenue Line Chart */}
         <div className="lg:col-span-2 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0_1px_3px_rgba(15,23,42,0.08)] flex flex-col">
@@ -197,44 +239,7 @@ export const OverviewPage: React.FC = () => {
                 INR {reportRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} from {reportOrders.length} orders
               </p>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap xl:justify-end">
-              <select
-                value={reportRange}
-                onChange={(event) => setReportRange(event.target.value as ReportRange)}
-                className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-center text-xs font-semibold text-on-surface outline-none [text-align-last:center]"
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="year">This Year</option>
-                <option value="custom">Custom Range</option>
-              </select>
-              {reportRange === 'custom' && (
-                <>
-                  <input
-                    type="date"
-                    value={reportFromDate}
-                    onChange={(event) => setReportFromDate(event.target.value)}
-                    className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none"
-                  />
-                  <input
-                    type="date"
-                    value={reportToDate}
-                    onChange={(event) => setReportToDate(event.target.value)}
-                    className="h-9 rounded-lg border border-outline-variant bg-surface px-3 text-xs text-on-surface outline-none"
-                  />
-                </>
-              )}
-              <button
-                onClick={handleDownloadRevenueReport}
-                disabled={generatingReport}
-                aria-busy={generatingReport}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#111827] bg-[#111827] px-3 text-xs font-semibold text-white transition-colors hover:bg-black"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Report PDF
-            </button>
-            </div>
+
           </div>
           
           <div className="w-full h-64 mt-auto">
@@ -248,52 +253,52 @@ export const OverviewPage: React.FC = () => {
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0_1px_3px_rgba(15,23,42,0.08)] flex flex-col">
           <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider mb-6">Order Fulfillment</h3>
           <div className="flex-1 flex flex-col gap-3">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('PLACED')}>
+            <button type="button" className="fy-overview__fulfillment flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('PLACED')}>
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: '#f59e0b' }} />
                 <span className="text-xs font-semibold text-on-surface">Pending Payment</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{pendingCount}</span>
-            </div>
+            </button>
             
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('PROCESSING')}>
+            <button type="button" className="fy-overview__fulfillment flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('PROCESSING')}>
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: '#3b82f6' }} />
                 <span className="text-xs font-semibold text-on-surface">Processing</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{processingCount}</span>
-            </div>
+            </button>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('SHIPPED')}>
+            <button type="button" className="fy-overview__fulfillment flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('SHIPPED')}>
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: '#16a34a' }} />
                 <span className="text-xs font-semibold text-on-surface">Shipped</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{shippedCount}</span>
-            </div>
+            </button>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('DELIVERED')}>
+            <button type="button" className="fy-overview__fulfillment flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer" onClick={() => navigateToOrdersByStatus('DELIVERED')}>
               <div className="flex items-center gap-3">
                 <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: '#1d4ed8' }} />
                 <span className="text-xs font-semibold text-on-surface">Delivered</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{deliveredCount}</span>
-            </div>
+            </button>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer mt-auto" onClick={() => navigateToOrdersByStatus('CANCELLED')}>
+            <button type="button" className="fy-overview__fulfillment flex items-center justify-between p-3 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer mt-auto" onClick={() => navigateToOrdersByStatus('CANCELLED')}>
               <div className="flex items-center gap-3">
                 <span className="block h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: '#ef3340' }} />
                 <span className="text-xs font-semibold text-on-surface">Cancelled</span>
               </div>
               <span className="text-xs font-bold text-on-surface">{cancelledCount}</span>
-            </div>
+            </button>
           </div>
         </div>
 
       </div>
 
       {/* Tables Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="fy-overview__tables grid grid-cols-1 xl:grid-cols-2 gap-6">
         
         {/* Recent Orders Table */}
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_1px_3px_rgba(15,23,42,0.08)] overflow-hidden flex flex-col">
@@ -315,6 +320,7 @@ export const OverviewPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-outline-variant/30 text-on-surface">
+                {recentOrders.length === 0 && <tr><td colSpan={5} className="fy-overview__empty">No orders yet</td></tr>}
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-surface transition-colors">
                     <td className="p-4 font-semibold text-primary">{order.orderNumber}</td>
@@ -348,6 +354,7 @@ export const OverviewPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-outline-variant/30 text-on-surface">
+                {displayLowStock.length === 0 && <tr><td colSpan={4} className="fy-overview__empty">All products are well stocked</td></tr>}
                 {displayLowStock.map((item, idx) => (
                   <tr key={idx} className="hover:bg-surface transition-colors">
                     <td className="p-4 font-semibold">{item.name}</td>

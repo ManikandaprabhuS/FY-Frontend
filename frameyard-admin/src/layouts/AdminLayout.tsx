@@ -83,7 +83,7 @@ export const AdminLayout: React.FC = () => {
     const paths = location.pathname.split('/').filter(Boolean);
     return paths.map((path, idx) => {
       const isLast = idx === paths.length - 1;
-      const formatted = path.charAt(0).toUpperCase() + path.slice(1);
+      const formatted = paths[1] === 'customers' && idx === 2 ? 'Customer Profile' : path.charAt(0).toUpperCase() + path.slice(1);
       return (
         <React.Fragment key={path}>
           {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-on-surface-variant/40" />}

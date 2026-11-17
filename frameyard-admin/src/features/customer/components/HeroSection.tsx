@@ -79,7 +79,7 @@ const FrameWallSlide: React.FC<HeroSectionProps & { replayKey?: number }> = ({ f
       <span className="fy-wall__floor" aria-hidden="true" />
       <span className="fy-wall__dim" aria-hidden="true" />
 
-      <img className="fy-wall__plant" src={HERO_PLANT} alt="" aria-hidden="true" decoding="async" draggable={false} />
+      <img className="fy-wall__plant" src={HERO_PLANT} alt="" aria-hidden="true" decoding="async" fetchPriority="high" draggable={false} />
       {/* Desktop only: a tall bird of paradise on the floor each side, and a small monstera in front of the left palm. */}
       <img className="fy-wall__plant fy-wall__plant--extra fy-wall__plant--bird-left" src={HERO_BIRD_OF_PARADISE} alt="" aria-hidden="true" decoding="async" draggable={false} />
       <img className="fy-wall__plant fy-wall__plant--extra fy-wall__plant--monstera-left" src={HERO_MONSTERA} alt="" aria-hidden="true" decoding="async" draggable={false} />

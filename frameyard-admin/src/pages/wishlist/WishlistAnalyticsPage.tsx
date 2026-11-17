@@ -1,3 +1,5 @@
+import './wishlists.css';
+import {Heart,Crown,Image} from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { wishlistAnalyticsService, type WishlistProductAnalytics } from '../../services/wishlist-analytics.service';
 import PaginationControls from '../../components/ui/PaginationControls';
@@ -22,39 +24,31 @@ export const WishlistAnalyticsPage: React.FC = () => {
   }, [page]);
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto w-full animate-fade-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-on-surface">Wishlists</h1>
-        <p className="mt-1 text-sm text-on-surface-variant">Products ranked by the number of customers who wishlisted them.</p>
+    <div className="fy-wishlists w-full animate-fade-in">
+      <div className="fy-wishlists__heading">
+        <span aria-hidden="true"><Heart size={28}/></span>
+        <div><h1 className="font-bold">Wishlists</h1><p>Products ranked by the number of customers who wishlisted them.</p></div>
       </div>
-
-      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left">
-            <thead className="border-b border-outline-variant bg-surface-container-low">
-              <tr className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                <th className="px-6 py-4">Product</th>
-                <th className="px-6 py-4 text-right">Wishlisted Users</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/50 text-sm">
-              {loading ? (
-                <tr><td colSpan={2} className="px-6 py-10 text-center text-on-surface-variant">Loading wishlist data...</td></tr>
-              ) : error ? (
-                <tr><td colSpan={2} className="px-6 py-10 text-center text-error">{error}</td></tr>
-              ) : products.length === 0 ? (
-                <tr><td colSpan={2} className="px-6 py-10 text-center text-on-surface-variant">No products have been wishlisted yet.</td></tr>
-              ) : products.map((product) => (
-                <tr key={product.productIdentifier} className="transition-colors hover:bg-surface-container-low/60">
-                  <td className="px-6 py-4 font-semibold text-on-surface">{product.productName}</td>
-                  <td className="px-6 py-4 text-right text-lg font-bold text-on-surface">{product.wishlistUserCount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <PaginationControls pagination={pagination} busy={loading} onPageChange={next => { setLoading(true); setPage(next); }} />
+      <section className="fy-wishlists__card" aria-label="Wishlist product ranking">
+        <table>
+          <thead><tr><th scope="col">#</th><th scope="col">Product</th><th scope="col">Wishlisted Users</th></tr></thead>
+          <tbody>
+            {loading ? <>{Array.from({length:5},(_,index)=><tr key={index} aria-hidden="true"><td><span className="fy-wishlists__skeleton"/></td><td><span className="fy-wishlists__skeleton"/></td><td><span className="fy-wishlists__skeleton"/></td></tr>)}<tr className="sr-only"><td colSpan={3} role="status">Loading wishlist data...</td></tr></> : error ? (
+              <tr><td colSpan={3} role="alert" className="fy-wishlists__state fy-wishlists__error">{error}</td></tr>
+            ) : products.length === 0 ? (
+              <tr><td colSpan={3} className="fy-wishlists__state"><Heart size={30} aria-hidden="true"/>No wishlisted products yet</td></tr>
+            ) : products.map((product,index) => {
+              const rank=(pagination.page-1)*pagination.limit+index+1;
+              return <tr key={product.productIdentifier} data-rank={rank}>
+                <td><span className="fy-wishlists__rank">{rank===1 && <Crown size={13} aria-label="Top wishlisted"/>}{rank}</span></td>
+                <td><div className="fy-wishlists__product"><span className="fy-wishlists__image" aria-hidden="true"><Image size={23}/></span><span className="fy-wishlists__name" title={product.productName}>{product.productName}</span></div></td>
+                <td><span className="fy-wishlists__count" aria-label={product.wishlistUserCount+' wishlisted users'}><Heart size={15} aria-hidden="true"/>{product.wishlistUserCount}</span></td>
+              </tr>;
+            })}
+          </tbody>
+        </table>
+        <PaginationControls pagination={pagination} busy={loading} onPageChange={next => { setLoading(true); setPage(next); }} />
+      </section>
     </div>
   );
 };

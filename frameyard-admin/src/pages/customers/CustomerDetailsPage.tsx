@@ -1,6 +1,8 @@
+import './customers.css';
+import StatusBadge from '../../components/ui/StatusBadge';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Mail, MapPin, Phone, ShoppingCart, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Mail, MapPin, Phone, ShoppingCart, IndianRupee } from 'lucide-react';
 import Badge from '../../components/ui/Badge';
 import { Customer, Order } from '../../types';
 import { customerService } from '../../services/customer.service';
@@ -78,26 +80,10 @@ const CustomerDetailsPage: React.FC = () => {
       .filter(Boolean)
       .join(', ') || 'Not available';
 
-  const statusTone = (status: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' => {
-    switch (status) {
-      case 'DELIVERED':
-        return 'success';
-      case 'PROCESSING':
-      case 'SHIPPED':
-        return 'info';
-      case 'CANCELLED':
-        return 'error';
-      case 'CONFIRMED':
-      case 'PENDING':
-        return 'warning';
-      default:
-        return 'neutral';
-    }
-  };
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="fy-customers fy-cprofile space-y-6 animate-pulse">
         <div className="h-24 rounded-2xl border border-outline-variant bg-surface-container-lowest" />
         <div className="grid gap-4 md:grid-cols-3">
           <div className="h-24 rounded-2xl border border-outline-variant bg-surface-container-lowest" />
@@ -124,12 +110,12 @@ const CustomerDetailsPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
-      <div className="flex items-center gap-3 border-b border-outline-variant/60 pb-5">
+    <div className="fy-customers fy-cprofile space-y-6 animate-fade-in pb-10">
+      <div className="fy-cprofile__header flex items-center gap-3 border-b border-outline-variant/60 pb-5">
         <button
           onClick={() => navigate('/admin/customers')}
           className="rounded-xl border border-outline-variant p-2 hover:bg-surface-container-low transition-colors"
-          title="Back"
+          title="Back" aria-label="Back to customers"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -145,11 +131,11 @@ const CustomerDetailsPage: React.FC = () => {
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-sm">
-        <div className="border-b border-outline-variant bg-surface/70 p-6">
+      <section className="fy-cprofile__identity overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+        <div className="fy-cprofile__summary border-b border-outline-variant bg-surface/70 p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-2xl font-bold text-primary">
+              <div className="fy-cprofile__avatar flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-2xl font-bold text-primary">
                 {customer.name.charAt(0).toUpperCase()}
               </div>
               <div>
@@ -167,7 +153,7 @@ const CustomerDetailsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[520px] xl:grid-cols-2">
+            <div className="fy-cprofile__contact grid gap-3 sm:grid-cols-2 xl:min-w-[520px] xl:grid-cols-2">
               <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-secondary">
                   <Mail className="h-3.5 w-3.5" />
@@ -193,7 +179,7 @@ const CustomerDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid gap-4 p-6 md:grid-cols-3">
+        <div className="fy-cprofile__stats grid gap-4 p-6 md:grid-cols-3">
           <div className="rounded-2xl border border-outline-variant bg-surface p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Total Orders</span>
@@ -206,7 +192,7 @@ const CustomerDetailsPage: React.FC = () => {
           <div className="rounded-2xl border border-outline-variant bg-surface p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Total Spent</span>
-              <UserRound className="h-4 w-4 text-secondary" />
+              <IndianRupee className="h-4 w-4 text-secondary" />
             </div>
             <div className="mt-3 text-3xl font-bold text-secondary">{formatCurrency(totalSpent)}</div>
             <p className="mt-1 text-xs text-on-surface-variant">Lifetime spending</p>
@@ -225,7 +211,7 @@ const CustomerDetailsPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+      <section className="fy-cprofile__history overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-sm">
         <div className="flex items-center justify-between border-b border-outline-variant bg-surface px-6 py-4">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-on-surface">Order History</h3>
@@ -259,10 +245,11 @@ const CustomerDetailsPage: React.FC = () => {
 
                   return (
                     <React.Fragment key={order.id}>
-                      <tr className="group hover:bg-surface/40 transition-colors">
+                      <tr className="fy-cprofile__order group hover:bg-surface/40 transition-colors">
                         <td className="px-6 py-4">
                           <button
                             type="button"
+                            aria-expanded={isExpanded}
                             onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
                             className="font-semibold text-primary hover:underline"
                           >
@@ -270,15 +257,14 @@ const CustomerDetailsPage: React.FC = () => {
                           </button>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge type={statusTone(order.orderStatus)}>
-                            {order.orderStatus}
-                          </Badge>
+                          <StatusBadge status={order.orderStatus} />
                         </td>
                         <td className="px-6 py-4 font-semibold text-on-surface">{formatCurrency(Number(order.totalAmount))}</td>
                         <td className="px-6 py-4 text-sm text-on-surface-variant">{formatDate(order.createdAt)}</td>
                         <td className="px-6 py-4 text-right">
                           <button
                             type="button"
+                            aria-expanded={isExpanded}
                             onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-xs font-semibold text-secondary hover:bg-surface"
                           >
@@ -289,9 +275,9 @@ const CustomerDetailsPage: React.FC = () => {
                       </tr>
 
                       {isExpanded && (
-                        <tr>
+                        <tr className="fy-cprofile__expanded">
                           <td colSpan={5} className="bg-surface-container-low px-6 py-5">
-                            <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
+                            <div className="fy-cprofile__items rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
                               <div className="flex flex-col gap-2 border-b border-outline-variant pb-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                   <h4 className="text-sm font-bold uppercase tracking-wider text-on-surface">Order Items</h4>
@@ -317,13 +303,13 @@ const CustomerDetailsPage: React.FC = () => {
                                   <tbody className="divide-y divide-outline-variant/25">
                                     {(Array.isArray(order.orderItems) ? order.orderItems : []).map((item) => (
                                       <tr key={item.id} className="hover:bg-surface/40">
-                                        <td className="px-3 py-3 font-semibold text-on-surface">{item.productName}</td>
-                                        <td className="px-3 py-3 text-on-surface-variant">{item.frameSize}</td>
-                                        <td className="px-3 py-3 text-on-surface-variant">{item.mountType}</td>
-                                        <td className="px-3 py-3 text-on-surface-variant">{item.glassType}</td>
-                                        <td className="px-3 py-3 text-on-surface-variant">{item.quantity}</td>
-                                        <td className="px-3 py-3 font-medium text-on-surface">{formatCurrency(Number(item.price))}</td>
-                                        <td className="px-3 py-3 font-semibold text-on-surface">{formatCurrency(Number(item.subtotal))}</td>
+                                        <td data-label="Product" className="px-3 py-3 font-semibold text-on-surface"><span className="fy-cprofile__product">{item.imageUrl && <img src={item.imageUrl} width={40} height={40} loading="lazy" decoding="async" alt=""/>}{item.productName || '—'}</span></td>
+                                        <td data-label="Frame Size" className="px-3 py-3 text-on-surface-variant">{item.frameSize || '—'}</td>
+                                        <td data-label="Mount Type" className="px-3 py-3 text-on-surface-variant">{item.mountType?.replace(/^OPTION_(\d+)$/i, 'Option $1') || '—'}</td>
+                                        <td data-label="Glass Type" className="px-3 py-3 text-on-surface-variant">{item.glassType?.replace(/^OPTION_(\d+)$/i, 'Option $1') || '—'}</td>
+                                        <td data-label="Qty" className="px-3 py-3 text-on-surface-variant">{item.quantity}</td>
+                                        <td data-label="Unit Price" className="px-3 py-3 font-medium text-on-surface">{formatCurrency(Number(item.price))}</td>
+                                        <td data-label="Subtotal" className="px-3 py-3 font-semibold text-on-surface">{formatCurrency(Number(item.subtotal))}</td>
                                       </tr>
                                     ))}
                                   </tbody>

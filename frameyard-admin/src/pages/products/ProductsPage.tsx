@@ -1,3 +1,4 @@
+import './products-list.css';
 import React, { useEffect, useState } from 'react';
 import { showError, showSuccess } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import useProducts from '../../hooks/useProducts';
 import DataTable from '../../components/tables/DataTable';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
-import { Plus, Download, Edit2, Trash2, Search } from 'lucide-react';
+import { Plus, Download, Edit2, Trash2, Search, Package, Layers, TriangleAlert, Power, Image } from 'lucide-react';
 import { getStockStatus, totalVariantStock } from "../../utils/stock";
 import { Product } from '../../types';
 import { downloadAdminCsv } from "../../utils/admin-export";
@@ -102,8 +103,8 @@ export const ProductsPage: React.FC = () => {
   };
 
   const headers = [
-    { key: 'image', label: 'Image', w: '16' },
-    { key: 'name', label: 'Product Name' },
+    { key: 'image', label: '', w: '16' },
+    { key: 'name', label: 'Product' },
     { key: 'material', label: 'Material' },
     { key: 'colors', label: 'Colors' },
     { key: 'variants', label: 'Variants' },
@@ -114,17 +115,17 @@ export const ProductsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="fy-products-list space-y-6 animate-fade-in">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="fy-products-list__header flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <nav className="flex items-center gap-1.5 text-xs text-on-surface-variant mb-1">
             <span className="hover:text-primary cursor-pointer" onClick={() => navigate('/admin/overview')}>Catalog</span>
             <span>&gt;</span>
             <span className="text-primary font-semibold">Products</span>
           </nav>
-          <h2 className="text-3xl font-bold text-on-surface">Products</h2>
+          <span className="fy-products-list__header-icon" aria-hidden="true"><Package size={28}/></span><h2 className="text-3xl font-bold text-on-surface">Products</h2><p>Manage your product catalog, variants and inventory.</p>
         </div>
         <button
           onClick={() => navigate('/admin/products/new')}
@@ -136,30 +137,30 @@ export const ProductsPage: React.FC = () => {
       </div>
 
       {/* Bento Grid Summary Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="fy-products-list__stats grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <span className="text-xs font-semibold text-on-surface-variant">Total Products</span>
+          <span className="fy-products-list__stat-icon" aria-hidden="true"><Package size={24}/></span><span className="text-xs font-semibold text-on-surface-variant">Total Products</span>
           <span className="text-2xl font-bold text-on-surface">{products.length}</span>
           <span className="text-[11px] text-tertiary font-medium flex items-center gap-0.5">
             Overall Products 
           </span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <span className="text-xs font-semibold text-on-surface-variant">Active Variants</span>
+          <span className="fy-products-list__stat-icon" aria-hidden="true"><Layers size={24}/></span><span className="text-xs font-semibold text-on-surface-variant">Active Variants</span>
           <span className="text-2xl font-bold text-on-surface">
             {products.reduce((sum, p) => sum + p.variants.length, 0)}
           </span>
           <span className="text-[11px] text-on-surface-variant/80">Standard Variant sizes</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <span className="text-xs font-semibold text-on-surface-variant">Low Stock Alerts</span>
+          <span className="fy-products-list__stat-icon" aria-hidden="true"><TriangleAlert size={24}/></span><span className="text-xs font-semibold text-on-surface-variant">Low Stock Alerts</span>
           <span className="text-2xl font-bold text-error">
             {products.filter(p => productStockStatus(p).key !== 'in').length}
           </span>
           <span className="text-[11px] text-error font-medium">Requires attention</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl flex flex-col gap-1 shadow-sm">
-          <span className="text-xs font-semibold text-on-surface-variant"> Active Products</span>
+          <span className="fy-products-list__stat-icon" aria-hidden="true"><Power size={24}/></span><span className="text-xs font-semibold text-on-surface-variant"> Active Products</span>
           <span className="text-2xl font-bold text-on-surface">
              {products.filter(product => product.isActive).length} </span>
   <span className="text-[11px] text-secondary font-medium">
@@ -169,12 +170,13 @@ export const ProductsPage: React.FC = () => {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="fy-products-list__toolbar bg-surface-container-lowest border border-outline-variant p-4 rounded-xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:flex-1">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant w-[18px] h-[18px]" />
             <input
               type="text"
+              aria-label="Filter products"
               value={searchTerm}
               onChange={handleSearchChange}
               placeholder="Filter by name, material, brand..."
@@ -184,6 +186,7 @@ export const ProductsPage: React.FC = () => {
           <div className="h-6 w-px bg-outline-variant hidden sm:block" />
           <div className="relative w-full sm:w-48">
             <select
+              aria-label="Product status filter"
               value={statusFilter}
               onChange={handleStatusFilterChange}
               className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
@@ -228,44 +231,40 @@ export const ProductsPage: React.FC = () => {
             <tr key={product.id} className="hover:bg-surface/40 transition-colors group">
               <td className="px-6 py-4">
                 <div className="w-12 h-12 rounded bg-surface-container overflow-hidden inner-stroke">
-                  <img
-                    src={
-                      product.images?.[0]?.imageUrl ||
-                      "https://via.placeholder.com/300x300?text=No+Image"
-                    }
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  {product.images?.[0]?.imageUrl ? <img src={product.images[0].imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/> : <span className="fy-products-list__placeholder" aria-label="No product image"><Image size={24}/></span>}
                 </div>
               </td>
               <td className="px-6 py-4">
-                <div className="font-semibold text-on-surface group-hover:text-primary transition-colors">{product.name}</div>
+                <div title={product.name} className="fy-products-list__name font-semibold text-on-surface group-hover:text-primary transition-colors">{product.name}</div>
                 <div className="text-[11px] text-on-surface-variant font-medium mt-0.5">Brand: {product.brandName}</div>
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{product.material}</td>
               <td className="px-6 py-4">
                 <div className="flex -space-x-1">
-                  {(product.availableColors || []).map((color, idx) => (
+                  {(product.availableColors || []).slice(0, 4).map((color, idx) => (
                     <span
                       key={idx}
                       className="w-4 h-4 rounded-full border border-white ring-1 ring-black/5"
                       style={{ backgroundColor: color }}
                       title={color}
+                      aria-label={color}
                     />
                   ))}
+                  {(product.availableColors?.length || 0) > 4 && <span className="fy-products-list__more-colors" title={product.availableColors.slice(4).join(', ')}>+{product.availableColors.length - 4}</span>}
                 </div>
               </td>
-              <td className="px-6 py-4 text-on-surface-variant">{product.variants?.length || 0} Variants</td>
+              <td className="px-6 py-4 text-on-surface-variant">{product.variants?.length || 0} {product.variants?.length === 1 ? 'Variant' : 'Variants'}</td>
               <td className="px-6 py-4">
                 <div className="flex justify-center">
-                  <Badge type={stockInfo.type}  className="min-w-[100px] justify-center font-bold"> {stockInfo.label}</Badge>
+                  <Badge type={stockInfo.type}  className="fy-products-list__stock min-w-[100px] justify-center font-bold"> {stockInfo.label}</Badge>
                 </div>
               </td>
               <td className="px-6 py-4">
                 <div className="flex justify-center">
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="fy-products-list__toggle relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
+                      role="switch" aria-label={product.isActive ? 'Active' : 'Inactive'}
                       checked={product.isActive}
                       onChange={() => handleStatusToggle(product)}
                       className="sr-only peer"
@@ -274,10 +273,11 @@ export const ProductsPage: React.FC = () => {
                   </label>
                 </div>
               </td>
-              <td className="px-6 py-4 text-on-surface-variant">{new Date(product.createdAt).toLocaleDateString()}</td>
+              <td className="px-6 py-4 text-on-surface-variant">{new Date(product.createdAt).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}</td>
               <td className="px-6 py-4 text-right">
                 <div className="flex items-center justify-end gap-1">
                   <button
+                    aria-label="Edit product"
                     onClick={() => navigate(`/admin/products/${product.id}`)}
                     className="p-1.5 hover:bg-surface-container rounded-lg text-primary transition-colors"
                     title="Edit"
@@ -285,6 +285,7 @@ export const ProductsPage: React.FC = () => {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
+                    aria-label="Delete product"
                     onClick={() => handleDeleteClick(product.id)}
                     className="p-1.5 hover:bg-error-container/20 rounded-lg text-error transition-colors"
                     title="Delete"
@@ -301,49 +302,46 @@ export const ProductsPage: React.FC = () => {
         renderCard={(product) => {
           const stockInfo = productStockStatus(product);
           return (
-            <div key={product.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex gap-4 relative group">
+            <div key={product.id} className="fy-products-list__mobile bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex gap-4 relative group">
               <div className="w-20 h-20 rounded bg-surface-container overflow-hidden inner-stroke flex-shrink-0">
-                <img
-                  src={
-                    product.images?.[0]?.imageUrl ||
-                    "https://via.placeholder.com/300x300?text=No+Image"
-                  }
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                {product.images?.[0]?.imageUrl ? <img src={product.images[0].imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/> : <span className="fy-products-list__placeholder" aria-label="No product image"><Image size={24}/></span>}
               </div>
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex justify-between items-start gap-2">
-                  <h4 className="font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{product.name}</h4>
-                  <Badge type={stockInfo.type} className="min-w-[100px] justify-center font-bold">  {stockInfo.label}</Badge>
+                  <h4 title={product.name} className="font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{product.name}</h4>
+                  <Badge type={stockInfo.type} className="fy-products-list__stock min-w-[100px] justify-center font-bold">  {stockInfo.label}</Badge>
                 </div>
-                <p className="text-xs text-on-surface-variant mt-0.5">{product.material} • {product.variants?.length || 0} Variants</p>
+                <p className="fy-products-list__brand">Brand: {product.brandName}</p><p className="text-xs text-on-surface-variant mt-0.5">{product.material} • {product.variants?.length || 0} {product.variants?.length === 1 ? 'Variant' : 'Variants'}</p>
                 <div className="flex items-center gap-3 mt-auto pt-2">
-                  <span className="text-[10px] text-on-surface-variant font-semibold bg-surface px-2 py-0.5 rounded border border-outline-variant uppercase">
+                  <label className="fy-products-list__toggle"><input type="checkbox" role="switch" aria-label={product.isActive ? 'Active' : 'Inactive'} checked={product.isActive} onChange={() => handleStatusToggle(product)} className="sr-only peer"/><span className="fy-products-list__mobile-switch"/><span className="sr-only">Status</span></label><span className="text-[10px] text-on-surface-variant font-semibold bg-surface px-2 py-0.5 rounded border border-outline-variant uppercase">
                     {product.isActive ? "ACTIVE" : "INACTIVE"}
                   </span>
                   <div className="flex -space-x-1">
-                    {(product.availableColors || []).map((color, idx) => (
+                    {(product.availableColors || []).slice(0, 4).map((color, idx) => (
                       <span
                         key={idx}
                         className="w-3.5 h-3.5 rounded-full border border-white"
-                        style={{ backgroundColor: color }}
+                        style={{ backgroundColor: color }} title={color} aria-label={color}
                       />
                     ))}
+                    {(product.availableColors?.length || 0) > 4 && <span className="fy-products-list__more-colors" title={product.availableColors.slice(4).join(', ')}>+{product.availableColors.length - 4}</span>}
                   </div>
                 </div>
               </div>
 
+              <span className="fy-products-list__mobile-date">{new Date(product.createdAt).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}</span>
               {/* Actions container (top right or hover absolute) */}
               <div className="absolute right-4 bottom-4 flex gap-1">
                 <button
-                  onClick={() => navigate(`/admin/products/${product.id}`)}
+                  aria-label="Edit product"
+                    onClick={() => navigate(`/admin/products/${product.id}`)}
                   className="p-1.5 hover:bg-surface-container rounded-lg text-primary transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDeleteClick(product.id)}
+                  aria-label="Delete product"
+                    onClick={() => handleDeleteClick(product.id)}
                   className="p-1.5 hover:bg-error-container/20 rounded-lg text-error transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -356,10 +354,11 @@ export const ProductsPage: React.FC = () => {
 
       {/* Pagination Bar */}
       {totalPages > 1 && (
-        <div className="p-4 border border-outline-variant bg-surface-container-lowest rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="fy-products-list__pagination p-4 border border-outline-variant bg-surface-container-lowest rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-2">
             <span className="text-xs text-on-surface-variant">Items per page:</span>
             <select
+              aria-label="Rows per page"
               value={itemsPerPage}
               onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
               className="bg-transparent border border-outline-variant rounded-lg px-2.5 py-1 text-xs text-on-surface-variant focus:ring-primary/20"

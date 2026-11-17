@@ -1,9 +1,10 @@
+import './customers.css';
 import React, { useState, useEffect } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DataTable } from '../../components/tables/DataTable';
 import Badge from '../../components/ui/Badge';
-import { Search, Download,Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Download,Mail, Phone, ShoppingBag, MapPin, CheckCircle, XCircle, Users, CalendarDays, ShieldCheck } from 'lucide-react';
 import { Customer } from '../../types';
 import { showError, showSuccess } from '../../utils/toast';
 import { downloadAdminCsv } from '../../utils/admin-export';
@@ -17,7 +18,7 @@ const getCustomerStatus = (customer: Customer): 'new' | 'active' | 'inactive' =>
   return 'active';
 };
 
-const getStatusBadgeType = (status: string) => {
+const getStatusBadgeType = (status: string): 'success' | 'info' | 'neutral' => {
   switch (status) {
     case 'active': return 'success';
     case 'new': return 'info';
@@ -74,7 +75,7 @@ export const CustomersPage: React.FC = () => {
           {/* Customer Name + Avatar */}
           <td className="px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0 uppercase">
+              <div style={{ backgroundColor: ['#f3e8ff', '#ffedd5', '#dbeafe', '#dcfce7'][Array.from(customer.id).reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 4] }} className="fy-customer-avatar w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 text-primary flex items-center justify-center font-bold text-sm flex-shrink-0 uppercase">
                 {customer.name.charAt(0)}
               </div>
               <div>
@@ -137,14 +138,14 @@ export const CustomersPage: React.FC = () => {
           {/* Email Verified */}
           <td className="px-6 py-4 text-center">
             {customer.isEmailVerified
-              ? <CheckCircle className="w-4 h-4 text-success inline" />
-              : <XCircle className="w-4 h-4 text-error inline" />
+              ? <CheckCircle aria-label="Email verified" className="fy-customer-verified w-4 h-4 text-success inline" />
+              : <XCircle aria-label="Email not verified" className="fy-customer-unverified w-4 h-4 inline" />
             }
           </td>
 
           {/* Status */}
           <td className="px-6 py-4 text-center">
-            <Badge type={getStatusBadgeType(status) as any}>
+            <Badge type={getStatusBadgeType(status)}>
               {status === 'new' ? '🌱 New' : status === 'active' ? 'Active' : 'Inactive'}
             </Badge>
           </td>
@@ -212,11 +213,11 @@ export const CustomersPage: React.FC = () => {
     const hasOrders = customer.orders.length > 0;
 
     return (
-      <div key={customer.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
+      <div key={customer.id} className="fy-clist__mobile-card bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 text-primary flex items-center justify-center font-bold uppercase">
+            <div style={{ backgroundColor: ['#f3e8ff', '#ffedd5', '#dbeafe', '#dcfce7'][Array.from(customer.id).reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 4] }} className="fy-customer-avatar w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 text-primary flex items-center justify-center font-bold uppercase">
               {customer.name.charAt(0)}
             </div>
             <div>
@@ -227,14 +228,14 @@ export const CustomersPage: React.FC = () => {
             >
                 {customer.name}
               </Link>
-              <Badge type={getStatusBadgeType(status) as any} className="mt-1 text-[10px]">
+              <Badge type={getStatusBadgeType(status)} className="mt-1 text-[10px]">
                 {status === 'new' ? '🌱 New' : status}
               </Badge>
             </div>
           </div>
           {customer.isEmailVerified
-            ? <CheckCircle className="w-4 h-4 text-success" />
-            : <XCircle className="w-4 h-4 text-error" />
+            ? <CheckCircle aria-label="Email verified" className="fy-customer-verified w-4 h-4 text-success" />
+            : <XCircle aria-label="Email not verified" className="fy-customer-unverified w-4 h-4" />
           }
         </div>
 
@@ -244,6 +245,7 @@ export const CustomersPage: React.FC = () => {
           <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" />{customer.phoneNumber || '—'}</div>
         </div>
 
+        <div className="fy-clist__mobile-location"><MapPin size={14} aria-hidden="true"/><span>{[customer.cityName, customer.stateName, customer.countryName].filter(Boolean).join(', ') || '—'}</span></div>
         {/* Stats */}
         <div className="flex justify-between items-center pt-3 border-t border-outline-variant">
           <div className="flex flex-col">
@@ -339,7 +341,7 @@ const growthPercentage =
   const verifiedCount = customers.filter(c => c.isEmailVerified).length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="fy-customers fy-clist space-y-6 animate-fade-in">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -349,25 +351,25 @@ const growthPercentage =
           </nav>
           <h2 className="text-3xl font-bold text-on-surface">Customers</h2>
           <p className="text-sm text-on-surface-variant mt-1">
-            All registered customers — click a row to expand order history.
+            All registered customers — manage profiles, view order history and spending.
           </p>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="fy-clist__stats grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl shadow-sm flex flex-col gap-1">
-          <span className="text-xs font-semibold text-on-surface-variant">Total Customers</span>
+          <span className="fy-clist__stat-icon" aria-hidden="true"><Users size={25}/></span><span className="text-xs font-semibold text-on-surface-variant">Total Customers</span>
           <span className="text-2xl font-bold text-on-surface">{totalCustomers}</span>
           <span className="text-[11px] text-tertiary font-medium">All registered users</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl shadow-sm flex flex-col gap-1">
-          <span className="text-xs font-semibold text-on-surface-variant">Have Ordered</span>
+          <span className="fy-clist__stat-icon" aria-hidden="true"><ShoppingBag size={25}/></span><span className="text-xs font-semibold text-on-surface-variant">Have Ordered</span>
           <span className="text-2xl font-bold text-primary">{withOrders}</span>
           <span className="text-[11px] text-on-surface-variant/80">Placed at least 1 order</span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl shadow-sm flex flex-col gap-1">
-          <span className="text-xs font-semibold text-on-surface-variant">New This Month</span>
+          <span className="fy-clist__stat-icon" aria-hidden="true"><CalendarDays size={25}/></span><span className="text-xs font-semibold text-on-surface-variant">New This Month</span>
           <span className="text-2xl font-bold text-secondary">{newThisMonth}</span>
           <span className={`text-[11px] font-medium ${growthPercentage >= 0? 'text-success': 'text-error'}`}
 >
@@ -377,14 +379,14 @@ const growthPercentage =
 </span>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl shadow-sm flex flex-col gap-1">
-          <span className="text-xs font-semibold text-on-surface-variant">Email Verified</span>
+          <span className="fy-clist__stat-icon" aria-hidden="true"><ShieldCheck size={25}/></span><span className="text-xs font-semibold text-on-surface-variant">Email Verified</span>
           <span className="text-2xl font-bold text-on-surface">{verifiedCount}</span>
           <span className="text-[11px] text-success font-medium">Confirmed accounts</span>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl shadow-sm flex items-center gap-3">
+      <div className="fy-clist__toolbar bg-surface-container-lowest border border-outline-variant p-4 rounded-xl shadow-sm flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant w-[18px] h-[18px]" />
           <input
@@ -425,7 +427,7 @@ const growthPercentage =
             : "No customers have registered yet. Share your store link to get started!"
         }
       />
-      <div className="flex items-center justify-center gap-3 mt-6">
+      <div className="fy-clist__pagination flex items-center justify-center gap-3 mt-6">
   <button
     onClick={() =>
       setCurrentPage((prev) =>

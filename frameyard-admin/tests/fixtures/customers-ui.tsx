@@ -1,0 +1,14 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
+import '../../src/index.css';
+import AdminLayout from '../../src/layouts/AdminLayout';
+import Customers from '../../src/pages/customers/CustomersPage';
+import Details from '../../src/pages/customers/CustomerDetailsPage';
+import BeforeCustomers from './customers-before';
+import BeforeDetails from './customer-details-before';
+import {useAuthStore} from '../../src/store/authStore';
+const query=new URLSearchParams(location.search),before=query.has('before');
+useAuthStore.setState({user:{id:'test-admin',name:'Test Admin',role:query.has('employee')?'EMPLOYEE':'ADMIN'} as any,status:'authenticated',isAuthenticated:true,loading:false});
+const List=before?BeforeCustomers:Customers,Profile=before?BeforeDetails:Details;
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={[query.has('profile')?'/admin/customers/1636582f-7ac7-45ac-a738-e2669e44c853':'/admin/customers']}><Routes><Route path="/admin" element={<AdminLayout/>}><Route path="customers" element={<List/>}/><Route path="customers/:id" element={<Profile/>}/></Route></Routes></MemoryRouter>);

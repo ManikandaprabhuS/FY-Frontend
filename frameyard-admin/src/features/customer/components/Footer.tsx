@@ -1,7 +1,7 @@
 import React, { FormEvent, useState } from 'react';
 import axios from 'axios';
 import { BriefcaseBusiness, Camera, LucideIcon, Mail, MapPin, Phone, Send, Share2 } from 'lucide-react';
-import footerCraftsmanship from '../../../assets/footer-craftsmanship.png';
+import footerCraftsmanship from '../../../assets/footer-craftsmanship.webp';
 import { newsletterService } from '../../../services/newsletter.service';
 
 interface SocialLink {
