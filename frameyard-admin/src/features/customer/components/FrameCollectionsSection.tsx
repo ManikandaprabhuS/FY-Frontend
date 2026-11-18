@@ -37,7 +37,7 @@ const CollectionCard: React.FC<{ collection: FrameCollection; index: number; pho
                   className="fy-col__photo"
                   src={collection.fallbackPhoto.src}
                   srcSet={collection.fallbackPhoto.srcSet}
-                  sizes="(min-width: 1024px) 200px, 45vw"
+                  sizes="(min-width: 1024px) 120px, 30vw"
                   alt=""
                   decoding="async"
                   loading="lazy"

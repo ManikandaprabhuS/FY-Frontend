@@ -1,5 +1,5 @@
 import {useEffect,useImperativeHandle,useMemo,useRef,useState,type Ref} from 'react';
-import {ImagePlus,Upload} from 'lucide-react';
+import {Image as ImageIcon,ImagePlus,Upload} from 'lucide-react';
 import {DEFAULT_PHOTO_MAX_MB,getPhotoMaxBytes,photoSizeError} from '../../../utils/photo-limits';
 import type {CheckoutSelection} from '../../../services/checkout.service';
 import {useCustomerCommerceStore} from '../../../store/customerCommerceStore';
@@ -16,7 +16,7 @@ export default function CheckoutPhotoUpload({onChange,onBusy,items=[],maxAllowed
  const keys=cart.map(i=>i.key).join('|');
  const [photos,setPhotos]=useState<LocalPhoto[]>([]),[selected,setSelected]=useState(''),[ready,setReady]=useState(false);
  const [saved,setSaved]=useState<OrderPhotoInfo|null>(null),[preview,setPreview]=useState('');
- const [progress,setProgress]=useState<number|null>(null);
+ const [progress,setProgress]=useState<number|null>(null),[dragging,setDragging]=useState(false);
  const input=useRef<HTMLInputElement>(null);
  const selectedPhoto=photos.find(p=>p.id===selected);
  const callbacks=useRef({onChange,onBusy});
@@ -87,18 +87,26 @@ export default function CheckoutPhotoUpload({onChange,onBusy,items=[],maxAllowed
    showSuccess('Photo cleared',{id:'checkout-photo'});
   }catch{showError('Your photo could not be cleared. Please try again.',{id:'checkout-photo'});}
  };
+ const shown=file||saved;
+ const over=Boolean(size&&size>max);
  return <section className="fy-co-photo" aria-labelledby="checkout-photo-title">
   <h2 id="checkout-photo-title" className="sr-only">Upload your photo (optional)</h2>
-  <p className="fy-co-hint">Please upload the photo you'd like on your frame. You can skip this and share it with us later, and our team will contact you if needed.</p>
   {photos.length>1&&<label className="fy-co-photo__choose">Choose one photo for this order<select disabled={disabled||progress!==null} value={selected} onChange={e=>{setSelected(e.target.value);setSaved(null);}} className="fy-co-select"><option value="">Choose a photo</option>{photos.map(p=><option key={p.id} value={p.id}>{p.name} — {cart.find(i=>i.key===p.cartKey)?.name??'Your photo'}</option>)}</select></label>}
-  <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const file=e.dataTransfer.files[0];if(file&&!disabled&&progress===null)void choose(file);}} className="fy-co-drop">
+  <div onDragEnter={e=>{e.preventDefault();if(!disabled&&progress===null)setDragging(true);}} onDragOver={e=>e.preventDefault()} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))setDragging(false);}} onDrop={e=>{e.preventDefault();setDragging(false);const file=e.dataTransfer.files[0];if(file&&!disabled&&progress===null)void choose(file);}} className="fy-co-drop" data-dragging={dragging||undefined} data-filled={shown?true:undefined} data-invalid={over||undefined}>
    <input ref={input} aria-label="Choose your order photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled||progress!==null} className="sr-only" onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void choose(f);}}/>
-   {preview?<img src={preview} alt="Your locally selected photo" className="fy-co-drop__preview"/>:<ImagePlus aria-hidden="true" className="fy-co-drop__icon"/>}
-   {(file||saved)&&<p className="break-words text-sm font-bold">{file?.name??saved?.fileName}<span className="block text-xs text-black/60">{((size??0)/1024/1024).toFixed(1)} MB</span></p>}
-   {progress!==null&&<p role="status" className="inline-flex items-center gap-2 font-bold"><FrameSpinner/>Uploading your photo… {progress}%</p>}
-   <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={disabled||progress!==null} onClick={()=>input.current?.click()} className="fy-co-btn fy-co-btn--solid fy-co-btn--sm"><Upload size={16}/>{file||saved?'Replace photo':'Choose photo'}</button>{(photos.length>0||saved)&&<button type="button" disabled={disabled||progress!==null} onClick={()=>void clear()} className="fy-co-btn fy-co-btn--quiet fy-co-btn--sm">Clear</button>}</div>
+   <span className="fy-co-drop__thumb" key={preview||saved?.imageId||'empty'}>
+    {preview?<img src={preview} alt="Your selected photo"/>:shown?<ImageIcon aria-hidden="true"/>:<ImagePlus aria-hidden="true"/>}
+   </span>
+   <p className="fy-co-drop__name">
+    {shown?file?.name??saved?.fileName:dragging?'Drop to add your photo':'No photo yet'}
+    <span>{shown?`${((size??0)/1024/1024).toFixed(1)} MB${over?`, over the ${maxAllowedMB} MB limit`:file?', uploads with your order':', uploaded'}`:<><span className="fy-co-drop__drag">Drop a photo here, or choose one.</span><span className="fy-co-drop__tap">Choose one from your photos.</span></>}</span>
+   </p>
+   <div className="fy-co-drop__actions">
+    <button type="button" disabled={disabled||progress!==null} onClick={()=>input.current?.click()} className="fy-co-btn fy-co-btn--line fy-co-btn--sm"><Upload aria-hidden="true"/>{shown?'Replace':'Choose photo'}</button>
+    {(photos.length>0||saved)&&<button type="button" disabled={disabled||progress!==null} onClick={()=>void clear()} className="fy-co-btn fy-co-btn--quiet fy-co-btn--sm">Clear</button>}
+   </div>
   </div>
-  {limitingItem&&<p className="mt-2 text-xs text-black/60">Limit set by {limitingItem.name} ({limitingItem.variant})</p>}
-  <p className="mt-2 text-xs text-black/60">One photo per order. JPG, PNG or WebP, up to {maxAllowedMB} MB.</p>
+  {progress!==null&&<div className="fy-co-drop__progress" role="progressbar" aria-label="Uploading your photo" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{transform:`scaleX(${progress/100})`}}/><p><FrameSpinner/>Uploading your photo… {progress}%</p></div>}
+  <p className="fy-co-photo__rules">One photo per order. JPG, PNG or WebP, up to {maxAllowedMB} MB.{limitingItem&&` Limit set by ${limitingItem.name} (${limitingItem.variant}).`} Skip it and our team will contact you if needed.</p>
  </section>;
 }

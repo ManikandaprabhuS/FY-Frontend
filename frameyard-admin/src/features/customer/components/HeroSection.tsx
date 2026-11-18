@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import useProducts from '../../../hooks/useProducts';
 import {
-  fallbackHeroPhotos as defaultFallbackPhotos,
   HERO_BIRD_OF_PARADISE,
   HERO_MONEY_PLANT,
   HERO_MONSTERA,
@@ -10,6 +9,7 @@ import {
   wallFrames,
   type HeroPhoto,
 } from '../data/heroShowcase';
+import { wallFramePhotos as defaultFallbackPhotos } from '../data/framePhotos';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
 import { backendHeroPhotos } from '../utils/heroFrames';
 import { useFramePhotosStore } from '../store/framePhotosStore';
@@ -24,7 +24,7 @@ const FramePhoto: React.FC<{ photo: HeroPhoto; visible: boolean; priority: boole
     <img
       src={photo.src}
       srcSet={photo.srcSet}
-      sizes="(min-width: 1024px) 230px, 21vw"
+      sizes="(min-width: 1024px) 138px, 13vw"
       alt={visible ? photo.alt : ''}
       aria-hidden={!visible}
       decoding="async"
