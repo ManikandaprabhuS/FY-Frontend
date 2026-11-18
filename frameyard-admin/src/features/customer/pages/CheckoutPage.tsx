@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store/authStore';
 import { showWarning } from '../../../utils/toast';
 import CheckoutOffers from '../components/CheckoutOffers';
+import { Skeleton } from '../../../components/loaders/FrameLoader';
 import '../styles/checkout.css';
 
 const CheckoutPage: React.FC = () => {
@@ -34,9 +35,9 @@ const CheckoutPage: React.FC = () => {
 
   if (checking) return (
     <div className="fy-co fy-co--checking" role="status" aria-label="Preparing checkout">
-      <div className="fy-co-skel fy-co-skel--title" />
-      <div className="fy-co-skel fy-co-skel--steps" />
-      <div className="fy-co-skel fy-co-skel--tall" />
+      <Skeleton className="fy-co-skel fy-co-skel--title" />
+      <Skeleton className="fy-co-skel fy-co-skel--steps" />
+      <Skeleton className="fy-co-skel fy-co-skel--tall" />
     </div>
   );
   return <CheckoutOffers />;

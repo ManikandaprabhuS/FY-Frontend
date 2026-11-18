@@ -1,30 +1,33 @@
-import ProductRating from '../../../components/reviews/ProductRating';
-import React, { useEffect } from 'react';
-import { Heart, Trash2, X } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
-import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
-import { showError, showSuccess } from '../../../utils/toast';
-import { getLowestVariantPricing } from '../utils/product-pricing';
+import WishlistGallery from './WishlistGallery';
+import '../styles/wishlist.css';
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
 
+/**
+ * The wishlist opened from the navbar heart: a full-screen gallery over the store with the
+ * same product cards as All Frames. Escape or the close button dismisses it; opening a
+ * product (the card navigates) closes it on the way.
+ */
 const CustomerWishlistDrawer: React.FC<Props> = ({ open, onClose }) => {
-  const items = useCustomerCommerceStore((state) => state.wishlistItems);
-  const loading = useCustomerCommerceStore((state) => state.wishlistLoading);
-  const total = useCustomerCommerceStore(state => state.wishlistTotal);
-  const hasMore = useCustomerCommerceStore(state => state.wishlistHasMore);
-  const loadMore = useCustomerCommerceStore(state => state.loadMoreWishlist);
-  const toggleWishlist = useCustomerCommerceStore((state) => state.toggleWishlist);
+  const { pathname } = useLocation();
+  const openedOn = useRef(pathname);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    openedOn.current = pathname;
     const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
@@ -32,71 +35,30 @@ const CustomerWishlistDrawer: React.FC<Props> = ({ open, onClose }) => {
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
+      previousFocus?.focus?.();
     };
+    // The route is only recorded when the view opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, open]);
 
+  // A card took the customer to a product page: get out of the way.
+  useEffect(() => {
+    if (open && pathname !== openedOn.current) onClose();
+  }, [open, pathname, onClose]);
 
   if (!open) return null;
 
-  const removeItem = async (productIdentifier: string) => {
-    try {
-      const removed = await toggleWishlist(productIdentifier);
-      if (removed === null) return;
-      showSuccess('Product removed from wishlist');
-    } catch {
-      showError('Wishlist could not be updated. Please try again.');
-    }
-  };
-
   return createPortal(
-    <div className="fy-store-portal fixed inset-0 z-[250]" role="dialog" aria-modal="true" aria-labelledby="customer-wishlist-title">
-      <button type="button" aria-label="Close wishlist" onClick={onClose} className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-white shadow-[-18px_0_55px_rgba(0,0,0,0.18)]">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-black/10 px-5">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-black text-white"><Heart className="h-4 w-4 fill-white" /></span>
-            <div><h2 id="customer-wishlist-title" className="text-base font-black">Your Wishlist</h2><p className="text-[10px] font-semibold text-black/45">{total} saved {total === 1 ? 'item' : 'items'}</p></div>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close wishlist" className="grid h-9 w-9 place-items-center rounded-full border border-black/10 transition hover:bg-black hover:text-white"><X className="h-4 w-4" /></button>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-          {loading && items.length === 0 ? (
-            <div className="space-y-3">{Array.from({ length: 3 }, (_, index) => <div key={index} className="h-28 animate-pulse rounded-xl bg-black/[0.05]" />)}</div>
-          ) : items.length === 0 ? (
-            <div className="flex h-full min-h-80 flex-col items-center justify-center px-8 text-center">
-              <span className="grid h-16 w-16 place-items-center rounded-full bg-black/[0.04]"><Heart className="h-7 w-7 text-black/30" /></span>
-              <h3 className="mt-5 text-lg font-black">Your wishlist is empty</h3>
-              <p className="mt-2 text-sm leading-6 text-black/50">Save the frames you love and find them here anytime.</p>
-              <Link to="/products" onClick={onClose} className="mt-5 rounded-lg bg-black px-5 py-3 text-xs font-bold text-white">Explore frames</Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {items.map((item) => {
-                const image = item.product.images?.find((entry) => entry.isPrimary)?.imageUrl ?? item.product.images?.[0]?.imageUrl;
-                const activeVariants = item.product.variants?.filter((variant) => variant.isActive !== false) ?? [];
-                const price = getLowestVariantPricing(activeVariants).currentPrice;
-                return (
-                  <article key={item.id} className="flex gap-3 rounded-xl border border-black/10 bg-white p-3 shadow-[0_6px_22px_rgba(0,0,0,0.04)]">
-                    <Link to={`/product/${item.product.id}`} onClick={onClose} className="h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-[#f4f1ed]">
-                      {image ? <img src={image} alt={item.product.productName} loading="lazy" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-2 text-center text-[9px] text-black/35">No image</span>}
-                    </Link>
-                    <div className="min-w-0 flex-1 py-0.5">
-                      <ProductRating productId={item.product.id} />
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0"><Link to={`/product/${item.product.id}`} onClick={onClose} className="block truncate text-sm font-black hover:underline">{item.product.productName}</Link><p className="mt-1 truncate text-[10px] text-black/45">{item.product.material?.material || 'Frame'}{activeVariants[0]?.frameSize ? ` · ${activeVariants[0].frameSize}` : ''}</p></div>
-                        <button type="button" onClick={() => void removeItem(item.productIdentifier)} aria-label={`Remove ${item.product.productName} from wishlist`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/10 text-black/50 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
-                      </div>
-                      {price > 0 && <p className="mt-4 text-sm font-black">₹{price.toLocaleString('en-IN')}</p>}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-          {hasMore && <button type="button" disabled={loading} onClick={() => { void loadMore().catch(() => showError('Could not load more wishlist items. Please try again.')); }} className="mt-4 min-h-11 w-full rounded-lg border border-black/15 px-4 text-xs font-bold disabled:opacity-50">{loading ? 'Loading…' : 'Load more'}</button>}
+    <div className="fy-store fy-store-portal fy-wishview" role="dialog" aria-modal="true" aria-labelledby="customer-wishlist-title">
+      <header className="fy-wishview__head">
+        <div>
+          <h2 id="customer-wishlist-title" className="fy-wishview__title">Your wishlist</h2>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close wishlist" className="fy-wishview__close"><X strokeWidth={1.8} /></button>
         </div>
-      </aside>
+      </header>
+      <div className="fy-wishview__body">
+        <div><WishlistGallery onBrowse={onClose} /></div>
+      </div>
     </div>,
     document.body,
   );

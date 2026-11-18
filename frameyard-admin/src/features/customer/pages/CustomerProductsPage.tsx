@@ -13,6 +13,7 @@ import {
 // The shop hero: a gallery wall of frames over a sofa (the client's chosen reference image).
 import shopHero from '../../../assets/shop-hero-gallery-wall.jpg';
 import ProductCatalogCard from '../components/ProductCatalogCard';
+import { Skeleton } from '../../../components/loaders/FrameLoader';
 import ShopSortMenu from '../components/ShopSortMenu';
 import { frameCollections, materialsForCollection, type FrameCollectionId } from '../data/frameCollections';
 import { getCatalogPricing, type CatalogPricing } from '../utils/catalog-product';
@@ -589,11 +590,11 @@ const FrameLoader = () => (
 
 const ProductSkeleton = () => (
   <div>
-    <div className="aspect-[4/5] animate-pulse bg-mat" />
+    <Skeleton className="aspect-[4/5]" />
     <div className="flex flex-col gap-2 py-3">
-      <div className="h-3 w-1/3 animate-pulse bg-mat" />
-      <div className="h-4 w-3/4 animate-pulse bg-mat" />
-      <div className="h-4 w-1/4 animate-pulse bg-mat" />
+      <Skeleton className="h-3 w-1/3" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/4" />
     </div>
     <div className="h-[46px] border border-rule" />
   </div>

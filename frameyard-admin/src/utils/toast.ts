@@ -2,6 +2,7 @@ import { createElement, type CSSProperties } from 'react';
 import toast, { type DefaultToastOptions, type ToastOptions } from 'react-hot-toast';
 import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
+import { FrameSpinner } from '../components/loaders/FrameLoader';
 
 type Kind = 'success' | 'error' | 'warning';
 type Options = Pick<ToastOptions, 'id'> & { retry?: () => void };
@@ -30,7 +31,8 @@ const notify = (kind: Kind, message: string, options?: Options) => {
 export const showSuccess = (message: string, options?: Options) => notify('success', message, options);
 export const showError = (message: string, options?: Options) => notify('error', message, options);
 export const showWarning = (message: string, options?: Options) => notify('warning', message, options);
-export const showLoading = (message: string, id: string) => toast.loading(message, { id, duration: 30_000, style: { ...baseStyle, background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' } });
+// Loading uses the FrameYaad frame spinner on a neutral toast (success, error and warning keep their colours).
+export const showLoading = (message: string, id: string) => toast.loading(message, { id, duration: 30_000, icon: createElement(FrameSpinner, { className: 'fy-toast-spin' }), style: { ...baseStyle, background: '#ffffff', color: '#111111', border: '1px solid #e5e5e5' } });
 export const dismissToast = (id: string) => toast.dismiss(id);
 
 // Use response metadata, not guesses based on message wording, for API validation.

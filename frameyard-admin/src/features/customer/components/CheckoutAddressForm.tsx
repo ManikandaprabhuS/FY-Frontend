@@ -1,5 +1,6 @@
 import {useState,useRef} from "react";
 import api from "../../../services/api";
+import {FrameSpinner} from "../../../components/loaders/FrameLoader";
 import {authService} from "../../../services/auth.service";
 import {useAuthStore} from "../../../store/authStore";
 import {showLoading,showSuccess,showWarning,showApiError} from "../../../utils/toast";
@@ -52,7 +53,7 @@ export default function CheckoutAddressForm({onSaved,onCancel}:{onSaved:(address
    </div>;
   })}</div>
   <div className="fy-co-form__actions">
-   <button type="button" disabled={busy} onClick={()=>void save()} className="fy-co-btn fy-co-btn--solid">{busy?"Saving address…":"Save and use this address"}</button>
+   <button type="button" disabled={busy} onClick={()=>void save()} className="fy-co-btn fy-co-btn--solid">{busy?<><FrameSpinner/>Saving address…</>:"Save and use this address"}</button>
    {onCancel&&<button type="button" disabled={busy} onClick={onCancel} className="fy-co-btn fy-co-btn--quiet">Cancel</button>}
   </div>
  </div>;

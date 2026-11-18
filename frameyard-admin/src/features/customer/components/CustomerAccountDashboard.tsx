@@ -14,11 +14,9 @@ import {
   MapPin,
   MessageCircle,
   ShoppingBag,
-  Trash2,
   UserRound,
 } from 'lucide-react';
 
-import ProductRating from '../../../components/reviews/ProductRating';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { normalizeOrderStatus } from '../../../components/ui/order-status';
 import femaleCustomerAvatar from '../../../assets/customer-avatar-female.svg';
@@ -27,10 +25,10 @@ import { cachedCustomerOrders, customerOrdersPage, type CustomerOrderSummary } f
 import type { CustomerWishlistItem } from '../../../services/customer-wishlist.service';
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
 import type { User } from '../../../types';
-import { normalizeStock } from '../../../utils/stock';
-import { showError, showSuccess, showWarning } from '../../../utils/toast';
-import { getLowestVariantPricing, getVariantPricing } from '../utils/product-pricing';
+import { getLowestVariantPricing } from '../utils/product-pricing';
 import CustomerOrderSummaries from './CustomerOrderSummaries';
+import WishlistGallery from './WishlistGallery';
+import { FrameSpinner } from '../../../components/loaders/FrameLoader';
 import '../styles/account.css';
 
 type ProfileValues = {
@@ -107,8 +105,6 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
   const wishlistItems = useCustomerCommerceStore((state) => state.wishlistItems);
   const wishlistLoading = useCustomerCommerceStore((state) => state.wishlistLoading);
   const loadWishlist = useCustomerCommerceStore((state) => state.loadWishlist);
-  const toggleWishlist = useCustomerCommerceStore((state) => state.toggleWishlist);
-  const addCartItem = useCustomerCommerceStore((state) => state.addCartItem);
 
   const [orders, setOrders] = useState(() => cachedCustomerOrders(user.id));
   const [ordersFailed, setOrdersFailed] = useState(false);
@@ -143,48 +139,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
   const orderCount = orders?.pagination.total;
   const addressParts = [user.addressLine, user.cityName, user.stateName, user.postalCode, user.countryName].filter((part) => part && part.trim());
 
-  const removeWishlistItem = async (productIdentifier: string) => {
-    try {
-      const removed = await toggleWishlist(productIdentifier);
-      if (removed === null) return;
-      showSuccess('Product removed from wishlist');
-    } catch {
-      showError('Wishlist could not be updated. Please try again.');
-    }
-  };
 
-  const moveWishlistItemToCart = async (item: CustomerWishlistItem) => {
-    const variant = item.product.variants?.find((entry) => entry.isActive !== false && Number(entry.stockQuantity ?? 0) > 0);
-    if (!variant) {
-      showWarning('This product is currently out of stock.');
-      return;
-    }
-    const inCart = useCustomerCommerceStore.getState().cartItems.filter((entry) => entry.productId === item.product.id && entry.variantId === variant.id).reduce((sum, entry) => sum + entry.quantity, 0);
-    const available = normalizeStock(variant.stockQuantity);
-    if (inCart >= available) { showWarning('Requested quantity exceeds available stock (' + available + ')', { id: 'cart-stock' }); return; }
-    try {
-      const removed = await toggleWishlist(item.productIdentifier);
-      if (removed === null) return;
-      addCartItem({
-        productId: item.product.id,
-        productIdentifier: item.productIdentifier,
-        variantId: variant.id,
-        name: item.product.productName,
-        imageUrl: item.product.images?.find((image) => image.isPrimary)?.imageUrl ?? item.product.images?.[0]?.imageUrl,
-        material: item.product.material?.material || 'Frame',
-        frameSize: variant.frameSize,
-        color: variant.color,
-        mountType: variant.mountType || 'NONE',
-        glassType: variant.glassType || 'NONE',
-        unitPrice: getVariantPricing(variant).currentPrice,
-        quantity: 1,
-        stockQuantity: Number(variant.stockQuantity ?? 0),
-      });
-      showSuccess('Product moved to cart');
-    } catch {
-      showError('Product could not be moved to cart. Please try again.');
-    }
-  };
 
   const saveProfile = async (changes: Partial<ProfileValues>) => onUpdate({ ...profileValues(user), ...changes });
 
@@ -313,49 +268,7 @@ const CustomerAccountDashboard: React.FC<Props> = ({ user, loading, error, onUpd
             </div>
           )}
 
-          {view === 'wishlist' && (
-            wishlistLoading && wishlistItems.length === 0 ? (
-              <div className="fy-acct__wish-grid">{Array.from({ length: 3 }, (_, index) => <div key={index} className="fy-acct__skeleton" />)}</div>
-            ) : wishlistItems.length === 0 ? (
-              <div className="fy-acct__empty">
-                <Heart aria-hidden="true" />
-                <p><strong>Your wishlist is empty</strong>Save frames you love and they will appear here.</p>
-                <Link to="/products" className="fy-acct__primary">Explore frames</Link>
-              </div>
-            ) : (
-              <div className="fy-acct__wish-grid">
-                {wishlistItems.map((item) => {
-                  const image = item.product.images?.find((entry) => entry.isPrimary)?.imageUrl ?? item.product.images?.[0]?.imageUrl;
-                  const activeVariants = item.product.variants?.filter((variant) => variant.isActive !== false) ?? [];
-                  const price = getLowestVariantPricing(activeVariants).currentPrice;
-                  const canMoveToCart = activeVariants.some((variant) => Number(variant.stockQuantity ?? 0) > 0);
-                  return (
-                    <article key={item.id} className="fy-acct__wish">
-                      <Link to={`/product/${item.product.id}`} className="fy-acct__wish-image">
-                        {image ? <img src={image} alt={item.product.productName} loading="lazy" /> : <span>Image unavailable</span>}
-                      </Link>
-                      <div className="fy-acct__wish-body">
-                        <div className="fy-acct__wish-top">
-                          <div className="min-w-0">
-                            <Link to={`/product/${item.product.id}`} className="fy-acct__wish-name">{item.product.productName}</Link>
-                            <p className="fy-acct__wish-meta">{item.product.material?.material || 'Frame'}{activeVariants[0]?.frameSize ? ` · ${activeVariants[0].frameSize}` : ''}</p>
-                          </div>
-                          <button type="button" onClick={() => void removeWishlistItem(item.productIdentifier)} aria-label={`Remove ${item.product.productName} from wishlist`} className="fy-acct__icon-btn"><Trash2 aria-hidden="true" /></button>
-                        </div>
-                        <ProductRating productId={item.product.id} />
-                        <div className="fy-acct__wish-foot">
-                          {price > 0 ? <p className="fy-acct__price">₹{price.toLocaleString('en-IN')}</p> : <span />}
-                          <button type="button" disabled={!canMoveToCart} onClick={() => void moveWishlistItemToCart(item)} className="fy-acct__primary fy-acct__primary--small">
-                            <ShoppingBag aria-hidden="true" />{canMoveToCart ? 'Move to cart' : 'Out of stock'}
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )
-          )}
+          {view === 'wishlist' && <WishlistGallery />}
 
           {view === 'details' && <DetailsForm user={user} loading={loading} onSave={saveProfile} />}
           {view === 'address' && <AddressForm user={user} loading={loading} onSave={saveProfile} />}
@@ -436,7 +349,7 @@ const Overview: React.FC<OverviewProps> = ({ user, orders, ordersFailed, onRetry
           <ul className="fy-ov__rows">
             {earlier.slice(0, 3).map((order) => (
               <li key={order.id}>
-                <Link to={`/orders/${order.id}`} className="fy-ov__row">
+                <Link to={`/orders/${order.id}`} state={{ from: 'profile' }} className="fy-ov__row">
                   <span className="fy-ov__row-image">{order.items[0]?.imageUrl ? <img src={order.items[0].imageUrl} alt="" loading="lazy" /> : <ShoppingBag aria-hidden="true" />}</span>
                   <span className="fy-ov__row-main"><strong>#{order.orderNumber}</strong><small>{orderDate(order.createdAt)} · {itemCount(order.itemCount)}</small></span>
                   <span className="fy-ov__row-total">{rupees(order.total)}</span>
@@ -512,7 +425,7 @@ const LatestOrder: React.FC<{ order: CustomerOrderSummary }> = ({ order }) => {
   return (
     <article className="fy-ov__latest">
       <div className="fy-ov__latest-top">
-        <Link to={`/orders/${order.id}`} className="fy-ov__latest-image" tabIndex={-1} aria-hidden="true">
+        <Link to={`/orders/${order.id}`} state={{ from: 'profile' }} className="fy-ov__latest-image" tabIndex={-1} aria-hidden="true">
           {first?.imageUrl ? <img src={first.imageUrl} alt="" loading="lazy" /> : <ShoppingBag />}
         </Link>
         <div className="fy-ov__latest-main">
@@ -537,7 +450,7 @@ const LatestOrder: React.FC<{ order: CustomerOrderSummary }> = ({ order }) => {
       ) : null}
 
       <div className="fy-ov__latest-foot">
-        <Link to={`/orders/${order.id}`} className="fy-acct__primary fy-acct__primary--small">View order <ArrowRight aria-hidden="true" /></Link>
+        <Link to={`/orders/${order.id}`} state={{ from: 'profile' }} className="fy-acct__primary fy-acct__primary--small">View order <ArrowRight aria-hidden="true" /></Link>
       </div>
     </article>
   );
@@ -553,7 +466,7 @@ const DetailsForm: React.FC<{ user: User; loading: boolean; onSave: SaveProfile 
       <Field label="Full name" autoComplete="name" error={errors.name?.message} registration={form.register('name', { required: 'Name is required', minLength: { value: 2, message: 'Name must contain at least 2 characters' } })} />
       <Field label="Email address" type="email" hint="Your sign-in email can't be changed here." disabled registration={form.register('email')} />
       <Field label="Phone number" type="tel" autoComplete="tel" error={errors.phoneNumber?.message} registration={form.register('phoneNumber', { validate: (value) => !value || (value.trim().length >= 7 && value.trim().length <= 20) || 'Phone number must contain 7–20 characters' })} />
-      <button type="submit" disabled={loading || !isDirty} className="fy-acct__primary">{loading ? 'Saving…' : 'Save details'}</button>
+      <button type="submit" disabled={loading || !isDirty} className="fy-acct__primary">{loading ? <><FrameSpinner />Saving…</> : 'Save details'}</button>
     </form>
   );
 };
@@ -574,7 +487,7 @@ const AddressForm: React.FC<{ user: User; loading: boolean; onSave: SaveProfile 
         <Field label="Postal code" autoComplete="postal-code" error={errors.postalCode?.message} registration={form.register('postalCode', { maxLength: { value: 20, message: 'Postal code is too long' } })} />
         <Field label="Country" autoComplete="country-name" error={errors.countryName?.message} registration={form.register('countryName', { maxLength: { value: 100, message: 'Country name is too long' } })} />
       </div>
-      <button type="submit" disabled={loading || !isDirty} className="fy-acct__primary">{loading ? 'Saving…' : 'Save address'}</button>
+      <button type="submit" disabled={loading || !isDirty} className="fy-acct__primary">{loading ? <><FrameSpinner />Saving…</> : 'Save address'}</button>
     </form>
   );
 };
@@ -589,7 +502,7 @@ const PasswordForm: React.FC<{ loading: boolean; error: string | null; onChangeP
       <Field label="New password" type="password" autoComplete="new-password" hint="At least 8 characters." error={errors.newPassword?.message} registration={form.register('newPassword', { required: 'New password is required', minLength: { value: 8, message: 'Password must contain at least 8 characters' }, maxLength: { value: 72, message: 'Password cannot exceed 72 characters' } })} />
       <Field label="Confirm new password" type="password" autoComplete="new-password" error={errors.confirmPassword?.message} registration={form.register('confirmPassword', { required: 'Confirm your new password', validate: (value) => value === form.getValues('newPassword') || 'Passwords do not match' })} />
       {error && <p role="alert" className="fy-acct__alert">{error}</p>}
-      <button type="submit" disabled={loading} className="fy-acct__primary">{loading ? 'Updating…' : 'Update password'}</button>
+      <button type="submit" disabled={loading} className="fy-acct__primary">{loading ? <><FrameSpinner />Updating…</> : 'Update password'}</button>
     </form>
   );
 };

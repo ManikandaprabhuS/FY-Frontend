@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import AnnouncementBar from '../features/customer/components/AnnouncementBar';
 import CustomerNavbar from '../features/customer/components/CustomerNavbar';
 import Footer from '../features/customer/components/Footer';
+import { FrameLoader } from '../components/loaders/FrameLoader';
 import MobileDock from '../features/customer/components/MobileDock';
 import { useStorefrontChrome } from '../features/customer/storefrontChrome';
 import { isDockRoute } from '../features/customer/navigation';
@@ -33,7 +34,7 @@ const CustomerLayout: React.FC = () => {
       {!bare && <CustomerNavbar />}
 
       <main>
-        <Suspense fallback={<div className="min-h-[60vh] animate-pulse bg-mat/40" aria-label="Loading" />}>
+        <Suspense fallback={<FrameLoader />}>
           <Outlet />
         </Suspense>
       </main>

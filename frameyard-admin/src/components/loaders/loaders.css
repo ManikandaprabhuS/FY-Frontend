@@ -1,0 +1,97 @@
+/* FrameYaad loading system: frame loader, inline frame spinner, skeletons. Black and white,
+   CSS only, transform/opacity/stroke animations (no layout work), still under reduced motion. */
+
+/* ---------- Main loader: a frame draws, then its memory is revealed ---------- */
+
+.fy-ld { display: grid; place-items: center; width: 100%; color: #111111; }
+.fy-ld--page { min-height: 100vh; min-height: 100svh; background: #ffffff; }
+.fy-ld--section { min-height: 60vh; min-height: 60svh; }
+.fy-ld__inner { display: grid; justify-items: center; gap: 14px; animation: fy-ld-in 360ms ease-out both; }
+.fy-ld__frame { width: 56px; height: 70px; overflow: visible; }
+.fy-ld__moulding,
+.fy-ld__mat { fill: none; stroke: currentColor; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.fy-ld__moulding { stroke-width: 3.2; stroke-linejoin: miter; animation: fy-ld-draw 2400ms cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+.fy-ld__mat { stroke-width: 0.8; opacity: 0.5; animation: fy-ld-mat 2400ms cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+/* The print develops upward inside the mat, holds, then the whole frame fades for the next pass. */
+.fy-ld__photo { fill: currentColor; opacity: 0.88; transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: fy-ld-reveal 2400ms cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+.fy-ld__label { font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: #777777; }
+
+@keyframes fy-ld-in { from { opacity: 0; transform: translate3d(0, 4px, 0); } }
+@keyframes fy-ld-draw {
+  0% { stroke-dashoffset: 100; opacity: 1; }
+  34% { stroke-dashoffset: 0; opacity: 1; }
+  84% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes fy-ld-mat {
+  0%, 18% { stroke-dashoffset: 100; opacity: 0.5; }
+  44% { stroke-dashoffset: 0; opacity: 0.5; }
+  84% { stroke-dashoffset: 0; opacity: 0.5; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes fy-ld-reveal {
+  0%, 38% { transform: scaleY(0); opacity: 0.88; }
+  70% { transform: scaleY(1); opacity: 0.88; }
+  84% { transform: scaleY(1); opacity: 0.88; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+
+/* ---------- Inline loader: a small frame, its edge traced round ---------- */
+
+.fy-spin { display: inline-grid; place-items: center; width: 0.95em; height: 1.2em; flex: none; vertical-align: -0.2em; color: currentColor; }
+.fy-spin svg { width: 100%; height: 100%; overflow: visible; }
+.fy-spin__track,
+.fy-spin__trace { fill: none; stroke: currentColor; stroke-width: 2; }
+.fy-spin__track { opacity: 0.22; }
+.fy-spin__trace { stroke-dasharray: 26 74; stroke-linecap: square; animation: fy-spin-trace 1100ms linear infinite; }
+@keyframes fy-spin-trace { to { stroke-dashoffset: -100; } }
+
+/* ---------- Skeletons: a soft light sweep across a pale mat ---------- */
+
+.fy-skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background: #f1f1f0;
+  isolation: isolate;
+}
+.fy-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.75) 50%, transparent 80%);
+  transform: translate3d(-100%, 0, 0);
+  animation: fy-skel-sweep 1600ms ease-in-out infinite;
+}
+@keyframes fy-skel-sweep { to { transform: translate3d(100%, 0, 0); } }
+
+/* Product card placeholder: the same 4:5 media and line rhythm as the real card. */
+.fy-skel-card { display: grid; justify-items: center; gap: 10px; min-width: 0; }
+.fy-skel-card__media { width: 100%; aspect-ratio: 4 / 5; margin-bottom: 6px; }
+.fy-skel-card__line { width: 72%; height: 12px; }
+.fy-skel-card__line--short { width: 40%; height: 10px; }
+.fy-skel-card__line--price { width: 30%; height: 14px; }
+
+/* Images that are still arriving sit on the same sweep (removed once they have loaded). */
+.fy-img-wait { position: relative; isolation: isolate; }
+.fy-img-wait[data-loading]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* behind the photo, above the mat: badges and heart stay on top */
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.6) 50%, transparent 80%);
+  transform: translate3d(-100%, 0, 0);
+  animation: fy-skel-sweep 1600ms ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ---------- Reduced motion: everything holds still, complete and readable ----------
+   animation-name (not duration) is switched off, so the store-wide 1ms rule cannot turn these
+   endless loops into flicker. */
+@media (prefers-reduced-motion: reduce) {
+  .fy-ld__moulding, .fy-ld__mat, .fy-ld__photo, .fy-ld__inner, .fy-spin__trace, .fy-skeleton::after, .fy-img-wait[data-loading]::after { animation-name: none !important; }
+  .fy-ld__moulding, .fy-ld__mat { stroke-dashoffset: 0; }
+  .fy-ld__photo { transform: scaleY(0.6); opacity: 0.5; }
+  .fy-skeleton::after, .fy-img-wait[data-loading]::after { display: none; }
+}
+.fy-toast-spin { font-size: 18px; }

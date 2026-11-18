@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BadgeCheck, ChevronDown, PenLine, X } from 'lucide-react';
 import ReviewForm from './ReviewForm';
+import { FrameSpinner } from '../loaders/FrameLoader';
 import ReviewStars from './ReviewStars';
 import ShopSortMenu from '../../features/customer/components/ShopSortMenu';
 import { reviewService, type PublicReview, type RatingSummary } from '../../services/review.service';
@@ -120,7 +121,7 @@ export default function ProductReviews({ productId, productName, productImage, i
               <ol className="fy-rev__list">
                 {reviews.map((review, index) => <ReviewCard key={review.id} review={review} index={index % 6} />)}
               </ol>
-              {loading && <p role="status" className="fy-rev__loading"><span aria-hidden="true" />Loading reviews</p>}
+              {loading && <p role="status" className="fy-rev__loading"><FrameSpinner />Loading reviews</p>}
               {page < pages && (
                 <button type="button" disabled={loading} onClick={() => setPage((value) => value + 1)} className="fy-rev__more">Show more reviews</button>
               )}

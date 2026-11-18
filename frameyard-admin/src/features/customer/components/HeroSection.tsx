@@ -160,8 +160,6 @@ const SWIPE_PX = 50;
  */
 type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times the frame wall has come into view; replays its text animation. */ wallVisits: number };
 
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
 /**
  * Slide 2: the video set in the admin (Settings → Homepage). Plays, looping, only while showing.
@@ -229,6 +227,9 @@ const ProgressRing: React.FC<{ onComplete: () => void }> = ({ onComplete }) => (
     <circle className="fy-hero__ring-track" cx="10" cy="10" r="9.15" />
     <circle
       className="fy-hero__ring-fill"
+      // The ring is the carousel's clock: Reduce Motion must neither stop nor shorten it (the
+      // global reduced-motion rule skips data-motion-timer). The slides still cut, not slide.
+      data-motion-timer=""
       cx="10"
       cy="10"
       r="9.15"
@@ -256,7 +257,6 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
   const [focused, setFocused] = useState(false);
   const [inView, setInView] = useState(true);
   const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
-  const [reducedMotion] = useState(prefersReducedMotion);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
   const slideCount = video ? 2 : 1;
@@ -378,7 +378,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
       )}
 
       {slideCount > 1 && (
-        <div className="fy-hero__dots" data-static={reducedMotion || undefined}>
+        <div className="fy-hero__dots">
           {Array.from({ length: slideCount }, (_, index) =>
             index === current ? (
               <button key={index} type="button" className="fy-hero__dot fy-hero__dot--active" aria-label={`Go to slide ${index + 1}`} aria-current="true">
