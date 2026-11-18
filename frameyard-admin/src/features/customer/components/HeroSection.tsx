@@ -200,6 +200,21 @@ const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onFailed: () =>
     }
   }, [playing, start]);
 
+  // iOS Safari: the play() above runs as the slide becomes active, while it is still parked
+  // off screen to the right. Safari refuses or pauses a muted, untapped video that is not
+  // visible, and only resumes `autoplay`-attribute videos by itself. So, while the slide is
+  // active, play again once the video is actually on screen. Chrome is already playing by then,
+  // so this does nothing there; a refusal (Low Power Mode) still leaves the tap fallback.
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !playing || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && element.paused) start(element);
+    }, { threshold: 0.5 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [playing, start]);
+
   return (
     <video
       ref={ref}
