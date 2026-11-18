@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import CustomerNotificationsPage from './CustomerNotificationsPage';
+import NotificationOrderText from '../../components/ui/NotificationOrderText';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { notificationService } from '../../services/notification.service';
@@ -10,7 +12,7 @@ import PaginationControls from '../../components/ui/PaginationControls';
 import { showError, showSuccess } from '../../utils/toast';
 import { Bell, CheckCircle2, Info, Check, XCircle } from 'lucide-react';
 
-export const NotificationsPage: React.FC = () => {
+const AdminNotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -137,14 +139,14 @@ export const NotificationsPage: React.FC = () => {
               <div className="flex-grow">
                 <div className="flex justify-between items-start gap-2">
                   <h4 className={`font-semibold ${notification.type==='ORDER_CANCELLED'?'text-red-700 font-bold':notification.read ? 'text-on-surface' : 'text-primary'}`}>
-                    {notification.actionUrl ? <Link to={notification.actionUrl} onClick={() => toggleNotificationRead(notification.id)} className="underline-offset-4 hover:underline">{notification.title}</Link> : notification.title}
+                    {/\bFY-[A-Za-z0-9]+\b/.test(notification.title) ? <NotificationOrderText text={notification.title} notification={notification} onRead={() => toggleNotificationRead(notification.id)} /> : notification.actionUrl ? <Link to={notification.actionUrl} onClick={() => toggleNotificationRead(notification.id)} className="underline-offset-4 hover:underline">{notification.title}</Link> : notification.title}
                   </h4>
                   <span className="text-xs text-on-surface-variant whitespace-nowrap">
                     {new Date(notification.date).toLocaleDateString()}
                   </span>
                 </div>
                 <p className={`text-sm mt-1 ${notification.type==='ORDER_CANCELLED'?'text-red-700 font-bold':notification.read ? 'text-on-surface-variant' : 'text-on-surface'}`}>
-                  {notification.message}
+                  <NotificationOrderText text={notification.message} notification={notification} onRead={() => toggleNotificationRead(notification.id)} />
                 </p>
                 {notification.readBy && (
                   <p className="mt-2 text-xs font-medium text-on-surface-variant">
@@ -180,4 +182,8 @@ export const NotificationsPage: React.FC = () => {
   );
 };
 
+export const NotificationsPage: React.FC = () => {
+  const role=useAuthStore(state=>state.user?.role);
+  return role==='ADMIN'||role==='EMPLOYEE'?<AdminNotificationsPage/>:<CustomerNotificationsPage/>;
+};
 export default NotificationsPage;

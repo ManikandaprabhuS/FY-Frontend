@@ -25,6 +25,7 @@ interface ProductState {
 
 let productsRequestId = 0;
 let productDetailsRequestId = 0;
+let lastProductsParams: ProductListParams | null = null;
 
 const getProductErrorMessage = (error: unknown, fallback: string): string => {
   if (!axios.isAxiosError<{ message?: string; error?: { message?: string } }>(error)) return fallback;
@@ -40,6 +41,7 @@ export const useProductStore = create<ProductState>((set) => ({
   error: null,
 
   fetchProducts: async (params = {}) => {
+    lastProductsParams = params;
     const requestId = ++productsRequestId;
     set({ loading: true, error: null });
     try {
@@ -192,3 +194,44 @@ export const useProductStore = create<ProductState>((set) => ({
     set({ currentProduct: null, loading: false });
   },
 }));
+
+// Orders change inventory outside this store. Refresh stock without resetting forms,
+// upload previews, list filters, pagination, or the visible loading state.
+let stockRefreshPending = false;
+export const refreshLoadedProductStock = async () => {
+  if (typeof document === 'undefined' || document.hidden || stockRefreshPending) return;
+  const path = window.location.pathname;
+  const listVisible = path === '/admin/overview' || path === '/admin/products';
+  const detailVisible = path.startsWith('/product/');
+  if (!listVisible && !detailVisible) return;
+  const state = useProductStore.getState();
+  if (state.loading) return;
+  const query = lastProductsParams, request = productsRequestId, detailRequest = productDetailsRequestId;
+  const current = state.currentProduct;
+  stockRefreshPending = true;
+  try {
+    if (listVisible && query) {
+      const data = await productService.getProducts(query);
+      if (request === productsRequestId && !useProductStore.getState().loading) useProductStore.setState({ products: data.products, pagination: data.pagination, facets: data.facets ?? null });
+    } else if (detailVisible && current) {
+      const fresh = await productService.getProductById(current.id, true);
+      if (detailRequest !== productDetailsRequestId || useProductStore.getState().currentProduct?.id !== current.id) return;
+      const quantities = new Map(fresh.variants.map(variant => [variant.id, variant.stockQuantity]));
+      useProductStore.setState({ currentProduct: { ...current, variants: current.variants.map(variant => ({ ...variant, stockQuantity: quantities.get(variant.id) ?? variant.stockQuantity })) } });
+    }
+  } catch { /* Retain current data; the next visible refresh retries. Checkout remains authoritative. */ }
+  finally { stockRefreshPending = false; }
+};
+if (typeof window !== 'undefined') {
+  const refresh = () => { void refreshLoadedProductStock(); };
+  const storage = (event: StorageEvent) => { if (event.key === 'fy:order-revision') refresh(); };
+  window.addEventListener('fy:orders-changed', refresh);
+  window.addEventListener('fy:customer-orders-changed', refresh);
+  window.addEventListener('storage', storage);
+  document.addEventListener('visibilitychange', refresh);
+  const timer = window.setInterval(refresh, 15000);
+  if (import.meta.hot) import.meta.hot.dispose(() => {
+    window.removeEventListener('fy:orders-changed', refresh); window.removeEventListener('fy:customer-orders-changed', refresh);
+    window.removeEventListener('storage', storage); document.removeEventListener('visibilitychange', refresh); window.clearInterval(timer);
+  });
+}
