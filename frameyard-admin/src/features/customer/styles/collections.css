@@ -130,6 +130,9 @@
   display: block;
   width: var(--fw);
   aspect-ratio: 0.777;
+  /* The same height the aspect ratio gives (border box). Explicit, because iOS Safari ignores
+     the ratio here and sizes the frame from its height:100% mat, which grew it past the card top. */
+  height: calc(var(--fw) / 0.777);
   padding: 8.5%;
   transform: translateX(-50%);
   box-shadow:
