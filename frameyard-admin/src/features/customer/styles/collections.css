@@ -5,7 +5,15 @@
  * frame stays big from a phone card to a desktop column. Type is Inter, as in the admin console.
  */
 
-.fy-col { font-family: var(--font-sans); }
+.fy-col { font-family: var(--font-sans); --fy-collection-card-title-size: 18px; }
+
+/* Anchor/scroll restoration must clear the sticky customer header. No layout padding. */
+.fy-col,
+.fy-col__title { scroll-margin-top: 76px; }
+@media (min-width: 1024px) {
+  .fy-col,
+  .fy-col__title { scroll-margin-top: 92px; }
+}
 
 /* Decorative props only: frame geometry, photos, card sizes and links are unchanged. */
 .fy-col__plant {position:absolute;z-index:3;bottom:calc(var(--fw) * .1);left:0;width:32%;height:70%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(2px 5px 4px rgba(0,0,0,.12));}
@@ -215,10 +223,15 @@
 }
 
 .fy-col__name {
-  font-size: 15px;
+  font-size: var(--fy-collection-card-title-size);
   font-weight: 700;
   line-height: 1.2;
   color: #111111;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fy-col__shop {
@@ -278,13 +291,30 @@
 
   .fy-col__list::-webkit-scrollbar { display: none; }
 
+  @supports not (animation-timeline: view()) {
+    .fy-col__progress {
+      display: block;
+      width: 72px;
+      height: 3px;
+      margin: 2px auto 0;
+      overflow: hidden;
+      border-radius: 3px;
+      background: #e2e0dc;
+    }
+    .fy-col__progress > span {
+      display: block;
+      height: 100%;
+      background: #111111;
+      transform-origin: left;
+      transform: scaleX(var(--fy-col-progress, .25));
+    }
+  }
+
   .fy-col__item {
     flex: 0 0 80vw;
     scroll-snap-align: center;
     view-timeline: --fy-col-card inline;
   }
-
-  .fy-col__name { font-size: 16px; }
 
   @supports (animation-timeline: view()) {
     .fy-col__card {

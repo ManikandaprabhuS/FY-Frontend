@@ -75,7 +75,13 @@ const FrameCollectionsSection: React.FC = () => {
         <p className="fy-col__lead">Every memory deserves the right edge.</p>
       </div>
 
-      <ul className="fy-col__list" role="list">
+      <ul className="fy-col__list" role="list" onScroll={(event) => {
+        if (CSS.supports('animation-timeline: view()')) return;
+        const row = event.currentTarget;
+        const maximum = row.scrollWidth - row.clientWidth;
+        const progress = maximum > 0 ? Math.min(1, Math.max(0, row.scrollLeft / maximum)) : 0;
+        row.parentElement?.style.setProperty('--fy-col-progress', String(.25 + .75 * progress));
+      }}>
         {frameCollections.map((collection, index) => (
           <CollectionCard key={collection.id} collection={collection} index={index} photosOn={photosOn} />
         ))}
