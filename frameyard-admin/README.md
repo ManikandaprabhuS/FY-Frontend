@@ -1,5 +1,45 @@
 # FrameYaad Admin
 
+## Customer notification history
+
+2026-11-18: Customer notifications now use one source for the navbar popup and Profile page, show full history, and are read-only (no delete).
+
+Diagnosis: Profile used the legacy notifications source while the popup used CustomerNotification with separate state/count requests. The newer source also restricted history to 90 days and omitted the legacy welcome message.
+Fix: one authenticated customer endpoint merges both owned sources read-only, deduplicates matching events, preserves original timestamps/read state, and returns newest-first pages of 20 with shared counts. No migration, copying, schema changes or new dependencies; both views share optimistic state with rollback. Customer delete/clear requests return 403; admin notifications remain unchanged.
+
+Retention: automatic customer-history pruning is disabled (indefinite retention); the dev database has no pg_cron extension. Previously physically deleted history requires a backup to recover. Existing account-deletion behavior is unchanged.
+
+Verification: backend suite 641/641 passed; 20 focused frontend notification tests passed. Dev API/browser checks at 1440px and 375px passed for welcome plus placed/status/cancel/refund history, matching lists/counts, reads in both directions, mark-all, failure rollback, empty state, ownership isolation, delete 403 and 62-record pagination including history older than 90 days. Tests used isolated dev users and a test-only token verifier, not real Supabase sign-in/accounts. Dummy orders, notifications and fixture records were removed; original stock, revenue, counts and notification read states matched the baseline. No photos were uploaded. The broad frontend run had 249/272 passing with 23 existing unrelated failures; these were left unchanged.
+
+
+2026-11-18: Product Details view redesigned (UI only).
+
+Read-only view now fills the existing admin content area with a product breadcrumb/header, Basic Information and Material & Colours cards, variant mini-cards, horizontal images/cover badges and a pinned Edit/Close footer. Existing compact sidebar/search/bell/avatar, list/actions, routes, API/data, fetch/retry and Close/Escape/focus behavior are retained; colour metadata is read from already-loaded state only, and the unset photo-size label uses the existing shared default. No new requests, writes, backend/schema changes, dependencies or lightbox.
+
+Click test: an existing dev product was read without writes and its response replayed through the real Products list and details components; desktop/mobile name and thumbnail clicks passed, all four sections displayed, Close restored identical list content/focus, and Edit used the existing route. Before/after API methods, URLs, parameters and counts were identical (one existing product GET per open). Screenshots/checks at 1440/1024/768/375px passed with no page overflow, pinned-footer scrolling, 10 images, many colours/25 variants, no images/colours/variants, Draft, long name/description and retry. Production build and 16 focused UI/shell tests pass. Broad suite: 241/265 pass; the prior 23 failures remain, plus an older notification test still expecting the row-navigation behavior intentionally replaced in the preceding task. Those unrelated assertions were not changed here; the new notification-navigation tests pass. The reference's expanded sidebar was not imposed on the existing compact shell, and unavailable colour metadata was not invented.
+
+2026-11-18: In the navbar notification popup, clicking a notification opens the Notifications page without marking it as read; clicking its order ID link marks it as read and opens the order.
+
+Verification: production build and 12 navigation/optimistic-read regression tests pass. Confirmed DEV DB: placed one isolated **Dummy Test Order**, verified stock 20 -> 19, then cancelled it to create a second order notification and restore stock to 20. Real AdminLayout/Notifications/Orders components passed browser checks at 375px and 1440px for ADMIN and EMPLOYEE: body click/Enter (including no-order notifications) leaves unread count unchanged; order-link Enter marks exactly one read, decreases the badge immediately and opens the existing order popup without row navigation; forced read failure rolls back and shows the existing red Retry toast; Mark all remains optimistic. Browser requests used a test-only loopback bridge to the existing backend services, scoped to this run's notifications so Mark all could not modify existing staff notifications. Dummy orders/items, customer/staff notifications, users/addresses and isolated product/variant/material were deleted; original stock/timestamps, revenue/counts, photos and every original notification/read state match the baseline. No backend or Notifications-page production changes; optional row scroll/highlight was omitted to leave that page untouched.
+
+## 2026-11-18: Stock and revenue verification
+
+Owner-confirmed DEV database only. Full before/after scenario table, cleanup counts, bug details and test limitations are recorded in the backend README at `D:\New folder\FrameYaad-Backend\FrameYaad-Backend\README.md` under this dated heading. Backend stock deduction/restoration is now atomic/idempotent; the shared frontend product store refreshes stock on existing order events and visible 15-second checks without changing filters/page, Add/Edit forms, photos, layout or calculations.
+
+| Check | Before | After | Result |
+|---|---|---|---|
+| Qty 1 / qty 3 stock | 20 / 20 | 19 / 17; each cancellation restores 20 once | PASS (live dev services) |
+| Multi-variant stock A/B | 20/20 | 18/17; admin cancel restores 20/20 once | PASS |
+| Last-unit race | 1 | 0; one order succeeds, one stock rejection | PASS |
+| Revenue after full cleanup | INR 15,690.20; 7 active; INR 2,241.46 AOV | identical | PASS |
+| Current-month chart / summary / PDF after cleanup | INR 8,095.20; 3 orders; INR 2,698.40 AOV | identical across outputs | PASS |
+| Big Order cancellation | INR 6,000 subtotal / 5,400 final | only 5,400 removed | PASS |
+| First Order cancellation | INR 1,000 subtotal / 950 final | only 950 removed | PASS |
+| Refund INITIATED / COMPLETED | revenue already excludes cancelled order | no further deduction | PASS |
+| Shared store + stock/wishlist tests | filters/page and photo preview inputs retained | 26/26 tests pass; hidden tabs/Add/Edit skipped | PASS |
+
+Live cleanup verified original orders/notifications/photos/users and every original stock value/timestamp. Backend/frontend builds pass. Chart/PDF generation checked against 44 measured snapshots; a current-month PDF was rendered and inspected. The broad frontend suite has 23 failures (234/257 pass), including missing-module resolution and older UI-contract assertions, left outside this task. Authenticated browser verification of every notification/badge state remains manual; live data checks and mocked display/helper checks are distinguished in the backend report. No photo/storage/schema/auth/provider changes or new dependencies.
+
 ## Shared toast notifications
 
 Customer and admin notifications use `src/utils/toast.ts`: `showSuccess` (green/check), `showError` (red/cross), and `showWarning` (amber/triangle). All use 700-weight text, dark readable text on explicit light tinted backgrounds, and matching colored icons. Existing top-right position, gutter, toast entrance/exit animations, radius and shadow are retained; success stays 3.5 seconds and errors/warnings use 4.5 seconds. Repeated type/message pairs reuse one ID; callers can pass an existing ID to replace an optimistic toast with its failure instead of stacking it.
@@ -931,6 +971,12 @@ Build/lint, synthetic-data PDF/range/refresh/link/empty-state checks and 1440/10
 
 **17 November 2026 — Customers UI-only restyle:** list/profile cards, scoped desktop sidebar/top bar, responsive customer cards/order items and shared StatusBadge; all requests, calculations, hooks, handlers, routes, role rules, export and pagination logic preserved. Reference-only filters/actions/rows-per-page/Reports/submenu controls and sparklines were not invented.
 Build, AST guards, mocked before/after Network parity (including search/pagination/export/profile/notifications), interactions and eight 1440/1024/768/375px screenshots passed; 253 tests pass with the same 15 existing failures, and three original list-page lint findings remain. Original conditional collapse is retained; no dependencies or backend changes.
+
+2026-11-18: Clicking a product name in the admin Products list opens a read-only Product Details popup (same UI as Order Details).
+Click check: mocked existing-product GET at 1440px/375px passed all four sections, no colours/images, Draft/long name, 25 variants, Escape/focus return, close X and failed-fetch retry; all requests were GETs and no records were changed. Uses the existing Edit product fetch and shared Modal; no lightbox was added because none exists in the product UI. Live authenticated product check remains manual; toggle/delete actions were not executed against real data.
+
+2026-11-18: Order IDs in admin notifications are now links to the order details.
+Verification: production build and mocked new-order/cancellation/status link checks passed (safe text, single mark-read/navigation, popup close, missing order and request failure). Dummy-order database check NOT run: configured remote DB was not verified as dev; no orders, notifications, stock, photos, revenue or records were created/changed, so no cleanup was required. Backend and customer notifications unchanged.
 
 **18 November 2026 — Collection card title size:** verified in this frontend that the shared title variable is 18px (+3px desktop/tablet, +2px mobile), preserving font family, bold weight and colour, with single-line ellipsis and unchanged cards/buttons/images/links/trust strip. Previously completed screenshot/alignment checks at 1440/1024/768/375px (all four cards, Classic focus/hover) and production build passed; no further styling changes were needed on this verification.
 

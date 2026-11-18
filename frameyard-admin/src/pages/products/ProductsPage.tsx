@@ -1,5 +1,6 @@
 import './products-list.css';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import ProductReadOnlyModal from './ProductReadOnlyModal';
 import { showError, showSuccess } from '../../utils/toast';
 import { useNavigate } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
@@ -14,6 +15,13 @@ import { productService } from '../../services/product.service';
 
 export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
+  const closeDetails = useCallback(() => setDetailsProduct(null), []);
+  const openDetails = (event: React.MouseEvent<HTMLButtonElement>, product: Product) => {
+    event.stopPropagation();
+    event.currentTarget.closest('tr, .fy-products-list__mobile')?.querySelector<HTMLButtonElement>('button[title]')?.focus();
+    setDetailsProduct(product);
+  };
   const { products, loading, fetchProducts, editProduct, pagination } = useProducts(false);
 
   // Search & Filter State
@@ -230,12 +238,12 @@ export const ProductsPage: React.FC = () => {
           return (
             <tr key={product.id} className="hover:bg-surface/40 transition-colors group">
               <td className="px-6 py-4">
-                <div className="w-12 h-12 rounded bg-surface-container overflow-hidden inner-stroke">
+                <button type="button" aria-label={'View product details: ' + product.name} onClick={event => openDetails(event, product)} className="w-12 h-12 rounded bg-surface-container overflow-hidden inner-stroke focus-visible:outline-2 focus-visible:outline-offset-2">
                   {product.images?.[0]?.imageUrl ? <img src={product.images[0].imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/> : <span className="fy-products-list__placeholder" aria-label="No product image"><Image size={24}/></span>}
-                </div>
+                </button>
               </td>
               <td className="px-6 py-4">
-                <div title={product.name} className="fy-products-list__name font-semibold text-on-surface group-hover:text-primary transition-colors">{product.name}</div>
+                <button type="button" onClick={event => openDetails(event, product)} title={product.name} className="fy-products-list__name text-left font-semibold text-on-surface group-hover:text-primary transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">{product.name}</button>
                 <div className="text-[11px] text-on-surface-variant font-medium mt-0.5">Brand: {product.brandName}</div>
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{product.material}</td>
@@ -303,12 +311,12 @@ export const ProductsPage: React.FC = () => {
           const stockInfo = productStockStatus(product);
           return (
             <div key={product.id} className="fy-products-list__mobile bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex gap-4 relative group">
-              <div className="w-20 h-20 rounded bg-surface-container overflow-hidden inner-stroke flex-shrink-0">
+              <button type="button" aria-label={'View product details: ' + product.name} onClick={event => openDetails(event, product)} className="w-20 h-20 rounded bg-surface-container overflow-hidden inner-stroke flex-shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2">
                 {product.images?.[0]?.imageUrl ? <img src={product.images[0].imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/> : <span className="fy-products-list__placeholder" aria-label="No product image"><Image size={24}/></span>}
-              </div>
+              </button>
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex justify-between items-start gap-2">
-                  <h4 title={product.name} className="font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">{product.name}</h4>
+                  <button type="button" onClick={event => openDetails(event, product)} title={product.name} className="text-left font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">{product.name}</button>
                   <Badge type={stockInfo.type} className="fy-products-list__stock min-w-[100px] justify-center font-bold">  {stockInfo.label}</Badge>
                 </div>
                 <p className="fy-products-list__brand">Brand: {product.brandName}</p><p className="text-xs text-on-surface-variant mt-0.5">{product.material} • {product.variants?.length || 0} {product.variants?.length === 1 ? 'Variant' : 'Variants'}</p>
@@ -409,6 +417,7 @@ export const ProductsPage: React.FC = () => {
       )}
 
       {/* Delete Confirmation */}
+      {detailsProduct && <ProductReadOnlyModal key={detailsProduct.id} initial={detailsProduct} onClose={closeDetails} />}
       <ConfirmDialog
         isOpen={isDeleteOpen}
         onClose={() => { setIsDeleteOpen(false); setDeleteId(null); }}

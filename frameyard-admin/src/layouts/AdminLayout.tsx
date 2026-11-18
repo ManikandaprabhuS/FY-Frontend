@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNotificationStore } from '../store/notificationStore';
+import NotificationOrderText from '../components/ui/NotificationOrderText';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useNotifications from '../hooks/useNotifications';
@@ -250,7 +251,7 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           {/* Breadcrumbs (Desktop) */}
-          <div className="hidden md:flex items-center gap-2 text-on-surface-variant font-medium text-sm">
+          <div data-admin-breadcrumbs className="hidden md:flex items-center gap-2 text-on-surface-variant font-medium text-sm">
             {getBreadcrumbs()}
           </div>
 
@@ -298,15 +299,23 @@ export const AdminLayout: React.FC = () => {
                         notifications.slice(0, 4).map((notif) => (
                           <div 
                             key={notif.id} 
-                            onClick={() => {
-                              toggleNotificationRead(notif.id);
+                            role="link"
+                            tabIndex={0}
+                            aria-label={'View notification: ' + notif.title}
+                            onKeyDown={event => {
+                              if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+                              event.preventDefault();
                               setNotifDropdownOpen(false);
-                              if (notif.actionUrl?.startsWith("/admin/")) navigate(notif.actionUrl);
+                              navigate('/admin/notifications');
+                            }}
+                            onClick={() => {
+                              setNotifDropdownOpen(false);
+                              navigate('/admin/notifications');
                             }}
                             className={`p-3 text-left hover:bg-surface transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
                           >
-                            <p className={"text-xs font-bold flex items-center gap-1 "+(notif.type==="ORDER_CANCELLED"?"text-red-700":"text-on-surface")}>{notif.type==="ORDER_CANCELLED"&&<XCircle size={15} aria-hidden/>}{notif.title}</p>
-                            <p className={"text-[11px] mt-0.5 "+(notif.type==="ORDER_CANCELLED"?"text-red-700 font-bold":"text-on-surface-variant line-clamp-2")}>{notif.message}</p>
+                            <p className={"text-xs font-bold flex items-center gap-1 "+(notif.type==="ORDER_CANCELLED"?"text-red-700":"text-on-surface")}>{notif.type==="ORDER_CANCELLED"&&<XCircle size={15} aria-hidden/>}<NotificationOrderText text={notif.title} notification={notif} onRead={() => toggleNotificationRead(notif.id)} onNavigate={() => setNotifDropdownOpen(false)} /></p>
+                            <p className={"text-[11px] mt-0.5 "+(notif.type==="ORDER_CANCELLED"?"text-red-700 font-bold":"text-on-surface-variant line-clamp-2")}><NotificationOrderText text={notif.message} notification={notif} onRead={() => toggleNotificationRead(notif.id)} onNavigate={() => setNotifDropdownOpen(false)} /></p>
                             {notif.readBy && <p className="mt-1 text-[10px] text-on-surface-variant">Read by {notif.readBy.name} ({notif.readBy.role})</p>}
                             <span className="text-[9px] text-on-surface-variant/60 mt-1 block">
                               {new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

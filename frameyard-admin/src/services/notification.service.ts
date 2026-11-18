@@ -3,6 +3,7 @@ import api from './api';
 import type { ApiEnvelope, Pagination } from './contracts';
 
 type BackendNotification = {
+  orderId?: string;
   actionUrl?: string;
   id: string;
   title: string;
@@ -15,6 +16,7 @@ type BackendNotification = {
 };
 
 const normalizeNotification = (notification: BackendNotification): Notification => ({
+  ...(notification.orderId ? { orderId: notification.orderId } : {}),
   id: notification.id,
   title: notification.title,
   message: notification.message,
