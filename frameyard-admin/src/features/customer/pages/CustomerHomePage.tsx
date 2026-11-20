@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import useProducts from '../../../hooks/useProducts';
 import FrameCollectionsSection from '../components/FrameCollectionsSection';
-import HeroSection from '../components/HeroSection';
 import HomepageOfferBanner from '../components/HomepageOfferBanner';
 import PhotoToFrameSection from '../components/PhotoToFrameSection';
 
@@ -14,7 +13,6 @@ const CustomerHomePage: React.FC = () => {
 
   return (
     <div className="bg-white text-black">
-      <HeroSection />
       <HomepageOfferBanner />
       <FrameCollectionsSection />
       <PhotoToFrameSection />

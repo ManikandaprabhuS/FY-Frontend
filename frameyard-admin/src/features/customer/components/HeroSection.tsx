@@ -11,6 +11,7 @@ import {
   type HeroPhoto,
 } from '../data/heroShowcase';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
+import { heroVideoMedia } from '../data/heroVideoMedia';
 import { backendHeroPhotos } from '../utils/heroFrames';
 import { useFramePhotosStore } from '../store/framePhotosStore';
 import PhotoToggle from './PhotoToggle';
@@ -41,6 +42,7 @@ const FramePhoto: React.FC<{ photo: HeroPhoto; visible: boolean; priority: boole
 };
 
 interface HeroSectionProps {
+  active?: boolean;
   /** Dummy photos used until the admin marks hero photos. Pass [] once they are no longer wanted. */
   fallbackPhotos?: HeroPhoto[];
 }
@@ -166,11 +168,15 @@ type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times
  * iOS Safari only autoplays a video that is muted *and* inline, and checks the muted state at
  * play() time; React sets `muted` as a property only, so it is set (and the attribute added)
  * before every play. When iOS still refuses (Low Power Mode blocks all autoplay), the slide
- * keeps the video's first frame (the #t= fragment makes iOS draw it without playing) and a
- * tap on it starts playback, which a user gesture is always allowed to do.
+ * keeps a lightweight poster until playback starts and retries on a user gesture.
+ * Neither slide changes nor Home navigation reset the retained media element.
  */
-const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onFailed: () => void }> = ({ video, playing, onFailed }) => {
+const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean }> = ({ video, playing }) => {
   const ref = useRef<HTMLVideoElement>(null);
+  const [compact] = useState(() => window.matchMedia('(max-width: 767px)').matches || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData));
+  const media = heroVideoMedia(video.url, compact);
+  const [fallback, setFallback] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   const start = useCallback((element: HTMLVideoElement) => {
     element.muted = true;
@@ -193,26 +199,38 @@ const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onFailed: () =>
     const element = ref.current;
     if (!element) return;
     if (playing) {
-      try { element.currentTime = 0; } catch { /* not seekable yet: it starts from 0 anyway */ }
       start(element);
     } else {
       element.pause();
     }
-  }, [playing, start]);
+    const retry = () => { if (playing && !document.hidden && element.paused) start(element); };
+    window.addEventListener('pointerdown', retry, { passive: true });
+    return () => window.removeEventListener('pointerdown', retry);
+  }, [playing, start, fallback]);
 
   return (
+    <>
+    {media.poster && <img className="fy-hero__poster" src={media.poster} alt="" aria-hidden="true" fetchPriority="high" decoding="async" width="960" height="540" />}
     <video
       ref={ref}
       className="fy-hero__video"
-      src={`${video.url}#t=0.001`}
+      src={fallback ? video.url : media.src}
+      poster={media.poster}
+      data-visible={visible || !media.poster}
       muted
       playsInline
       loop
-      preload="metadata"
-      onError={onFailed}
+      autoPlay={playing}
+      disablePictureInPicture
+      disableRemotePlayback
+      preload="auto"
+      onPlaying={() => setVisible(true)}
+      onCanPlay={(event) => { if (playing && !document.hidden) start(event.currentTarget); }}
+      onError={() => { setVisible(false); if (!fallback && media.src !== video.url) setFallback(true); }}
       onClick={(event) => { if (playing && event.currentTarget.paused) start(event.currentTarget); }}
       aria-label="FrameYaad frames at home"
     />
+    </>
   );
 };
 
@@ -249,6 +267,7 @@ const ProgressRing: React.FC<{ onComplete: () => void }> = ({ onComplete }) => (
  * the dots jump to a slide, and swiping works on touch screens.
  */
 const HeroSection: React.FC<HeroSectionProps> = (props) => {
+  const active = props.active !== false;
   const rootRef = useRef<HTMLElement>(null);
   const [video, setVideo] = useState<HeroVideo | null>(null);
   const [motion, setMotion] = useState<Motion>({ current: 0, previous: null, dir: 1, wallVisits: 0 });
@@ -261,21 +280,22 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
 
   const slideCount = video ? 2 : 1;
   const current = Math.min(motion.current, slideCount - 1);
-  const paused = hovered || focused || !inView || !pageVisible;
+  const paused = !active || hovered || focused || !inView || !pageVisible;
 
   // Tells the transparent homepage navbar whether it sits on the light wall or the video.
   useEffect(() => {
-    document.documentElement.dataset.heroTone = current === 1 ? 'dark' : 'light';
+    if (active) document.documentElement.dataset.heroTone = current === 1 ? 'dark' : 'light';
     return () => { delete document.documentElement.dataset.heroTone; };
-  }, [current]);
+  }, [active, current]);
 
   useEffect(() => {
-    let active = true;
+    if (!active) return;
+    let pending = true;
     siteMediaService.getHeroVideo()
-      .then((configured) => { if (active) setVideo(configured); })
+      .then((configured) => { if (pending) setVideo(configured); })
       .catch(() => undefined);
-    return () => { active = false; };
-  }, []);
+    return () => { pending = false; };
+  }, [active]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -371,8 +391,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
           <VideoSlide
             key={video.url}
             video={video}
-            playing={current === 1 && inView && pageVisible}
-            onFailed={() => setVideo(null)}
+            playing={active && current === 1 && inView && pageVisible}
           />
         </div>
       )}

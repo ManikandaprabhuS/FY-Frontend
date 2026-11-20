@@ -693,7 +693,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 200ms ease;
 }
+
+.fy-hero__video[data-visible="true"] { opacity: 1; }
+.fy-hero__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .fy-hero__video { transition: none; } }
 
 /*
  * Slide indicators, bottom right. The active slide shows a ring that fills clockwise
