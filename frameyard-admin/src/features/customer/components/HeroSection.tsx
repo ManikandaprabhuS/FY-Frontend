@@ -12,6 +12,8 @@ import {
 } from '../data/heroShowcase';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
 import { heroVideoMedia } from '../data/heroVideoMedia';
+import { FrameSpinner } from '../../../components/loaders/FrameLoader';
+import { createHeroVideoPlayback, HERO_VIDEO_TIMEOUTS, type HeroVideoState } from '../utils/heroVideoPlayback';
 import { backendHeroPhotos } from '../utils/heroFrames';
 import { useFramePhotosStore } from '../store/framePhotosStore';
 import PhotoToggle from './PhotoToggle';
@@ -149,7 +151,7 @@ const FrameWallSlide: React.FC<HeroSectionProps & { replayKey?: number }> = ({ f
   );
 };
 
-/** How long each slide shows; the active indicator's ring fills over this time. */
+/** The frame-wall slide's unchanged timer; video uses its real playback progress. */
 const SLIDE_MS = 5000;
 /** A horizontal swipe longer than this changes slide on touch screens. */
 const SWIPE_PX = 50;
@@ -164,96 +166,77 @@ type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times
 
 
 /**
- * Slide 2: the video set in the admin (Settings → Homepage). Plays, looping, only while showing.
+ * Slide 2 plays once from zero per visible visit and advances on ended, not the ring clock.
  * iOS Safari only autoplays a video that is muted *and* inline, and checks the muted state at
  * play() time; React sets `muted` as a property only, so it is set (and the attribute added)
  * before every play. When iOS still refuses (Low Power Mode blocks all autoplay), the slide
  * keeps a lightweight poster until playback starts and retries on a user gesture.
- * Neither slide changes nor Home navigation reset the retained media element.
+ * The media DOM/buffer is retained; each visible visit resets only its playhead.
  */
-const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean }> = ({ video, playing }) => {
+const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () => void; onProgress: (value: number) => void }> = ({ video, playing, onComplete, onProgress }) => {
   const ref = useRef<HTMLVideoElement>(null);
+  const attempted = useRef(false);
   const [compact] = useState(() => window.matchMedia('(max-width: 767px)').matches || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData));
   const media = heroVideoMedia(video.url, compact);
   const [fallback, setFallback] = useState(false);
-  const [visible, setVisible] = useState(false);
-
-  const start = useCallback((element: HTMLVideoElement) => {
-    element.muted = true;
-    element.defaultMuted = true;
-    element.setAttribute('muted', '');
-    // A blocked autoplay rejects with NotAllowedError; the still first frame stays up.
-    element.play().catch(() => undefined);
-  }, []);
-
-  // Muted from the start, attribute included, as iOS reads it when it first loads the video.
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    element.muted = true;
-    element.defaultMuted = true;
-    element.setAttribute('muted', '');
-  }, []);
+  const [playback, setPlayback] = useState<HeroVideoState>({ loading: false, visible: false, duration: 0, bufferedEnd: 0, progress: 0 });
 
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    if (playing) {
-      start(element);
-    } else {
-      element.pause();
-    }
-    const retry = () => { if (playing && !document.hidden && element.paused) start(element); };
-    window.addEventListener('pointerdown', retry, { passive: true });
-    return () => window.removeEventListener('pointerdown', retry);
-  }, [playing, start, fallback]);
+    const startupMs = attempted.current ? HERO_VIDEO_TIMEOUTS.laterStart : HERO_VIDEO_TIMEOUTS.firstStart;
+    if (playing) attempted.current = true;
+    return createHeroVideoPlayback(element, {
+      active: playing, startupMs, touchTarget: window, onComplete,
+      onState: (state) => { setPlayback(state); onProgress(state.progress); },
+    });
+  }, [playing, fallback, media.src, onComplete, onProgress]);
 
   return (
     <>
-    {media.poster && <img className="fy-hero__poster" src={media.poster} alt="" aria-hidden="true" fetchPriority="high" decoding="async" width="960" height="540" />}
-    <video
-      ref={ref}
-      className="fy-hero__video"
-      src={fallback ? video.url : media.src}
-      poster={media.poster}
-      data-visible={visible || !media.poster}
-      muted
-      playsInline
-      loop
-      autoPlay={playing}
-      disablePictureInPicture
-      disableRemotePlayback
-      preload="auto"
-      onPlaying={() => setVisible(true)}
-      onCanPlay={(event) => { if (playing && !document.hidden) start(event.currentTarget); }}
-      onError={() => { setVisible(false); if (!fallback && media.src !== video.url) setFallback(true); }}
-      onClick={(event) => { if (playing && event.currentTarget.paused) start(event.currentTarget); }}
-      aria-label="FrameYaad frames at home"
-    />
+      {media.poster && <img className="fy-hero__poster" src={media.poster} alt="" aria-hidden="true" fetchPriority="high" decoding="async" width="960" height="540" />}
+      <video
+        ref={ref}
+        className="fy-hero__video"
+        src={fallback ? video.url : media.src}
+        poster={media.poster}
+        data-visible={playback.visible || (!media.poster && !playback.loading)}
+        data-duration={playback.duration}
+        data-buffered-end={playback.bufferedEnd}
+        muted
+        playsInline
+        disablePictureInPicture
+        disableRemotePlayback
+        preload="auto"
+        onError={() => { if (!fallback && media.src !== video.url) setFallback(true); }}
+        aria-label="FrameYaad frames at home"
+      />
+      {playing && playback.loading && <div className="fy-hero__video-loading"><FrameSpinner label="Loading video" /></div>}
     </>
   );
 };
 
 /**
- * The active slide's indicator: a ring that fills clockwise over SLIDE_MS. Its animation
- * is the carousel's only timer: when the fill finishes, the carousel moves on. Pausing
+ * The wall indicator fills over SLIDE_MS; the video's ring follows currentTime/duration.
+ * Only the wall's animation advances the carousel. Pausing
  * freezes the animation where it is (animation-play-state), so it resumes from there.
  * It is keyed by slide, so every slide change starts a fresh ring.
  */
-const ProgressRing: React.FC<{ onComplete: () => void }> = ({ onComplete }) => (
+const ProgressRing: React.FC<{ onComplete: () => void; progress?: number }> = ({ onComplete, progress }) => (
   <svg className="fy-hero__ring" viewBox="0 0 20 20" aria-hidden="true">
     <circle className="fy-hero__ring-track" cx="10" cy="10" r="9.15" />
     <circle
       className="fy-hero__ring-fill"
-      // The ring is the carousel's clock: Reduce Motion must neither stop nor shorten it (the
+      // The wall ring is the carousel's clock: Reduce Motion must neither stop nor shorten it (the
       // global reduced-motion rule skips data-motion-timer). The slides still cut, not slide.
       data-motion-timer=""
       cx="10"
       cy="10"
       r="9.15"
       pathLength={1}
+      style={progress === undefined ? undefined : { animation: 'none', strokeDashoffset: 1 - progress }}
       onAnimationEnd={(event) => {
-        if (event.animationName === 'fy-hero-ring') onComplete();
+        if (progress === undefined && event.animationName === 'fy-hero-ring') onComplete();
       }}
     />
   </svg>
@@ -270,6 +253,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
   const active = props.active !== false;
   const rootRef = useRef<HTMLElement>(null);
   const [video, setVideo] = useState<HeroVideo | null>(null);
+  const [videoProgress, setVideoProgress] = useState(0);
   const [motion, setMotion] = useState<Motion>({ current: 0, previous: null, dir: 1, wallVisits: 0 });
   const motionRef = useRef<Motion>(motion);
   const [hovered, setHovered] = useState(false);
@@ -338,6 +322,9 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
     goTo((from + dir + slideCount) % slideCount, dir);
   }, [goTo, slideCount]);
 
+  const finishVideo = useCallback(() => { if (motionRef.current.current === 1) step(1); }, [step]);
+  const finishWall = useCallback(() => { if (motionRef.current.current === 0) step(1); }, [step]);
+
   const slideStyle = (index: number): React.CSSProperties => {
     if (index === current) return { transform: 'translateX(0)' };
     if (index === motion.previous) return { transform: `translateX(${motion.dir * -100}%)` };
@@ -392,6 +379,8 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
             key={video.url}
             video={video}
             playing={active && current === 1 && inView && pageVisible}
+            onComplete={finishVideo}
+            onProgress={setVideoProgress}
           />
         </div>
       )}
@@ -401,7 +390,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
           {Array.from({ length: slideCount }, (_, index) =>
             index === current ? (
               <button key={index} type="button" className="fy-hero__dot fy-hero__dot--active" aria-label={`Go to slide ${index + 1}`} aria-current="true">
-                <ProgressRing key={current} onComplete={() => step(1)} />
+                <ProgressRing key={current} onComplete={finishWall} progress={current === 1 ? videoProgress : undefined} />
               </button>
             ) : (
               <button key={index} type="button" className="fy-hero__dot" aria-label={`Go to slide ${index + 1}`} onClick={() => goTo(index, index > current ? 1 : -1)}>

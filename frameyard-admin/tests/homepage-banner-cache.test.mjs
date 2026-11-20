@@ -22,6 +22,12 @@ test("cached banner appears immediately and early public fetch does not wait for
  let calls=0;const h=harness({cached:banner,publicRequest:async()=>{calls++;return new Promise(()=>{});}});
  assert.equal(h.state().banner.title,banner.title);h.start();h.start();assert.equal(calls,1);
 });
+
+for(const code of ["NEW_YEAR","CHRISTMAS","PONGAL"])test(code+" is accepted from both public response and the unchanged session cache",async()=>{
+ const seasonal={...banner,code,title:code+' Offer',percentage:12,minOrderAmount:2000};
+ const h=harness({cached:seasonal,publicRequest:async()=>({ok:true,json:async()=>({data:{banner:seasonal}})})});
+ assert.equal(h.state().banner.code,code);h.start();await tick();assert.deepEqual(h.state().banner,seasonal);
+});
 test("login keeps the public banner and never requests personalized eligibility",async()=>{
  let calls=0;
  const h=harness({cached:banner,publicRequest:async()=>{calls++;return {ok:true,json:async()=>({data:{banner}})};},personal:()=>{throw new Error("Personalized banner must not be requested");}});

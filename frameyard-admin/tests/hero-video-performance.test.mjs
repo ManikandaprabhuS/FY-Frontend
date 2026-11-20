@@ -33,10 +33,12 @@ test('failed settings requests can retry and are not permanently cached',async()
  let reads=0;const {siteMediaService}=compile('src/services/site-media.service.ts',{get:async()=>{if(++reads===1)throw Error('network');return {data:{data:{video:null}}}}});
  await assert.rejects(siteMediaService.getHeroVideo());assert.equal(await siteMediaService.getHeroVideo(),null);assert.equal(reads,2);
 });
-test('hero retains its DOM across customer routes and never resets playback time',()=>{
+test('hero retains its DOM/buffer while the playback controller resets each visible visit',()=>{
  const hero=read('src/features/customer/components/HeroSection.tsx'),layout=read('src/layouts/CustomerLayout.tsx');
- assert.doesNotMatch(hero,/currentTime\s*=/);assert.doesNotMatch(hero,/#t=0\.001/);
- for(const attribute of ['muted','playsInline','disablePictureInPicture','disableRemotePlayback','onCanPlay','pointerdown'])assert(hero.includes(attribute));
+ const playback=read('src/features/customer/utils/heroVideoPlayback.ts');
+ assert.match(playback,/currentTime = 0/);assert.doesNotMatch(hero,/#t=0\.001/);
+ for(const attribute of ['muted','playsInline','disablePictureInPicture','disableRemotePlayback'])assert(hero.includes(attribute));
+ assert(playback.includes('canplaythrough'));assert(playback.includes('pointerdown'));assert.doesNotMatch(hero,/^\s+loop\s*$/m);
  assert.match(layout,/visitedHome && <div hidden=\{!home\}><HeroSection active=\{home\}/);
  assert.match(hero,/playing=\{active && current === 1 && inView && pageVisible\}/);
  assert.doesNotMatch(read('src/features/customer/pages/CustomerHomePage.tsx'),/<HeroSection/);

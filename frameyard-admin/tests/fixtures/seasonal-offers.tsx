@@ -1,0 +1,14 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {Toaster} from 'react-hot-toast';
+import '../../src/index.css';
+import '../../src/features/customer/styles/storefront.css';
+import OffersPage from '../../src/pages/offers/OffersPage';
+import CheckoutOffers from '../../src/features/customer/components/CheckoutOffers';
+import {useAuthStore} from '../../src/store/authStore';
+import {useCustomerCommerceStore} from '../../src/store/customerCommerceStore';
+const fixture=(window as unknown as {seasonFixture:{view:string;user:{id:string;name:string;email:string;role:'ADMIN'|'CUSTOMER'};token:string;product:string;identifier:string;variant:string}}).seasonFixture;
+sessionStorage.setItem('fy_auth_token',fixture.token);
+useAuthStore.setState({user:fixture.user as never,isAuthenticated:true,status:'authenticated',loading:false});
+useCustomerCommerceStore.setState({cartItems:[{key:fixture.variant,productId:fixture.product,productIdentifier:fixture.identifier,variantId:fixture.variant,name:'Dummy Test Order',material:'Wood',frameSize:'8 X 10',color:'Black',quantity:1,unitPrice:2500,stockQuantity:20} as never]});
+createRoot(document.getElementById('root')!).render(<MemoryRouter><Toaster/><main className={fixture.view==='admin'?'':'fy-store'}>{fixture.view==='admin'?<OffersPage/>:<CheckoutOffers/>}</main></MemoryRouter>);

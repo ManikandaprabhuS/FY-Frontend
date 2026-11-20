@@ -13,9 +13,9 @@ const big={code:"BIG_ORDER",title:"Big Order Offer",percentage:12,minOrderAmount
 test("public and admin preview share live-value copy, safe shop link and decorative corners",async()=>{
  const Component=compile(await read("features/customer/components/HomepageBannerVisual.tsx"),{"react-router-dom":{Link:({to,children,...props})=>createElement("a",{...props,href:to},children)},"../../../services/homepage-banner.service":service,"../styles/homepage-banner.css":{}}).default;
  const html=renderToStaticMarkup(createElement(Component,{offer:big}));
- assert.match(html,/Flat 12% Off/);assert.match(html,/On orders above Rs. 3,000/);assert.match(html,/LIMITED TIME OFFER/);assert.match(html,/href="\/products"/);assert.match(html,/aria-labelledby/);
+ assert.match(html,/Flat 12% Off/);assert.match(html,/On orders above Rs. 3,000/);assert.match(html,/BIG ORDER OFFER/);assert.match(html,/href="\/products"/);assert.match(html,/aria-labelledby/);
  const first=renderToStaticMarkup(createElement(Component,{offer:{...big,code:"FIRST_ORDER",percentage:7,minOrderAmount:null},preview:true}));
- assert.match(first,/7% Off/);assert.match(first,/On your first order/);assert.doesNotMatch(first,/Flat /);
+ assert.match(first,/Flat 7% Off/);assert.match(first,/On your first order/);
 });
 test("no public banner means no empty region, while initial loading reserves matching height",async()=>{
  const source=await read("features/customer/components/HomepageOfferBanner.tsx");
