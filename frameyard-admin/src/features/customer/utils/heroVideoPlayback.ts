@@ -1,0 +1,111 @@
+export const HERO_VIDEO_TIMEOUTS = { firstStart: 4000, laterStart: 2000, stall: 3000, bufferPreference: 750 } as const;
+export type HeroVideoState = { loading: boolean; visible: boolean; duration: number; bufferedEnd: number; progress: number };
+type FinishReason = 'ended' | 'start-timeout' | 'stall-timeout' | 'blocked' | 'error';
+type Clock = { setTimeout: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; clearTimeout: (id: ReturnType<typeof setTimeout>) => void };
+
+/** One active visit owns its listeners, play request and deadlines. No carousel timer. */
+export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
+  active: boolean;
+  startupMs: number;
+  onState: (state: HeroVideoState) => void;
+  onComplete: (reason: FinishReason) => void;
+  touchTarget?: EventTarget;
+  clock?: Clock;
+}) {
+  // WebKit requires Window as the native timer receiver; do not store bare methods.
+  const clock: Clock = options.clock ?? { setTimeout: (callback, delay) => setTimeout(callback, delay), clearTimeout: (id) => clearTimeout(id) };
+  let disposed = false, completed = false, started = false, pending = false, blocked = false, through = false, allowPartial = false;
+  let startup: ReturnType<typeof setTimeout> | undefined, stall: ReturnType<typeof setTimeout> | undefined, bufferWait: ReturnType<typeof setTimeout> | undefined, watchdog: ReturnType<typeof setTimeout> | undefined;
+  let lastTime = 0;
+  const state: HeroVideoState = { loading: options.active, visible: false, duration: 0, bufferedEnd: 0, progress: 0 };
+  const live = () => options.active && !disposed && !completed;
+  const emit = () => { if (!disposed) options.onState({ ...state }); };
+  const clear = () => { if (startup !== undefined) clock.clearTimeout(startup); if (stall !== undefined) clock.clearTimeout(stall); if (bufferWait !== undefined) clock.clearTimeout(bufferWait); if (watchdog !== undefined) clock.clearTimeout(watchdog); startup = stall = bufferWait = watchdog = undefined; };
+  const measure = () => {
+    state.duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const buffered = video.buffered;
+    state.bufferedEnd = buffered.length ? buffered.end(buffered.length - 1) : 0;
+    state.progress = started && state.duration ? Math.min(1, Math.max(0, video.currentTime / state.duration)) : 0;
+  };
+  const reset = () => { video.pause(); try { if (video.currentTime !== 0) video.currentTime = 0; } catch { /* Metadata may not exist yet; loadedmetadata retries. */ } };
+  const finish = (reason: FinishReason) => {
+    if (!live()) return;
+    completed = true; clear(); state.loading = false; state.visible = false; emit(); video.pause(); options.onComplete(reason);
+  };
+  const rejected = (error: unknown) => {
+    if (!live()) return;
+    if ((error as { name?: string })?.name === 'NotAllowedError') { blocked = true; state.loading = false; state.visible = false; emit(); }
+  };
+  const watchProgress = () => {
+    if (watchdog !== undefined) clock.clearTimeout(watchdog);
+    lastTime = video.currentTime;
+    watchdog = clock.setTimeout(() => {
+      watchdog = undefined;
+      if (!live() || !started) return;
+      if (video.currentTime > lastTime + 0.02 && !video.paused) watchProgress();
+      else finish('stall-timeout');
+    }, HERO_VIDEO_TIMEOUTS.stall);
+  };
+  const attempt = (gesture = false) => {
+    if (!live() || pending || (!video.paused && !video.ended)) return;
+    // Cellular iOS may ignore preload entirely. A bounded play request must be able
+    // to initiate loading even before metadata/canplay, rather than waiting forever.
+    if (!gesture && video.readyState < 2) {
+      if (bufferWait === undefined) bufferWait = clock.setTimeout(() => { bufferWait = undefined; allowPartial = true; attempt(true); }, HERO_VIDEO_TIMEOUTS.bufferPreference);
+      return;
+    }
+    // Short clips prefer canplaythrough; the same startup deadline bounds this wait.
+    if (!gesture && state.duration > 0 && state.duration < 15 && !through && !allowPartial && video.readyState < 4 && state.bufferedEnd < state.duration - 0.05) {
+      if (video.readyState >= 2 && bufferWait === undefined) bufferWait = clock.setTimeout(() => { bufferWait = undefined; allowPartial = true; attempt(); }, HERO_VIDEO_TIMEOUTS.bufferPreference);
+      return;
+    }
+    video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
+    pending = true;
+    try {
+      // Transient readiness/Abort errors can retry at canplay or the next touch.
+      Promise.resolve(video.play()).catch(rejected).finally(() => { pending = false; });
+    } catch (error) { pending = false; rejected(error); }
+  };
+  const ready = () => { measure(); emit(); attempt(); };
+  const metadata = () => { if (options.active && !started && video.currentTime !== 0) { try { video.currentTime = 0; } catch { /* not seekable yet */ } } ready(); };
+  const canPlayThrough = () => { through = true; ready(); };
+  const playing = () => {
+    if (!live()) { video.pause(); return; }
+    started = true; blocked = false; clear(); state.loading = false; state.visible = true; measure(); emit(); watchProgress();
+  };
+  const waiting = () => {
+    if (!live() || !started) return;
+    state.loading = true; state.visible = false; measure(); emit();
+    // Repeated waiting/progress events must not extend an existing stall deadline.
+    if (stall === undefined) stall = clock.setTimeout(() => finish('stall-timeout'), HERO_VIDEO_TIMEOUTS.stall);
+  };
+  const paused = () => { if (live() && started && video.paused && !video.ended) waiting(); };
+  const ended = () => { if (video.ended) finish('ended'); };
+  const error = () => finish('error');
+  const progress = () => {
+    // Some media backends expose ended before delivering the event; never use a duration timer.
+    if (live() && video.ended && state.duration > 0 && video.currentTime >= state.duration - 0.04) { finish('ended'); return; }
+    if (live() && started && !video.paused && video.currentTime > lastTime + 0.02) {
+      // A stalled download is not a stalled picture while buffered frames still advance.
+      if (stall !== undefined) { clock.clearTimeout(stall); stall = undefined; state.loading = false; state.visible = true; }
+      watchProgress();
+    }
+    measure(); emit();
+  };
+  const touch = () => { if (live()) attempt(true); };
+  const listeners: [string, EventListener][] = [['loadedmetadata', metadata], ['canplay', ready], ['canplaythrough', canPlayThrough], ['playing', playing], ['waiting', waiting], ['stalled', waiting], ['pause', paused], ['ended', ended], ['error', error], ['progress', progress], ['timeupdate', progress]];
+  video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
+  reset(); measure(); emit();
+  for (const [name, listener] of listeners) video.addEventListener(name, listener);
+  options.touchTarget?.addEventListener('pointerdown', touch, { passive: true });
+  if (options.active) {
+    startup = clock.setTimeout(() => finish(blocked ? 'blocked' : 'start-timeout'), options.startupMs);
+    attempt();
+  }
+  return () => {
+    disposed = true; clear();
+    for (const [name, listener] of listeners) video.removeEventListener(name, listener);
+    options.touchTarget?.removeEventListener('pointerdown', touch);
+    reset();
+  };
+}

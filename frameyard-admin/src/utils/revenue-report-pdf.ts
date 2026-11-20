@@ -92,7 +92,7 @@ export function createRevenueReportPdf(data: RevenueReportData): jsPDF {
       didDrawPage: ({cursor}) => {if(cursor) ordersBottom = cursor.y;},
     });
   }
-  if (data.orders.some(order => order.address !== undefined)) {
+  if (data.orders.some(order => order.address !== undefined || Boolean(order.exportCoupon && order.exportCoupon !== '-'))) {
     if (ordersBottom > 230) { doc.addPage(); ordersBottom = 12; }
     doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor('#111827');
     doc.text('Order customer and payment details', margin, ordersBottom + 9);

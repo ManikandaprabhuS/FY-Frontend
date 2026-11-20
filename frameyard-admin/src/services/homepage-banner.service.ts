@@ -1,9 +1,11 @@
 import api from "./api";
-export type BannerOffer={bannerImageUrl?:string|null;code:"BIG_ORDER"|"FIRST_ORDER";title:string;percentage:number;minOrderAmount:number|null};
+import type {OfferCode} from "./checkout.service";
+export type BannerOffer={bannerImageUrl?:string|null;code:OfferCode;title:string;percentage:number;minOrderAmount:number|null};
 export type BannerSettings={bannerImageUrl?:string|null;id:string;enabled:boolean;featuredOfferCode:BannerOffer["code"];updatedBy:{id:string;name:string}|null;updatedAt:string};
 export const bannerCopy=(offer:BannerOffer)=>({
- headline:(offer.code==="BIG_ORDER"?"Flat ":"")+offer.percentage+"% Off",
- subtext:offer.code==="BIG_ORDER"?"On orders above Rs. "+Number(offer.minOrderAmount).toLocaleString("en-IN"):"On your first order"
+ label:offer.title.toUpperCase(),
+ headline:"Flat "+offer.percentage+"% Off",
+ subtext:offer.code!=="FIRST_ORDER"?"On orders above Rs. "+Number(offer.minOrderAmount).toLocaleString("en-IN"):"On your first order"
 });
 export const homepageBannerService={
  uploadImage:async(file:File,onProgress:(value:number)=>void)=>{

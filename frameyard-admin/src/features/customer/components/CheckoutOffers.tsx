@@ -44,7 +44,7 @@ export default function CheckoutOffers(){
    const current=codeRef.current;
    if(current&&(!data.offers.some(o=>o.code===current)||data.offers.find(o=>o.code===current)?.version!==quoteRef.current?.offers.find(o=>o.code===current)?.version)){
     setCode(undefined);
-    showWarning(data.offers.some(o=>o.code===current)?"This offer was updated. Please review your total.":current==="BIG_ORDER"?data.bigOrderRemovalMessage:"This offer is no longer available",{id:"checkout-offer"});
+    showWarning(data.offers.some(o=>o.code===current)?"This offer was updated. Please review your total.":current==="BIG_ORDER"?data.bigOrderRemovalMessage:data.unavailableOffers?.find(offer=>offer.code===current)?.unavailableReason??"This offer is no longer available",{id:"checkout-offer"});
    }
    setQuote(data);setQuoteSignature(signature);setError(false);setAddress(previous=>data.addresses.some(a=>a.id===previous)?previous:data.addresses[0]?.id??"");
   }).catch(e=>{if(active){setError(true);showApiError(e,"Offers could not be loaded. Please try again.",{id:"checkout-offers",retry:()=>setRevision(v=>v+1)});}});},0);
@@ -76,7 +76,13 @@ export default function CheckoutOffers(){
    setFailed(v=>v+1);
    if((e as {photoValidation?:boolean}).photoValidation){showWarning((e as Error).message,{id:'checkout-save'});return;}
    if((e as {photoUploadFailed?:boolean}).photoUploadFailed){showError('Your photo could not be uploaded. Please try again.',{id:'checkout-save',retry:()=>{void place();}});return;}
-   const detail=(e as {response?:{data?:{error?:{code?:string;message?:string}}}}).response?.data?.error;showApiError(e,detail?.code==="PHOTO_LIMIT_CHANGED"?(detail.message??"Please clear or replace your photo."):"Order could not be placed. Please try again.",{id:"checkout-save"});setRevision(v=>v+1);}
+   const detail=(e as {response?:{data?:{error?:{code?:string;message?:string}}}}).response?.data?.error;
+   if(detail?.code==="OFFER_UNAVAILABLE"){
+    setCode(undefined);showWarning(detail.message??"This offer is no longer available. Please review your total.",{id:"checkout-save"});
+    try{const refreshed=await checkoutService.offers(selections,true);setQuote(refreshed);setQuoteSignature(signature);}catch{setRevision(v=>v+1);}
+    return;
+   }
+   showApiError(e,detail?.code==="PHOTO_LIMIT_CHANGED"?(detail.message??"Please clear or replace your photo."):"Order could not be placed. Please try again.",{id:"checkout-save"});setRevision(v=>v+1);}
   finally{saveLock.current=false;setBusy(false);}
  };
 

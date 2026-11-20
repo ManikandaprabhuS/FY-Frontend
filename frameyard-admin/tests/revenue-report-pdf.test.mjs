@@ -46,3 +46,11 @@ test('export keeps the existing range/revenue expressions and does not truncate 
   assert.doesNotMatch(code, /slice\(0, 28\)|%PDF-1.4|escapePdfText/);
   assert.match(code, /Please wait, your report is being generated/);
 });
+
+for (const title of ['New Year Offer','Christmas Offer','Pongal Offer']) test(title+' snapshot appears in the existing revenue PDF detail table',()=>{
+ const tables=[],runtime={exports:{}};
+ new Function('require','module','exports',output.outputText)(name=>name==='../components/ui/order-status'?statuses:name==='jspdf-autotable'?{autoTable:(doc,options)=>{tables.push(options);return require('jspdf-autotable').autoTable(doc,options)}}:require(name),runtime,runtime.exports);
+ const doc=runtime.exports.createRevenueReportPdf({range:'This Month',generatedAt:new Date('2026-11-20T12:00:00Z'),totalRevenue:2200,paidActiveOrders:1,averageOrderValue:2200,orders:[{createdAt:'2026-11-20T12:00:00Z',orderNumber:'FY-DUMMY',user:{name:'Dummy Test Order'},orderStatus:'PLACED',totalAmount:2200,subtotal:2500,discount:300,exportCoupon:title+' (12%)'}]});
+ const details=tables.find(table=>table.head?.[0]?.includes('Payment / Coupon'));
+ assert(details);assert(details.body[0][3].includes(title+' (12%)'));assert(details.body[0][4].includes('2,500.00'));assert(details.body[0][4].includes('300.00'));assert(details.body[0][4].includes('2,200.00'));assert(doc.getNumberOfPages()>=1);
+});

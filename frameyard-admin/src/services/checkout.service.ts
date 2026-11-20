@@ -9,7 +9,7 @@ export function checkoutRequestKey(intent:string){
   const key=crypto.randomUUID();localStorage.setItem(storageKey,JSON.stringify({intent,key}));return key;
  }catch{return crypto.randomUUID();}
 }
-export type OfferCode="FIRST_ORDER"|"BIG_ORDER";
+export type OfferCode="FIRST_ORDER"|"BIG_ORDER"|"NEW_YEAR"|"CHRISTMAS"|"PONGAL";
 export type CheckoutSelection={productIdentifier:string;variantId:string;quantity:number;colorName?:string;colorHex?:string};
 export type CheckoutOffer={code:OfferCode;title:string;description:string;percent:number;discountAmount:number;total:number;bestOffer:boolean;version:number;unavailableReason?:string};
 export type CheckoutQuote={photoLimit?:{maxAllowedMB:number;limitingItem:{name:string;variant:string}|null};offers:CheckoutOffer[];unavailableOffers?:CheckoutOffer[];subtotal:number;bigOrderRemovalMessage:string;addresses:DeliveryAddress[]};

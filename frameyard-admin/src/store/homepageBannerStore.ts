@@ -8,7 +8,7 @@ const valid=(value:unknown):value is BannerOffer|null=>{
  if(value===null)return true;
  if(!value||typeof value!=="object")return false;
  const v=value as Partial<BannerOffer>;
- return (v.code==="FIRST_ORDER"||v.code==="BIG_ORDER")&&typeof v.title==="string"&&typeof v.percentage==="number"&&Number.isFinite(v.percentage)&&v.percentage>0&&v.percentage<=100;
+ return ["FIRST_ORDER","BIG_ORDER","NEW_YEAR","CHRISTMAS","PONGAL"].includes(v.code??"")&&typeof v.title==="string"&&typeof v.percentage==="number"&&Number.isFinite(v.percentage)&&v.percentage>0&&v.percentage<=100;
 };
 const read=():BannerOffer|null|undefined=>{
  try{

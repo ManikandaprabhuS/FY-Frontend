@@ -99,3 +99,13 @@ test("checkout preflight submits the applied version and staff route is not admi
  assert.match(source,/selected\?\.version/);assert.match(source,/This offer was updated/);
  const routes=await readFile(new URL("../src/routes/index.tsx",import.meta.url),"utf8");assert.match(routes,/path: 'offers', element: <OffersPage/);
 });
+
+for(const [code,title] of [["NEW_YEAR","New Year Offer"],["CHRISTMAS","Christmas Offer"],["PONGAL","Pongal Offer"]])test(code+" reuses threshold editing, validation, preview and save payload",async()=>{
+ const h=await harness({...initial,code,title,description:"10% off on orders above Rs. 1,000",percentage:10,minOrderAmount:1000,enabled:false});
+ let nodes=tree(h.render());const inputs=nodes.filter(n=>n.type==="input");assert.equal(inputs.length,2);
+ inputs[0].props.onChange({target:{value:"12"}});inputs[1].props.onChange({target:{value:"2000"}});
+ nodes=tree(h.render());const save=nodes.find(n=>n.type==="button"&&n.props.children?.includes?.("Save"));assert(save);assert.equal(save.props.disabled,false);save.props.onClick();
+ assert.deepEqual(h.calls[0],[code,{version:1,percentage:12,minOrderAmount:2000}]);
+ h.request.resolve({...initial,code,title,percentage:12,minOrderAmount:2000,enabled:false,version:2});await new Promise(resolve=>setImmediate(resolve));
+ assert(h.notices.some(n=>n[0]==="showSuccess"));
+});
