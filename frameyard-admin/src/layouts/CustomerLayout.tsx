@@ -1,4 +1,5 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
+import HeroSection from '../features/customer/components/HeroSection';
 import { Outlet, useLocation } from 'react-router-dom';
 import AnnouncementBar from '../features/customer/components/AnnouncementBar';
 import CustomerNavbar from '../features/customer/components/CustomerNavbar';
@@ -17,6 +18,10 @@ const CustomerLayout: React.FC = () => {
   const userId = useAuthStore((state) => state.user?.role === 'CUSTOMER' ? state.user.id : null);
   const loadWishlist = useCustomerCommerceStore((state) => state.loadWishlist);
   const { pathname } = useLocation();
+  const home = pathname === '/';
+  const [visitedHome, setVisitedHome] = useState(home);
+  // Retain only the hero, not the rest of Home or any customer-specific route.
+  if (home && !visitedHome) setVisitedHome(true);
   // Full-screen pages (log in / sign up) hide the banner, navbar and footer. The mobile
   // dock stays: it is the way around the store on phones (and never shows from 1024px).
   const bare = useStorefrontChrome((state) => state.bare);
@@ -34,6 +39,7 @@ const CustomerLayout: React.FC = () => {
       {!bare && <CustomerNavbar />}
 
       <main>
+        {visitedHome && <div hidden={!home}><HeroSection active={home} /></div>}
         <Suspense fallback={<FrameLoader />}>
           <Outlet />
         </Suspense>

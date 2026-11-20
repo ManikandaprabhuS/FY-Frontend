@@ -1,5 +1,49 @@
 # FrameYaad Admin
 
+## 2026-11-20: iOS hero video RCA and fix
+
+Scope: hero media/loading only; existing wall/video carousel order, 5-second slide clock, hero crop/layout/text/buttons and other animations remain unchanged. No backend, database, Supabase objects/policies or application dependencies changed. The original remains in Supabase and an analysis copy is at `D:\FrameYaad\hero-original-20261120.mp4`.
+
+Original URL: https://kiltmzomecjeucdeawmp.supabase.co/storage/v1/object/public/product-images/site/hero-video/1794317454303-76b64098-d874-460f-bfda-23bc8feafc62.mp4 (public `product-images/site/hero-video`, selected by the existing public hero-video API).
+
+| Cause/check | Evidence | Fixed? |
+| --- | --- | --- |
+| Expensive single rendition | ffprobe: 6,156,314 bytes, 9.16s, 1920x1080, H.264 High, yuv420p, 25fps, 5.377Mbps, 2 B-frames | New 720p mobile/iOS/Save-Data and 1080p desktop copies; original retained |
+| Route remount and seek | Hero lived inside Home; video effect assigned currentTime=0 whenever the slide activated | Hero alone is retained in the customer layout, hidden/paused off Home; no reset or blob cache |
+| Late setup/no poster | Settings fetched after Home mounted; metadata-only preload; no poster | Settings start at initial Home app boot, coalesced public-only 60s memory cache; high-priority poster preload, auto media preload, fade on playing, caught play retry on canplay/touch |
+| Faststart/audio suspected | ffprobe trace: moov before mdat (atom offsets 32/3418); original has no audio | Not root causes; new files also faststart and audio-free |
+| Hosting/cache | Public HEAD: 200, video/mp4, 6,156,314 bytes, Accept-Ranges, ETag and Last-Modified, but private/no-cache. Range: 206, bytes 0-1023/6156314, 1024 bytes, public max-age=31536000 | No missing-range bug. Copies use content-hashed same-origin Netlify paths and /hero/* public max-age=31536000, immutable rule; production confirmation pending deployment |
+| Apparent initial wait | Existing carousel deliberately starts on the frame wall, then shows video after 5s | Intentional behavior retained, not counted as a loading regression |
+
+### Media facts and measurements
+
+| Item | Before | After |
+| --- | --- | --- |
+| Mobile media | 6,156,314 bytes / 1080p | 1,161,033 bytes / 1280x720 / H.264 Main / 1.014Mbps |
+| Desktop media | Same original | 4,154,429 bytes / 1920x1080 / H.264 High / 3.628Mbps |
+| Poster | None | 10,440-byte 960x540 WebP, same object-fit crop |
+| New encoding | 25fps, 2 B-frames | Both 9.16s, 25fps, yuv420p, no audio, no B-frames, 50-frame (2s) GOP; moov before mdat checked automatically |
+| WebKit iPhone 14/15 first poster | None | 1.040s / 0.984s from navigation in the final production-build preview |
+| WebKit iPhone 14/15 first decoded frame | Throttled Windows baseline failed with MEDIA_ERR_SRC_NOT_SUPPORTED after a short metadata range; original does decode directly, so no valid comparable iOS baseline timing is claimed | 1.804s / 1.693s in production-build preview; dev mode previously measured 2.686s / 2.183s |
+| Home -> Shop All -> Home | Chromium baseline recreated the node; an additional request and 491,520 streamed bytes during return observation | Same video node, readyState 4; 0 new requests and 0 bytes in both iPhone profiles after buffering |
+| Full same-tab reload | Separate from SPA return; baseline request interception disables HTTP caching, so before/after cache ratios are not comparable | Windows WebKit still requested a fresh partial range (229,376 / 278,528 bytes observed over 1.2s). Do not claim zero-byte full reload; verify on deployed Netlify/iPhone |
+
+Timing method: real HTTP reverse proxy streaming media at 1.6Mbps with 150ms latency, iPhone 14/15 Playwright WebKit profiles. Final after numbers use the production-build preview; app JS/CSS are local and unthrottled, so this is not a whole-page production 4G benchmark. Route checks wait for both actual URL transitions to complete. First-frame measurements force the existing video slide immediately rather than counting its intentional 5s carousel delay. A previous routing-only measurement was discarded because WebKit's native media requests bypassed it. Raw results/screenshots are in `D:\FrameYaad\hero-after-metrics.json`, `hero-before-chromium-metrics.json` and `hero-lifecycle-results.json`.
+
+Validation: 7 focused Node tests pass; production build and focused ESLint pass. WebKit iPhone 14/15 and Chromium Pixel 7/desktop checks pass for poster under simulated autoplay rejection, first touch retry, reduced motion, stable hero bounds, retained node, pause off route/scroll/hidden tab, responsive source selection, no page-level overflow and no page errors. Direct decoding of original and optimized desktop MP4s also passed. Local curl confirms video/mp4, Content-Length, ETag/Last-Modified and 206 with Accept-Ranges; Vite intentionally sends no-cache in development, not the production _headers policy. No real iPhone, Safari Responsive Mode or OS Low Power Mode was available.
+
+Optimized mappings are tied to the exact original admin URL, so replacing/removing the admin video still works and cannot show a stale static copy. A future replacement falls back to its original URL until its own renditions/poster are generated; no heavy server encoder was added. Contact remains route-mounted with metadata preload and is not eagerly fetched; no other video/animation was changed. Supabase media remains permitted by the existing deployed CSP allowance, now retained in local _headers too.
+
+Encoding commands (portable FFmpeg tooling only, not application dependencies):
+
+```powershell
+ffmpeg -i hero-original-20261120.mp4 -an -vf "scale=1280:720,fps=25" -c:v libx264 -profile:v main -pix_fmt yuv420p -preset slow -b:v 1000k -maxrate 1200k -bufsize 2000k -g 50 -keyint_min 50 -sc_threshold 0 -bf 0 -movflags +faststart hero-mobile.mp4
+ffmpeg -i hero-original-20261120.mp4 -an -vf fps=25 -c:v libx264 -profile:v high -pix_fmt yuv420p -preset slow -crf 18 -maxrate 4500k -bufsize 9000k -g 50 -keyint_min 50 -sc_threshold 0 -bf 0 -movflags +faststart hero-desktop.mp4
+ffmpeg -ss 2 -i hero-original-20261120.mp4 -frames:v 1 -vf scale=960:-2 -c:v libwebp -quality 72 hero-poster.webp
+```
+
+Real-iPhone/deployment checklist: deploy the frontend including public/hero and _headers; use curl -I and curl -r 0-1023 against /hero/mobile-6bbf68c78f67.mp4 to confirm immutable caching, correct MIME, validators and 206. Test Safari and Chrome iOS in a fresh private tab, Wi-Fi/cellular, Low Power Mode on/off; check poster before playback, touch retry when blocked, full carousel, no crop/layout change, scroll/background pause, Shop All -> Home instant resume without a new media request, and separate full-page revisit/cache behavior. Desktop/Android visual confirmation and the final production first-frame target remain deployment checks.
+
 ## Customer notification history
 
 2026-11-18: Customer notifications now use one source for the navbar popup and Profile page, show full history, and are read-only (no delete).

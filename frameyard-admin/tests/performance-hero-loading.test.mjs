@@ -6,7 +6,7 @@ test('initial Home image preload is route-scoped and runs before React mounts', 
   const main = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
   assert.match(main, /import \{ preload \} from 'react-dom'/);
   assert.match(main, /import heroPalm from '\.\/assets\/hero-palm\.webp'/);
-  assert.match(main, /if \(window\.location\.pathname === '\/'\) \{\s*preload\(heroPalm, \{ as: 'image', fetchPriority: 'high' \}\)\s*\}/);
+  assert.match(main, /if \(window\.location\.pathname === '\/'\) \{\s*preload\(heroPalm, \{ as: 'image', fetchPriority: 'high' \}\)/);
   assert(main.indexOf('preload(heroPalm') < main.indexOf('createRoot(document'));
 });
 
