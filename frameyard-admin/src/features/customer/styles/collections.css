@@ -130,6 +130,9 @@
   display: block;
   width: var(--fw);
   aspect-ratio: 0.777;
+  /* The same height the aspect ratio gives (border box). Explicit, because iOS Safari ignores
+     the ratio here and sizes the frame from its height:100% mat, which grew it past the card top. */
+  height: calc(var(--fw) / 0.777);
   padding: 8.5%;
   transform: translateX(-50%);
   box-shadow:
@@ -365,6 +368,23 @@
 @keyframes fy-col-progress {
   from { transform: scaleX(0.25); }
   to { transform: scaleX(1); }
+}
+
+/*
+ * Phones: the whole collection name always shows. It scales from 14px (320px screens) to
+ * 16px, the bar and the Shop now pill give back a little room, and at the very narrowest
+ * widths (or with larger system text) the name wraps instead of ending in an ellipsis.
+ */
+@media (max-width: 639.98px) {
+  .fy-col { --fy-collection-card-title-size: clamp(14px, 4.1vw, 16px); }
+  .fy-col__bar { gap: 8px; padding: 12px 12px 12px 14px; }
+  .fy-col__name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    text-wrap: balance;
+  }
+  .fy-col__shop { gap: 5px; padding: 0 12px; }
 }
 
 /* ---------- Store promises ---------- */

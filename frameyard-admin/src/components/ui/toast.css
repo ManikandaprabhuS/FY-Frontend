@@ -1,0 +1,174 @@
+/*
+ * Notification toasts: a white card with a soft status tint from the left, a faint grid on
+ * the right, an outlined status icon, a bold title and a smaller grey description.
+ * Motion uses only transform and opacity: in from the right on wide screens, down from the
+ * top on phones; out faster than in. Reduced motion: a plain fade.
+ */
+
+.fy-toast {
+  --fy-toast-tint: #eef4fb;
+  --fy-toast-accent: #2b7fd8;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(380px, calc(100vw - 32px));
+  padding: 14px 12px 14px 16px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, 0.07);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, var(--fy-toast-tint) 0%, rgba(255, 255, 255, 0) 62%),
+    #ffffff;
+  box-shadow:
+    0 1px 2px rgba(17, 17, 17, 0.04),
+    0 12px 32px -14px rgba(17, 17, 17, 0.22);
+  color: #111111;
+  font-family: var(--font-sans);
+  pointer-events: auto;
+  animation: fy-toast-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* The faint square grid on the right, fading in from the middle of the card. */
+.fy-toast::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.035) 1px, transparent 1px);
+  background-size: 14px 14px;
+  background-position: right -1px top -1px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 50%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 50%, #000 100%);
+  pointer-events: none;
+}
+
+.fy-toast[data-visible='false'] {
+  animation: fy-toast-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.fy-toast--success { --fy-toast-tint: #eaf7ef; --fy-toast-accent: #1f9254; }
+.fy-toast--info { --fy-toast-tint: #ebf3fd; --fy-toast-accent: #2672c9; }
+.fy-toast--warning { --fy-toast-tint: #fdf4e4; --fy-toast-accent: #b26a00; }
+.fy-toast--error { --fy-toast-tint: #fdecec; --fy-toast-accent: #d1343b; }
+.fy-toast--loading { --fy-toast-tint: #f3f3f2; --fy-toast-accent: #111111; align-items: center; }
+
+.fy-toast__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--fy-toast-accent);
+}
+
+.fy-toast--loading .fy-toast__icon { margin-top: 0; }
+
+.fy-toast__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.fy-toast__title {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.fy-toast__description {
+  color: #6b6b6b;
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.fy-toast__retry {
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #111111;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.fy-toast__close {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -2px -4px 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a8a8a;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+/* A 44px touch target around the small visible button. */
+.fy-toast__close::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.fy-toast__close:hover { background: rgba(17, 17, 17, 0.06); color: #111111; }
+.fy-toast__close:active { transform: scale(0.94); }
+
+.fy-toast__close:focus-visible,
+.fy-toast__retry:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 2px;
+}
+
+@keyframes fy-toast-in {
+  from { opacity: 0; transform: translate3d(24px, 0, 0) scale(0.98); }
+}
+
+@keyframes fy-toast-out {
+  to { opacity: 0; transform: translate3d(16px, 0, 0) scale(0.98); }
+}
+
+/* Phones: full-width cards centred under the top edge, entering from above. */
+@media (max-width: 639.98px) {
+  .fy-toaster { inset: 12px !important; }
+  .fy-toaster > div { justify-content: center !important; }
+  .fy-toast { width: 100%; max-width: 420px; }
+
+  @keyframes fy-toast-in {
+    from { opacity: 0; transform: translate3d(0, -16px, 0) scale(0.98); }
+  }
+
+  @keyframes fy-toast-out {
+    to { opacity: 0; transform: translate3d(0, -10px, 0) scale(0.98); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fy-toast { animation: fy-toast-fade-in 160ms linear both; }
+  .fy-toast[data-visible='false'] { animation: fy-toast-fade-out 120ms linear both; }
+  .fy-toast__close:active { transform: none; }
+}
+
+@keyframes fy-toast-fade-in { from { opacity: 0; } }
+@keyframes fy-toast-fade-out { to { opacity: 0; } }

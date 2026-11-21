@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import router from './routes';
 import { Toaster } from 'react-hot-toast';
 import { toastOptions } from './utils/toast';
+import { ToastCard } from './components/ui/ToastCard';
 import AppErrorBoundary from './pages/errors/AppErrorBoundary';
 
 function App() {
@@ -16,7 +17,10 @@ function App() {
         position="top-right"
         gutter={10}
         toastOptions={toastOptions}
-      />
+        containerClassName="fy-toaster"
+      >
+        {(t) => <ToastCard t={t} />}
+      </Toaster>
     </AppErrorBoundary>
   );
 }

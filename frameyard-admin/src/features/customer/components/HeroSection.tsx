@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import useProducts from '../../../hooks/useProducts';
 import {
-  fallbackHeroPhotos as defaultFallbackPhotos,
   HERO_BIRD_OF_PARADISE,
   HERO_MONEY_PLANT,
   HERO_MONSTERA,
@@ -10,6 +9,7 @@ import {
   wallFrames,
   type HeroPhoto,
 } from '../data/heroShowcase';
+import { wallFramePhotos as defaultFallbackPhotos } from '../data/framePhotos';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
 import { heroVideoMedia, heroNeedsSmallVideo } from '../data/heroVideoMedia';
 import { FrameSpinner } from '../../../components/loaders/FrameLoader';
@@ -27,7 +27,7 @@ const FramePhoto: React.FC<{ photo: HeroPhoto; visible: boolean; priority: boole
     <img
       src={photo.src}
       srcSet={photo.srcSet}
-      sizes="(min-width: 1024px) 230px, 21vw"
+      sizes="(min-width: 1024px) 138px, 13vw"
       alt={visible ? photo.alt : ''}
       aria-hidden={!visible}
       decoding="async"
@@ -191,6 +191,21 @@ const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () 
       onState: (state) => { setPlayback(state); onProgress(state.progress); },
     });
   }, [playing, fallback, media.src, onComplete, onProgress]);
+
+  // iOS Safari: the play() above runs as the slide becomes active, while it is still parked
+  // off screen to the right. Safari refuses or pauses a muted, untapped video that is not
+  // visible, and only resumes `autoplay`-attribute videos by itself. So, while the slide is
+  // active, play again once the video is actually on screen. Chrome is already playing by then,
+  // so this does nothing there; a refusal (Low Power Mode) still leaves the tap fallback.
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !playing || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && element.paused) start(element);
+    }, { threshold: 0.5 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [playing, start]);
 
   return (
     <>
