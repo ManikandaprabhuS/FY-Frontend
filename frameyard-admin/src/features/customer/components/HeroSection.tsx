@@ -12,7 +12,7 @@ import {
 import { wallFramePhotos as defaultFallbackPhotos } from '../data/framePhotos';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
 import { heroVideoMedia, heroNeedsSmallVideo } from '../data/heroVideoMedia';
-import { FrameSpinner } from '../../../components/loaders/FrameLoader';
+import HeroVideoDebug from './HeroVideoDebug';
 import { createHeroVideoPlayback, heroIntersectsViewport, HERO_VIDEO_TIMEOUTS, type HeroVideoState } from '../utils/heroVideoPlayback';
 import { backendHeroPhotos } from '../utils/heroFrames';
 import { useFramePhotosStore } from '../store/framePhotosStore';
@@ -166,19 +166,23 @@ type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times
 
 
 /**
- * Slide 2 plays once from zero per visible visit and advances on ended, not the ring clock.
+ * Slide 2 plays once from zero per visible visit and advances on ended, not a carousel timer.
  * iOS Safari only autoplays a video that is muted *and* inline, and checks the muted state at
  * play() time; React sets `muted` as a property only, so it is set (and the attribute added)
  * before every play. When iOS still refuses (Low Power Mode blocks all autoplay), the slide
  * keeps a lightweight poster until playback starts and retries on a user gesture.
  * The media DOM/buffer is retained; each visible visit resets only its playhead.
  */
-const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () => void; onProgress: (value: number) => void }> = ({ video, playing, onComplete, onProgress }) => {
+const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () => void }> = ({ video, playing, onComplete }) => {
   const ref = useRef<HTMLVideoElement>(null);
   const attempted = useRef(false);
   const [compact] = useState(() => window.matchMedia('(max-width: 767px)').matches || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || heroNeedsSmallVideo((navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string;downlink?:number}}).connection));
   const media = heroVideoMedia(video.url, compact);
   const [fallback, setFallback] = useState(false);
+  const [prepared,setPrepared] = useState(playing);
+  if (playing && !prepared) setPrepared(true);
+  const source = fallback ? video.url : media.src;
+  const debug = new URLSearchParams(window.location.search).get('debugVideo') === '1';
   const [playback, setPlayback] = useState<HeroVideoState>({ loading: false, visible: false, duration: 0, bufferedEnd: 0, progress: 0 });
 
   useEffect(() => {
@@ -186,74 +190,48 @@ const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () 
     if (!element) return;
     const startupMs = attempted.current ? HERO_VIDEO_TIMEOUTS.laterStart : HERO_VIDEO_TIMEOUTS.firstStart;
     if (playing) attempted.current = true;
+    if (playing && element.currentSrc !== new URL(source, window.location.href).href) element.load();
     return createHeroVideoPlayback(element, {
       active: playing, startupMs, touchTarget: window, onComplete,
-      onState: (state) => { setPlayback(state); onProgress(state.progress); },
+      canStart: () => heroIntersectsViewport(element.getBoundingClientRect(),window.innerWidth,window.innerHeight) && getComputedStyle(element).visibility !== 'hidden' && Math.abs(element.getBoundingClientRect().left-(element.closest('.fy-hero')?.getBoundingClientRect().left??0)) < 2,
+      onState: setPlayback,
     });
-  }, [playing, fallback, media.src, onComplete, onProgress]);
+  }, [playing, source, onComplete]);
 
   return (
     <>
-      {media.poster && <img className="fy-hero__poster" src={media.poster} alt="" aria-hidden="true" fetchPriority="high" decoding="async" width="960" height="540" />}
+      <img className="fy-hero__poster" data-cover={!playback.visible} src={media.poster} alt="" aria-hidden="true" fetchPriority="high" decoding="async" width="960" height="540" />
       <video
         ref={ref}
         className="fy-hero__video"
-        src={fallback ? video.url : media.src}
         poster={media.poster}
-        data-visible={playback.visible || (!media.poster && !playback.loading)}
+        data-visible={playback.visible}
         data-duration={playback.duration}
         data-buffered-end={playback.bufferedEnd}
         muted
         playsInline
         disablePictureInPicture
         disableRemotePlayback
-        preload="auto"
-        onError={() => { if (!fallback && media.src !== video.url) setFallback(true); }}
+        preload={playing ? 'auto' : 'none'}
+        onError={event => { if (playing && prepared && event.currentTarget.error && !fallback && media.src !== video.url) setFallback(true); }}
         aria-label="FrameYaad frames at home"
-      />
-      {playing && playback.loading && <div className="fy-hero__video-loading"><FrameSpinner label="Loading video" /></div>}
+      >{prepared && <source src={source} type={source.split('?')[0].endsWith('.webm') ? 'video/webm' : 'video/mp4'}/>}</video>
+      {debug && <HeroVideoDebug videoRef={ref}/>}
     </>
   );
 };
 
 /**
- * The wall indicator fills over SLIDE_MS; the video's ring follows currentTime/duration.
- * Only the wall's animation advances the carousel. Pausing
- * freezes the animation where it is (animation-play-state), so it resumes from there.
- * It is keyed by slide, so every slide change starts a fresh ring.
- */
-const ProgressRing: React.FC<{ onComplete: () => void; progress?: number }> = ({ onComplete, progress }) => (
-  <svg className="fy-hero__ring" viewBox="0 0 20 20" aria-hidden="true">
-    <circle className="fy-hero__ring-track" cx="10" cy="10" r="9.15" />
-    <circle
-      className="fy-hero__ring-fill"
-      // The wall ring is the carousel's clock: Reduce Motion must neither stop nor shorten it (the
-      // global reduced-motion rule skips data-motion-timer). The slides still cut, not slide.
-      data-motion-timer=""
-      cx="10"
-      cy="10"
-      r="9.15"
-      pathLength={1}
-      style={progress === undefined ? undefined : { animation: 'none', strokeDashoffset: 1 - progress }}
-      onAnimationEnd={(event) => {
-        if (progress === undefined && event.animationName === 'fy-hero-ring') onComplete();
-      }}
-    />
-  </svg>
-);
-
-/**
  * Homepage hero carousel. Slide 1 is the frame wall with its toggle; slide 2 is the
  * homepage video managed in the admin. Without a video it is just the frame wall.
- * Indicators sit at the bottom right: the active slide's ring fills, then the carousel
- * moves on. It pauses while hovered, keyboard-focused, off screen or in a hidden tab;
- * the dots jump to a slide, and swiping works on touch screens.
+ * The wall keeps its pausable five-second clock; video owns its ended/failure lifecycle.
+ * There are no visible indicators. Keyboard arrows and touch swipes remain available.
  */
 const HeroSection: React.FC<HeroSectionProps> = (props) => {
   const active = props.active !== false;
   const rootRef = useRef<HTMLElement>(null);
   const [video, setVideo] = useState<HeroVideo | null>(null);
-  const [videoProgress, setVideoProgress] = useState(0);
+  const wallClock = useRef({key:'',remaining:SLIDE_MS});
   const [motion, setMotion] = useState<Motion>({ current: 0, previous: null, dir: 1, wallVisits: 0 });
   const motionRef = useRef<Motion>(motion);
   const [hovered, setHovered] = useState(false);
@@ -344,6 +322,15 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
   const finishVideo = useCallback(() => { if (motionRef.current.current === 1) step(1); }, [step]);
   // Reduced motion displays a still poster, not an active video lifecycle.
   const finishWall = useCallback(() => { if (motionRef.current.current === 0 || reducedMotion) step(1); }, [step, reducedMotion]);
+  // Replace only the removed ring's wall clock. Video still advances solely on ended/failure.
+  useEffect(() => {
+    const key = `${current}:${motion.wallVisits}:${reducedMotion}`;
+    if (wallClock.current.key !== key) wallClock.current = {key,remaining:SLIDE_MS};
+    if (slideCount < 2 || paused || (current === 1 && !reducedMotion)) return;
+    const started = performance.now(),clock = wallClock.current;
+    const timer = setTimeout(finishWall,clock.remaining);
+    return () => { clearTimeout(timer); clock.remaining = Math.max(0,clock.remaining-(performance.now()-started)); };
+  }, [current,motion.wallVisits,reducedMotion,paused,slideCount,finishWall]);
 
   const slideStyle = (index: number): React.CSSProperties => {
     if (index === current) return { transform: 'translateX(0)' };
@@ -367,11 +354,13 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
       ref={rootRef}
       className="fy-hero"
       aria-labelledby="fy-hero-title"
+      role="region"
+      tabIndex={0}
       aria-roledescription={slideCount > 1 ? 'carousel' : undefined}
       data-slide={current}
       data-paused={paused || undefined}
       data-video-mode={reducedMotion ? 'poster-only' : 'playback'}
-      style={{ '--fy-slide-ms': `${SLIDE_MS}ms` } as React.CSSProperties}
+      onKeyDown={event => { if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); step(event.key === 'ArrowRight' ? 1 : -1); } }}
       onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
       onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false); }}
       // Only keyboard focus pauses; a tap or click on the toggle or a dot does not.
@@ -401,26 +390,10 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
             video={video}
             playing={active && current === 1 && videoInView && pageVisible && !reducedMotion}
             onComplete={finishVideo}
-            onProgress={setVideoProgress}
           />
         </div>
       )}
 
-      {slideCount > 1 && (
-        <div className="fy-hero__dots">
-          {Array.from({ length: slideCount }, (_, index) =>
-            index === current ? (
-              <button key={index} type="button" className="fy-hero__dot fy-hero__dot--active" aria-label={`Go to slide ${index + 1}`} aria-current="true">
-                <ProgressRing key={current+':'+reducedMotion} onComplete={finishWall} progress={current === 1 && !reducedMotion ? videoProgress : undefined} />
-              </button>
-            ) : (
-              <button key={index} type="button" className="fy-hero__dot" aria-label={`Go to slide ${index + 1}`} onClick={() => goTo(index, index > current ? 1 : -1)}>
-                <span className="fy-hero__dot-mark" />
-              </button>
-            ),
-          )}
-        </div>
-      )}
     </section>
   );
 };

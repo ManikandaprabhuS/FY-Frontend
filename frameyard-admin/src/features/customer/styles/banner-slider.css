@@ -5,14 +5,10 @@
 .fy-banner-slider__slide[data-active=true]{opacity:1;pointer-events:auto;z-index:1}
 .fy-banner-slider :is(.fy-offer-banner,.fy-contact-banner),.fy-banner-preview .fy-offer-banner{height:100%;min-height:0;aspect-ratio:auto}
 .fy-banner-slider__contact{display:block;height:100%;color:#fff;text-decoration:none}
-.fy-banner-slider .fy-contact-banner__copy{inset:50% auto auto 4%;transform:translateY(-50%);max-width:55%;padding-bottom:22px}
+.fy-banner-slider .fy-contact-banner__copy{inset:50% auto auto 4%;transform:translateY(-50%);max-width:55%;padding-bottom:0}
 .fy-banner-slider .fy-contact-banner__copy :is(h2,h3){font-size:clamp(22px,3.3cqw,40px)}
 .fy-banner-slider .fy-contact-banner__copy p{font-size:clamp(12px,1.5cqw,17px);max-width:34ch}
 .fy-banner-slider__contact-cta{display:inline-flex;min-height:44px;align-items:center;gap:12px;border-radius:999px;background:white;color:#111;padding:8px 18px;margin-top:12px;font-size:12px;font-weight:700}
-.fy-banner-slider__controls{position:absolute;z-index:3;bottom:4px;left:50%;transform:translateX(-50%);display:flex;align-items:center;border-radius:999px;background:#ffffffed;box-shadow:0 1px 5px #0002}
-.fy-banner-slider__controls button{display:grid;place-items:center;min-width:44px;min-height:44px;border:0;border-radius:999px;background:transparent;color:#111;cursor:pointer;touch-action:manipulation}
-.fy-banner-slider__dot{width:7px;height:7px;border:1px solid #333;border-radius:50%;background:white}
-.fy-banner-slider__controls button[aria-current=true] .fy-banner-slider__dot{background:#111}
 .fy-banner-slider :is(button,a):focus-visible{outline:3px solid #111;outline-offset:-4px}
 .fy-banner-slider__contact:focus-visible{outline-color:white!important}
 .fy-banner-slider{touch-action:pan-y}
@@ -21,7 +17,7 @@
  .fy-banner-slider .fy-offer-banner__copy,.fy-banner-preview .fy-offer-banner__copy{padding:16px;max-width:85%}
  .fy-banner-slider .fy-offer-banner__heading,.fy-banner-preview .fy-offer-banner__heading{font-size:24px}
  .fy-banner-slider .fy-offer-banner__shop,.fy-banner-preview .fy-offer-banner__shop{margin-top:8px}
- .fy-banner-slider .fy-contact-banner__copy{left:16px;right:16px;max-width:85%;padding-bottom:48px}
+ .fy-banner-slider .fy-contact-banner__copy{left:16px;right:16px;max-width:85%;padding-bottom:0}
  .fy-banner-slider .fy-contact-banner__copy>svg{width:16px;height:16px;margin-bottom:4px}
  .fy-banner-slider .fy-contact-banner__copy :is(h2,h3){font-size:18px;line-height:1.15}
  .fy-banner-slider .fy-contact-banner__copy p{font-size:11.5px;line-height:1.4}

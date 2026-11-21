@@ -1,5 +1,69 @@
 # FrameYaad Admin
 
+## 2026-11-21: Hero second video on iOS + controls hidden
+
+### Evidence and RCA (not an assumed codec diagnosis)
+
+The actual Home DOM has **one HTML video**: slide 1 is the CSS/image frame wall; slide 2 is the admin video. There is no separate clip-1 MP4 or mobile/desktop video pair to probe for the wall. Every hero MP4 available locally, the original backup and the current public upload were inspected with ffprobe and a top-level MP4 atom reader. All listed MP4s contain one 8-bit yuv420p video stream, **no audio**, even dimensions, **25fps**, **9.16s** duration, and faststart (`moov` offset 32, before `mdat`). Therefore neither HEVC/AV1/10-bit nor moov-at-end was found as the cause.
+
+| File / role | Codec/profile/level | Resolution | Video bitrate (bps) | Size (bytes) | Result |
+| --- | --- | --- | --- | --- | --- |
+| Slide 1, frame wall | N/A: CSS/images, no video container | Responsive | N/A | N/A | No video encoding to compare |
+| Original backup and current Supabase upload | MP4, H.264 High, 4.0 | 1920x1080 | 5,373,694 | 6,156,314 | Codec compatible, but large for mobile; retained unchanged |
+| Previous mobile-6bbf68c78f67.mp4 | MP4, H.264 Main, 3.1 | 1280x720 | 1,012,453 | 1,161,033 | Safe format; retained as backup |
+| Previous desktop-b377f283777c.mp4 | MP4, H.264 High, **5.0** | 1920x1080 | 3,626,742 | 4,154,429 | Above requested level cap; retained as backup, no longer selected |
+| **New mobile-4c170a80ef5f.mp4** | MP4, H.264 Main, **4.0** | 1280x720 | 1,163,239 | **1,333,681** | Active safe mobile copy |
+| **New desktop-acbd8e83f55a.mp4** | MP4, H.264 Main, **4.0** | 1920x1080 | 2,278,306 | **2,610,451** | Active safe desktop copy |
+
+| Confirmed issue | Evidence | Correction |
+| --- | --- | --- |
+| Changed admin URL bypassed responsive assets and poster | Current `/api/v1/site-media/hero-video` returned the upload ending `1795268150335-9c75fe36-ded0-441e-9260-59f9e990300d.mp4`, whereas the mapping recognized only the earlier upload. Both downloaded originals have identical SHA-256 `9d92b6cec34d4787c6c441394ec85df7c17815bfc0d3baee4c9fae9316d70538`. Unknown URLs previously had no poster and the video slide background was black. | Both verified identical URLs select the new safe copies. Arbitrary future replacement URLs retain their own source (never mapped to an unrelated clip), with a static brand-scene poster fallback. |
+| Play requested during slide entry / opacity-zero layer | Previous effect began as soon as slide state changed; the incoming video was still translated offscreen and had CSS opacity 0 until playing. | The same controller now waits for canplay (readyState >=3), actual viewport visibility and horizontal slide arrival (within 2px). Video stays rendered at opacity 1 **behind** the poster; only the poster fades after playing. No black media background. |
+| Inactive empty source could trigger premature original fallback | Browser diagnostics during this fix exposed an empty `<source>` causing a fallback before real activation. | Inactive first visit has no source child, preload none; source is prepared on activation, load is triggered for a changed source only, and fallback responds only to genuine active MediaError. Browser tests assert the exact new hashed source, not just any successful playback. |
+| Exact real-iPhone failure still requires device evidence | No real iPhone is attached. The current upload is already H.264/yuv420p, so a decoder-specific iOS error is **not proven**. | Opt-in diagnostics expose the actual device's MediaError/readiness/events; Chromium playback is not presented as proof of iPhone Safari playback. |
+
+Real HTML attributes are now explicit: `muted` (also muted/defaultMuted properties), `playsinline`, `webkit-playsinline`, and `autoplay` immediately before the visibility/readiness-gated play request. Poster is always supplied. `loop` is deliberately **false/absent** because native `ended` must advance the carousel; enabling loop would prevent that contract. Only one hero video element exists. The inactive video is paused/reset with preload none; its DOM/source buffer may be retained after first activation, without an active decoder or blob cache. Active source uses a typed MP4 `<source>` first (an arbitrary future WebM source retains its real type). No source change/load on every ordinary return.
+
+Playback remains one bounded lifecycle: reset 0 on each entry/exit, advance on real ended, 4s first-start / 2s later-start timeout, 3s stalled/no-progress timeout, at most one user-pointer retry per visit, and cleanup of listeners/timers on exit. Short clips prefer canplaythrough for at most 750ms after readiness, within the same startup budget. Loading/error/blocked autoplay keeps the poster and skips/retries on the next cycle instead of showing a spinner forever. Decode/network failures are not disguised as successful completion.
+
+### HTTP / Range findings
+
+| Request checked with curl | Observed response |
+| --- | --- |
+| Current Supabase original HEAD | 200, video/mp4, Content-Length 6156314, Accept-Ranges bytes, ETag/Last-Modified present; this HEAD returned `private, no-cache` |
+| Same original, Range bytes=0-1023 | 206, video/mp4, Content-Length 1024, Content-Range 0-1023/6156314; this CDN response returned public max-age=31536000 (inconsistent with HEAD, not proof of absent Range support) |
+| Existing deployed Netlify desktop HEAD | 200, video/mp4, Content-Length 4154429, Accept-Ranges bytes, ETag present, public max-age=31536000 immutable |
+| Existing deployed Netlify mobile Range 0-1023 | 206, video/mp4, Content-Length 1024, Accept-Ranges bytes, Content-Range 0-1023/1161033, public max-age=31536000 immutable |
+| New safe files, local HEAD/Range | Mobile HEAD 200/video/mp4/1333681; desktop Range 206/video/mp4/1024 with Content-Range 0-1023/2610451 and Accept-Ranges bytes |
+
+The existing public/_headers `/hero/*` immutable one-year rule covers the new hash-versioned files. **Their production headers cannot be claimed verified until these new files are committed/pushed and deployed**; the local Vite dev cache policy is not a production cache policy. No Supabase policy, upload path, backend or database was modified.
+
+Encoding recipe (originals were not overwritten; local source backup is D:/FrameYaad/hero-current-original-20261121.mp4, matching D:/FrameYaad/hero-original-20261120.mp4; previous public assets are retained):
+
+```bash
+ffmpeg -i ORIGINAL.mp4 -an -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2,fps=25,format=yuv420p" -c:v libx264 -profile:v main -level:v 4.0 -preset medium -crf 22 -maxrate 1400k -bufsize 2800k -bf 0 -refs 2 -g 50 -keyint_min 50 -sc_threshold 0 -movflags +faststart MOBILE.mp4
+# Desktop: same recipe, scale=1920:1080, -maxrate 4500k -bufsize 9000k.
+ffprobe -v error -show_format -show_streams -of json FILE.mp4
+curl -I VIDEO_URL
+curl -r 0-1023 -i VIDEO_URL
+```
+
+### Controls and verification
+
+Removed hero spinner markup/import/styles, dot buttons, ProgressRing/animation CSS and parent progress state. A pausable JS clock replaces only the wall's previous 5-second ring timer; the video's ended/failure lifecycle is separate. Hero keyboard arrows/swipes, region/slide labels and reduced-motion poster behavior remain. Removed Home offer/contact dot/pause pill, its icons/state/handlers and unused CSS, with no empty controls gap. Banner rotation is now **3 seconds** (supersedes the previous 4-second request), same smooth opacity transition, swipe/arrows and hover/touch/focus/tab/offscreen pauses; reduced motion has no banner auto-rotation. No controls on desktop, Android or iOS; no other carousel/page controls were changed.
+
+Run `node --test tests/hero-video-playback.test.mjs tests/hero-video-performance.test.mjs tests/performance-hero-loading.test.mjs tests/banner-slider.test.mjs`: **33/33 passed**. Production build and scoped lint passed. Native **Chromium on Windows** checks use the actual H.264 decoder, assert the safe 1080p/720p source respectively, real muted/inline/autoplay attributes, no loop, one video element, play only after ready/visible, two uninterrupted ended/reset cycles per desktop/Android profile, and no mid-pass reload. Screenshots at **320/375/768/1440** show no hero/banner controls or default debug UI; no horizontal overflow/uncaught page errors. The banner browser fixture verifies 3-second looping, keyboard/swipe, every pause rule, reduced motion and stable height with controls absent. Real iPhone playback remains **pending**, not inferred from WebKit emulation (especially Linux WebKit without H.264 decoding).
+
+Browser reruns: set PLAYWRIGHT_MODULE to an existing Playwright installation. Serve the production build at 127.0.0.1:5178, set HERO_TEST_URL=http://127.0.0.1:5178/ and run `node tests/hero-video-ios-browser.cjs` (HERO_TEST_OUTPUT chooses artifact folder). With Vite on 5177, run `node tests/banner-slider-browser.cjs`. Tests use fixture API responses, no order/customer/database writes. The older hero-video-browser command delegates to the current test, without relying on removed dot buttons.
+
+### Real-iPhone checklist (after deploying all new public/hero files)
+
+- Open **/?debugVideo=1** in Safari, then Chrome iOS. Normal URLs show no debug UI. Wait through the wall to the video.
+- Confirm currentSrc ends in mobile-4c170a80ef5f.mp4, type video/mp4, muted/playsinline true, readyState >=3, error null, and playing/ended logs with duration 9.16. Repeat a cycle; playback should restart at zero. Debug panel is scrollable and includes the timestamped loadstart/metadata/loadeddata/canplay/playing/waiting/stalled/suspend/abort/error/ended timeline.
+- If playback fails, screenshot currentSrc, error code/message, networkState/readyState/buffered end and the latest log. MediaError 2 suggests network, 3 decode, 4 unsupported/source failure; use the actual screenshot rather than guessing.
+- Test Wi-Fi/cellular/private first visit, Low Power Mode on/off, first touch retry, tab switch, route away/back, and Reduce Motion. A blocked/unready clip must show its poster and skip within the timeout, never a black panel/spinner.
+- Check the new production MP4 URLs with HEAD/Range after deployment, and confirm controls are absent on both carousels at phone/desktop sizes. No production deployment was performed by this task.
+
 ## 2026-11-21: Compact mobile Home banners
 
 The Home slider and matching offer-upload preview now use a shorter 3:2 mobile frame (minimum 200px for readable copy and 44px controls), replacing the tall 6:5 crop. Mobile copy is compacted to avoid control overlap and show the image with less vertical cropping. Desktop/tablet, Contact page banner, links and 4-second rotation are unchanged.

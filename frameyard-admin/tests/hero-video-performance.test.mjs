@@ -6,20 +6,29 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 function compile(path,api){const module={exports:{}};new Function('require','module','exports',ts.transpileModule(read(path),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(()=>api,module,module.exports);return module.exports;}
 
 test('only the exact current admin video receives responsive copies; replacements retain their URL',()=>{
- const {heroVideoMedia,HERO_VIDEO_ORIGINAL}=compile('src/features/customer/data/heroVideoMedia.ts');
+ const {heroVideoMedia,HERO_VIDEO_ORIGINAL,HERO_VIDEO_REUPLOAD}=compile('src/features/customer/data/heroVideoMedia.ts');
  assert.match(heroVideoMedia(HERO_VIDEO_ORIGINAL,true).src,/mobile-/);
  assert.match(heroVideoMedia(HERO_VIDEO_ORIGINAL,false).src,/desktop-/);
  assert.equal(heroVideoMedia('https://example.com/new.mp4',true).src,'https://example.com/new.mp4');
- assert.equal(heroVideoMedia('https://example.com/new.mp4',true).poster,undefined);
+ assert.match(heroVideoMedia('https://example.com/new.mp4',true).poster,/poster-/);
+ assert.equal(heroVideoMedia(HERO_VIDEO_REUPLOAD,true).src,heroVideoMedia(HERO_VIDEO_ORIGINAL,true).src);
 });
 test('new MP4s are faststart and within the size targets; poster is under 50 KB',()=>{
- for(const [name,max] of [['mobile-6bbf68c78f67.mp4',2500000],['desktop-b377f283777c.mp4',6000000]]){
+ for(const [name,max] of [['mobile-4c170a80ef5f.mp4',2500000],['desktop-acbd8e83f55a.mp4',6000000]]){
   const b=readFileSync(new URL('../public/hero/'+name,import.meta.url));assert(b.length<max);
   const boxes=[];for(let p=0;p+8<=b.length;){const size=b.readUInt32BE(p);boxes.push(b.toString('ascii',p+4,p+8));assert(size>=8);p+=size;}
   assert(boxes.indexOf('moov')>=0&&boxes.indexOf('moov')<boxes.indexOf('mdat'));
+  const avc=b.indexOf('avcC');assert(avc>0);assert.equal(b[avc+5],77,'H264 Main profile');assert(b[avc+7]<=41,'level at most 4.1');
  }
  assert(statSync(new URL('../public/hero/poster-7bc3f139be3a.webp',import.meta.url)).size<50000);
  assert.match(read('public/_headers'),/\/hero\/\*\s+Cache-Control: public, max-age=31536000, immutable/);
+});
+
+test('hero has an MP4 source, default poster, no visible loading controls and opt-in diagnostics',()=>{
+ const hero=read('src/features/customer/components/HeroSection.tsx'),css=read('src/features/customer/styles/hero.css');
+ assert.match(hero,/<source /);assert.match(hero,/playing \? 'auto' : 'none'/);assert.match(hero,/get\('debugVideo'\) === '1'/);
+ assert.doesNotMatch(hero,/FrameSpinner|ProgressRing|fy-hero__dots|fy-hero__video-loading/);
+ assert.doesNotMatch(css,/fy-hero__dots|fy-hero__video-loading|background: #111111;\s*}\s*\.fy-hero__video/);
 });
 test('public settings requests coalesce and upload/remove invalidate only that cache',async()=>{
  let reads=0;const api={get:async()=>{reads++;return {data:{data:{video:{url:'old.mp4',updatedAt:null}}}}},put:async()=>({data:{data:{video:{url:'new.mp4'}}}}),delete:async()=>{}};

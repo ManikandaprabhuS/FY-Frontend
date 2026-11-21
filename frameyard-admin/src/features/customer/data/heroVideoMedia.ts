@@ -1,11 +1,13 @@
 /** Optimized copies of this exact admin asset only; a replacement always uses its own URL. */
 export const HERO_VIDEO_ORIGINAL = 'https://kiltmzomecjeucdeawmp.supabase.co/storage/v1/object/public/product-images/site/hero-video/1794317454303-76b64098-d874-460f-bfda-23bc8feafc62.mp4';
+// Verified identical SHA-256 to the original, not an arbitrary replacement.
+export const HERO_VIDEO_REUPLOAD = 'https://kiltmzomecjeucdeawmp.supabase.co/storage/v1/object/public/product-images/site/hero-video/1795268150335-9c75fe36-ded0-441e-9260-59f9e990300d.mp4';
 export const HERO_VIDEO_POSTER = '/hero/poster-7bc3f139be3a.webp';
 export const heroNeedsSmallVideo = (connection?: {saveData?:boolean;effectiveType?:string;downlink?:number}) => Boolean(connection?.saveData || ['slow-2g','2g','3g'].includes(connection?.effectiveType??'') || (typeof connection?.downlink==='number'&&connection.downlink>0&&connection.downlink<=2));
 export function heroVideoMedia(url: string, compact: boolean) {
-  if (url.split('#')[0] !== HERO_VIDEO_ORIGINAL) return { src: url, poster: undefined };
+  if (![HERO_VIDEO_ORIGINAL,HERO_VIDEO_REUPLOAD].includes(url.split('#')[0])) return { src: url, poster: HERO_VIDEO_POSTER };
   return {
-    src: compact ? '/hero/mobile-6bbf68c78f67.mp4' : '/hero/desktop-b377f283777c.mp4',
+    src: compact ? '/hero/mobile-4c170a80ef5f.mp4' : '/hero/desktop-acbd8e83f55a.mp4',
     poster: HERO_VIDEO_POSTER,
   };
 }
