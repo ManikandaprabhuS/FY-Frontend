@@ -27,7 +27,8 @@ test('new MP4s are faststart and within the size targets; poster is under 50 KB'
 test('hero has an MP4 source, default poster, no visible loading controls and opt-in diagnostics',()=>{
  const hero=read('src/features/customer/components/HeroSection.tsx'),css=read('src/features/customer/styles/hero.css');
  assert.match(hero,/<source /);assert.match(hero,/playing \? 'auto' : 'none'/);assert.match(hero,/get\('debugVideo'\) === '1'/);
- assert.doesNotMatch(hero,/FrameSpinner|ProgressRing|fy-hero__dots|fy-hero__video-loading/);
+ assert.doesNotMatch(hero,/ProgressRing|fy-hero__dots|fy-hero__video-loading/);
+ assert.match(hero,/fy-hero__retry/);assert.match(hero,/fyhero:manual-play/);
  assert.doesNotMatch(css,/fy-hero__dots|fy-hero__video-loading|background: #111111;\s*}\s*\.fy-hero__video/);
 });
 test('public settings requests coalesce and upload/remove invalidate only that cache',async()=>{

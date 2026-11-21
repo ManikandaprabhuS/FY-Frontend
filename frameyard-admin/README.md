@@ -1,5 +1,13 @@
 # FrameYaad Admin
 
+## 2026-11-21: Hero right-side manual video retry
+
+Restored one small right-side button using the existing FrameSpinner (44px touch target), not the old dot/ring timer or centered loading spinner. On the wall it opens the video; on the video it synchronously dispatches a user-gesture retry to the existing playback controller. This permits native play() to initiate loading even before canplay on iOS; automatic attempts still wait for ready/visible. Each explicit retry resets to zero with a fresh bounded 4-second deadline, invalidates a hanging old play promise and ignores its stale rejection. The poster remains the loading fallback; ended/stall/route cleanup rules and hidden banner controls are unchanged. The debug panel now logs fyhero:manual-retry.
+
+The supplied screenshot shows a poster but cannot establish the device's error/readiness. Actual iPhone diagnosis remains pending: open /?debugVideo=1, tap the right-side button and send currentSrc, readyState/networkState, error and the final event log if it still fails. Do not treat desktop/Android emulation as proof of a real-iPhone fix.
+
+Verification: production build and scoped lint passed; 35 focused tests passed, including pre-canplay manual initiation and stale-promise isolation. A real Chromium Pixel 7 emulation tap opened the video, reset/retried it while readiness was artificially held at 0, then resumed playback; the control meets 44px and no page errors occurred. This is a recovery-path test, not physical-iPhone proof. The optional debug panel can be collapsed by its summary so it does not cover the button; expand it afterward to screenshot the manual-retry event/error state.
+
 ## 2026-11-21: Hero second video on iOS + controls hidden
 
 ### Evidence and RCA (not an assumed codec diagnosis)

@@ -20,6 +20,7 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   let visibilityWait: ReturnType<typeof setTimeout> | undefined;
   let startup: ReturnType<typeof setTimeout> | undefined, stall: ReturnType<typeof setTimeout> | undefined, bufferWait: ReturnType<typeof setTimeout> | undefined, watchdog: ReturnType<typeof setTimeout> | undefined;
   let lastTime = 0;
+  let playRequest = 0;
   const state: HeroVideoState = { loading: options.active, visible: false, duration: 0, bufferedEnd: 0, progress: 0 };
   const live = () => options.active && !disposed && !completed;
   const emit = () => { if (!disposed) options.onState({ ...state }); };
@@ -60,8 +61,9 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
       if (visibilityWait === undefined) visibilityWait = clock.setTimeout(() => { visibilityWait = undefined; attempt(gesture); }, 50);
       return;
     }
-    // Source assignment/load() initiates loading. Do not call play before canplay.
-    if (video.readyState < 3) return;
+    // Automatic playback waits for canplay. A real user gesture can initiate
+    // loading/play synchronously: iOS may otherwise wait for that gesture forever.
+    if (!gesture && video.readyState < 3) return;
     // Short clips prefer canplaythrough; the same startup deadline bounds this wait.
     if (!gesture && state.duration > 0 && state.duration <= 15 && !through && !allowPartial && video.readyState < 4 && state.bufferedEnd < state.duration - 0.05) {
       if (video.readyState >= 2 && bufferWait === undefined) bufferWait = clock.setTimeout(() => { bufferWait = undefined; allowPartial = true; attempt(); }, HERO_VIDEO_TIMEOUTS.bufferPreference);
@@ -70,10 +72,11 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
     video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
     video.autoplay = true; video.setAttribute('autoplay', '');
     pending = true;
+    const request = ++playRequest;
     try {
       // Transient readiness/Abort errors can retry at canplay or the next touch.
-      Promise.resolve(video.play()).catch(rejected).finally(() => { pending = false; });
-    } catch (error) { pending = false; rejected(error); }
+      Promise.resolve(video.play()).catch(error => { if (request === playRequest) rejected(error); }).finally(() => { if (request === playRequest) pending = false; });
+    } catch (error) { if (request === playRequest) { pending = false; rejected(error); } }
   };
   const ready = () => { measure(); emit(); attempt(); };
   const metadata = () => { if (options.active && !started && video.currentTime !== 0) { try { video.currentTime = 0; } catch { /* not seekable yet */ } } ready(); };
@@ -102,7 +105,17 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
     measure(); emit();
   };
   const touch = () => { if (live() && !touched) { touched = true; attempt(true); } };
-  const listeners: [string, EventListener][] = [['loadedmetadata', metadata], ['canplay', ready], ['canplaythrough', canPlayThrough], ['playing', playing], ['waiting', waiting], ['stalled', waiting], ['pause', paused], ['ended', ended], ['error', error], ['progress', progress], ['timeupdate', progress]];
+  const manual = () => {
+    if (!live()) return;
+    // Invalidate a hanging old promise before beginning a fresh, bounded user attempt.
+    playRequest++; pending = false; started = false; blocked = false; clear(); reset();
+    state.loading = true; state.visible = false; measure(); emit();
+    if (video.error || video.networkState === 3) video.load();
+    startup = clock.setTimeout(() => finish(blocked ? 'blocked' : 'start-timeout'), HERO_VIDEO_TIMEOUTS.firstStart);
+    video.dispatchEvent(new CustomEvent('fyhero:manual-retry'));
+    attempt(true);
+  };
+  const listeners: [string, EventListener][] = [['loadedmetadata', metadata], ['canplay', ready], ['canplaythrough', canPlayThrough], ['playing', playing], ['waiting', waiting], ['stalled', waiting], ['pause', paused], ['ended', ended], ['error', error], ['progress', progress], ['timeupdate', progress], ['fyhero:manual-play', manual]];
   video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
   video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
   video.loop = false; video.removeAttribute?.('loop');
@@ -115,7 +128,7 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
     attempt();
   }
   return () => {
-    disposed = true; clear();
+    disposed = true; playRequest++; clear();
     for (const [name, listener] of listeners) video.removeEventListener(name, listener);
     options.touchTarget?.removeEventListener('pointerdown', touch);
     video.autoplay = false; video.removeAttribute?.('autoplay');
