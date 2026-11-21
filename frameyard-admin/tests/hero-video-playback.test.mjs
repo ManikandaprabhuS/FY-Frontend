@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import ts from 'typescript';
 const module={exports:{}};
 new Function('module','exports',ts.transpileModule(readFileSync(new URL('../src/features/customer/utils/heroVideoPlayback.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(module,module.exports);
-const {createHeroVideoPlayback,HERO_VIDEO_TIMEOUTS}=module.exports;
+const {createHeroVideoPlayback,HERO_VIDEO_TIMEOUTS,heroIntersectsViewport}=module.exports;
 class Video extends EventTarget {
  duration=9.16;readyState=4;currentTime=4;paused=true;ended=false;calls=[];mode='ok';bufferEnd=9.16;
  get buffered(){return {length:this.bufferEnd?1:0,end:()=>this.bufferEnd};}
@@ -33,7 +33,15 @@ test('synchronous autoplay rejection also keeps the poster without an endless sp
 test('silent media freezes also skip within 3s without waiting/stalled events',()=>{const s=setup();s.video.emit('playing');s.time.tick(2999);assert.deepEqual(s.finishes,[]);s.time.tick(1);assert.deepEqual(s.finishes,['stall-timeout']);s.destroy();});
 test('buffered picture progress cancels a download-stalled indication',()=>{const s=setup();s.video.emit('playing');s.video.emit('stalled');s.time.tick(2000);s.video.currentTime=2;s.video.emit('timeupdate');assert.equal(s.states.at(-1).loading,false);s.time.tick(2000);assert.deepEqual(s.finishes,[]);s.destroy();});
 
-test('the actual ended state can finish a delayed ended event, but elapsed duration alone cannot',()=>{const s=setup();s.video.emit('playing');s.video.currentTime=9.16;s.video.emit('timeupdate');assert.deepEqual(s.finishes,[]);s.video.ended=true;s.video.emit('timeupdate');s.video.emit('ended');assert.deepEqual(s.finishes,['ended']);s.destroy();});
+test('only the ended event completes playback, never elapsed time or a progress event',()=>{const s=setup();s.video.emit('playing');s.video.currentTime=9.16;s.video.emit('timeupdate');assert.deepEqual(s.finishes,[]);s.video.ended=true;s.video.emit('timeupdate');assert.deepEqual(s.finishes,[]);s.video.emit('ended');assert.deepEqual(s.finishes,['ended']);s.destroy();});
+
+test('small visible slices count as visible; only fully offscreen or zero-area heroes stop',()=>{
+ const rect={top:-590,bottom:10,left:0,right:390,width:390,height:600};
+ assert.equal(heroIntersectsViewport(rect,390,844),true);
+ assert.equal(heroIntersectsViewport({...rect,bottom:0},390,844),false);
+ assert.equal(heroIntersectsViewport({...rect,top:844,bottom:1444},390,844),false);
+ assert.equal(heroIntersectsViewport({...rect,width:0},390,844),false);
+});
 
 test('stale ended events cannot terminate a new pass and progress is zero before playing',()=>{const s=setup();s.video.currentTime=0.01;s.video.emit('progress');assert.equal(s.states.at(-1).progress,0);s.video.emit('ended');assert.deepEqual(s.finishes,[]);s.video.emit('playing');s.video.currentTime=9.16;s.video.ended=true;s.video.emit('ended');assert.deepEqual(s.finishes,['ended']);s.destroy();});
 

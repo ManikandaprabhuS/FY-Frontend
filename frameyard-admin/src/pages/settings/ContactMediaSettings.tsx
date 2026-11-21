@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from "react";
 import {Loader2,Trash2,Upload} from "lucide-react";
-import {contactMediaService,contactFileWarning,type ContactSettings,type ContactMediaKind} from "../../services/contact-media.service";
+import {contactMediaService,contactFileWarning,CONTACT_IMAGE_MAX,type ContactSettings,type ContactMediaKind} from "../../services/contact-media.service";
+import {bannerImageRecommendation} from "../offers/banner-image-validation";
 import {showError,showLoading,showSuccess,showWarning} from "../../utils/toast";
 import {getApiErrorMessage} from "../../services/api";
 import ContactFramingBanner from "../../features/customer/components/ContactFramingBanner";
@@ -9,6 +10,8 @@ const label:Record<ContactMediaKind,string>={video:"Storyboard video",poster:"Po
 export default function ContactMediaSettings(){
  const [settings,setSettings]=useState<ContactSettings|null>(null),[loading,setLoading]=useState(true);
  const [active,setActive]=useState<ContactMediaKind|null>(null),[progress,setProgress]=useState(0);
+ const [bannerPreview,setBannerPreview]=useState<string|null>(null);
+ useEffect(()=>()=>{if(bannerPreview)URL.revokeObjectURL(bannerPreview);},[bannerPreview]);
  const lock=useRef(false);
  useEffect(()=>{
   const load=()=>contactMediaService.settings().then(setSettings).catch(error=>showError(getApiErrorMessage(error,"Unable to load Contact media."),{retry:()=>{void load();}})).finally(()=>setLoading(false));
@@ -16,18 +19,21 @@ export default function ContactMediaSettings(){
  },[]); const upload=async(kind:ContactMediaKind,file:File)=>{
   if(lock.current)return;
   const warning=contactFileWarning(kind,file);if(warning){showWarning(warning,{id:"contact-media-validation"});return;}
+  if(kind==="banner")setBannerPreview(URL.createObjectURL(file));
   lock.current=true;setActive(kind);setProgress(0);
   const id="contact-media-"+kind;
   try{
    if(kind!=="video"){
     const url=URL.createObjectURL(file);
     try{
-     const dimensions=await new Promise<{width:number}>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve({width:image.naturalWidth});image.onerror=()=>reject(new Error("This image could not be opened."));image.src=url;});
+     const dimensions=await new Promise<{width:number;height:number}>((resolve,reject)=>{const image=new Image();image.onload=()=>resolve({width:image.naturalWidth,height:image.naturalHeight});image.onerror=()=>reject(new Error("This image could not be opened."));image.src=url;});
      if(kind==="banner"&&dimensions.width<1000)showWarning("This image is narrower than 1000 px. It can still be uploaded.",{id:"contact-banner-resolution"});
+     else if(kind==="banner"&&(dimensions.width/dimensions.height<2||dimensions.width/dimensions.height>4.5))showWarning("This image has a very different ratio from the banner and will be cropped. It can still be uploaded.",{id:"contact-banner-resolution"});
     }finally{URL.revokeObjectURL(url);}
    }
    showLoading(kind==="video"?"Please wait, your video is being uploaded...":"Please wait, your image is being uploaded...",id);
    setSettings(await contactMediaService.upload(kind,file,setProgress));
+   if(kind==="banner")setBannerPreview(null);
    showSuccess(label[kind]+" updated.",{id});
   }catch(error){showError(getApiErrorMessage(error,"Upload failed. Please try again."),{id,retry:()=>{void upload(kind,file);}});}
   finally{lock.current=false;setActive(null);setProgress(0);}
@@ -35,7 +41,7 @@ export default function ContactMediaSettings(){
  const remove=async(kind:ContactMediaKind)=>{
   if(lock.current||!window.confirm("Remove "+label[kind].toLowerCase()+"? The default will be used."))return;
   lock.current=true;setActive(kind);const id="contact-media-"+kind;showLoading("Please wait, your media is being removed...",id);
-  try{setSettings(await contactMediaService.remove(kind));showSuccess("Media removed. The default will be used.",{id});}
+  try{setSettings(await contactMediaService.remove(kind));if(kind==="banner")setBannerPreview(null);showSuccess("Media removed. The default will be used.",{id});}
   catch(error){showError(getApiErrorMessage(error,"Unable to remove this media."),{id,retry:()=>{void remove(kind);}});}
   finally{lock.current=false;setActive(null);}
  };
@@ -53,9 +59,9 @@ export default function ContactMediaSettings(){
   </section>
   <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 sm:p-6">
    <h2 className="text-xl font-bold">Custom Framing banner image</h2><p className="mt-2 text-sm text-on-surface-variant">Preview uses the same responsive crop and aspect ratio as the Contact banner.</p>
-   <div className="mt-5"><ContactFramingBanner imageUrl={settings?.banner?.url} preview/></div>
+   <div className="mt-5"><ContactFramingBanner imageUrl={bannerPreview??settings?.banner?.url} preview/></div>
    <UploadControls kind="banner" asset={settings?.banner} disabled={busy} progress={active==="banner"?progress:null} onUpload={file=>{void upload("banner",file);}} onRemove={()=>{void remove("banner");}}/>
-   <p className="mt-3 text-xs text-on-surface-variant">Recommended 1600 x 600 px. JPG, PNG or WebP, up to 2 MB.</p>
+   <p className="mt-3 text-xs text-on-surface-variant">{bannerImageRecommendation(CONTACT_IMAGE_MAX)}</p>
   </section>
  </div>;
 }

@@ -2,6 +2,7 @@ export const HERO_VIDEO_TIMEOUTS = { firstStart: 4000, laterStart: 2000, stall: 
 export type HeroVideoState = { loading: boolean; visible: boolean; duration: number; bufferedEnd: number; progress: number };
 type FinishReason = 'ended' | 'start-timeout' | 'stall-timeout' | 'blocked' | 'error';
 type Clock = { setTimeout: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>; clearTimeout: (id: ReturnType<typeof setTimeout>) => void };
+export const heroIntersectsViewport = (rect: {top:number;bottom:number;left:number;right:number;width:number;height:number}, width:number, height:number) => rect.width>0&&rect.height>0&&rect.bottom>0&&rect.top<height&&rect.right>0&&rect.left<width;
 
 /** One active visit owns its listeners, play request and deadlines. No carousel timer. */
 export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
@@ -38,11 +39,12 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   };
   const watchProgress = () => {
     if (watchdog !== undefined) clock.clearTimeout(watchdog);
-    lastTime = video.currentTime;
+    lastTime = state.duration > 0 ? Math.min(video.currentTime, state.duration) : video.currentTime;
     watchdog = clock.setTimeout(() => {
       watchdog = undefined;
       if (!live() || !started) return;
-      if (video.currentTime > lastTime + 0.02 && !video.paused) watchProgress();
+      const time = state.duration > 0 ? Math.min(video.currentTime, state.duration) : video.currentTime;
+      if (time > lastTime + 0.02 && !video.paused) watchProgress();
       else finish('stall-timeout');
     }, HERO_VIDEO_TIMEOUTS.stall);
   };
@@ -55,7 +57,7 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
       return;
     }
     // Short clips prefer canplaythrough; the same startup deadline bounds this wait.
-    if (!gesture && state.duration > 0 && state.duration < 15 && !through && !allowPartial && video.readyState < 4 && state.bufferedEnd < state.duration - 0.05) {
+    if (!gesture && state.duration > 0 && state.duration <= 15 && !through && !allowPartial && video.readyState < 4 && state.bufferedEnd < state.duration - 0.05) {
       if (video.readyState >= 2 && bufferWait === undefined) bufferWait = clock.setTimeout(() => { bufferWait = undefined; allowPartial = true; attempt(); }, HERO_VIDEO_TIMEOUTS.bufferPreference);
       return;
     }
@@ -83,9 +85,9 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   const ended = () => { if (video.ended) finish('ended'); };
   const error = () => finish('error');
   const progress = () => {
-    // Some media backends expose ended before delivering the event; never use a duration timer.
-    if (live() && video.ended && state.duration > 0 && video.currentTime >= state.duration - 0.04) { finish('ended'); return; }
-    if (live() && started && !video.paused && video.currentTime > lastTime + 0.02) {
+    // Only the native ended listener completes a pass. A missing event is a bounded failure.
+    const time = state.duration > 0 ? Math.min(video.currentTime, state.duration) : video.currentTime;
+    if (live() && started && !video.paused && time > lastTime + 0.02) {
       // A stalled download is not a stalled picture while buffered frames still advance.
       if (stall !== undefined) { clock.clearTimeout(stall); stall = undefined; state.loading = false; state.visible = true; }
       watchProgress();

@@ -3,7 +3,8 @@ import {Upload,LoaderCircle} from "lucide-react";
 import {homepageBannerService,type BannerOffer} from "../../services/homepage-banner.service";
 import {showLoading,showSuccess,showError,showWarning} from "../../utils/toast";
 import HomepageBannerVisual from "../../features/customer/components/HomepageBannerVisual";
-import {validateBannerFile,bannerDimensionWarning} from "./banner-image-validation";
+import {validateBannerFile,bannerDimensionWarning,bannerImageRecommendation} from "./banner-image-validation";
+import "../../features/customer/styles/banner-slider.css";
 export default function BannerImageUpload({imageUrl,offer,disabled,onBusy,onUpdated}:{imageUrl?:string|null;offer?:BannerOffer;disabled:boolean;onBusy:(busy:boolean)=>void;onUpdated:(url:string|null)=>void}){
  const [candidate,setCandidate]=useState<{url:string;name:string;size:number}>(),[busy,setBusy]=useState(false),[progress,setProgress]=useState(0);
  const lock=useRef(false),input=useRef<HTMLInputElement>(null);
@@ -46,11 +47,11 @@ export default function BannerImageUpload({imageUrl,offer,disabled,onBusy,onUpda
  <div className="mt-3 rounded-xl border border-dashed border-black/25 p-4" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(e.dataTransfer.files.length!==1){showWarning("Please choose one banner image.");return;}void choose(e.dataTransfer.files[0]);}}>
  <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose banner image" className="sr-only" disabled={disabled||busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(file)void choose(file);}}/>
  <p className="break-words text-sm font-bold">{fileName}</p>{(candidate?.size??savedSize)!==undefined&&<p className="mt-1 text-xs text-secondary">{((candidate?.size??savedSize??0)/1024/1024).toFixed(2)} MB</p>}
- <p className="mt-2 text-xs text-secondary">Recommended size 1200 x 400 px (3:1). JPG, PNG or WebP, up to 2 MB.</p>
+ <p className="mt-2 text-xs text-secondary">{bannerImageRecommendation()}</p>
  <div className="mt-3 flex flex-wrap gap-3"><button type="button" disabled={disabled||busy} onClick={()=>input.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-black px-4 text-sm font-bold text-white disabled:opacity-40"><Upload size={16} aria-hidden="true"/>{imageUrl?"Replace image":"Upload image"}</button><button type="button" disabled={disabled||busy||(!imageUrl&&!candidate)} onClick={()=>void remove()} className="min-h-11 rounded-lg border border-black/20 px-4 text-sm font-bold disabled:opacity-40">Remove</button></div>
  {busy&&<p role="status" className="mt-3 flex items-center gap-2 text-sm font-bold"><LoaderCircle size={16} className="animate-spin" aria-hidden="true"/>Please wait… {progress}%</p>}
  </div>
  <p className="mb-2 mt-5 text-xs font-bold">Live preview — same crop as the Home page</p>
- {offer&&<HomepageBannerVisual preview offer={{...offer,bannerImageUrl:candidate?.url??imageUrl??null}}/>}
+ <div className="fy-banner-preview">{offer&&<HomepageBannerVisual preview offer={{...offer,bannerImageUrl:candidate?.url??imageUrl??null}}/>}</div>
  </section>;
 }

@@ -1,0 +1,12 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Route,Routes,Link} from 'react-router-dom';
+import HomepageOfferBanner from '../../src/features/customer/components/HomepageOfferBanner';
+import ContactUsPage from '../../src/features/customer/pages/ContactUsPage';
+import HomepageBannerCard from '../../src/pages/offers/HomepageBannerCard';
+import ContactMediaSettings from '../../src/pages/settings/ContactMediaSettings';
+import {useHomepageBannerStore} from '../../src/store/homepageBannerStore';
+import '../../src/index.css';
+const params=new URLSearchParams(location.search);
+const offer={code:'BIG_ORDER' as const,title:'Big Order Offer',percentage:10,minOrderAmount:5000,enabled:true,description:'test',version:1,updatedAt:'2026-11-21T00:00:00Z',updatedBy:null,usage:{orders:0,totalDiscount:0}};
+useHomepageBannerStore.setState({banner:params.has('noOffer')?null:offer});
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/']}><div className="fy-store"><header className="fy-customer-header" style={{position:'sticky',top:0,height:70,background:'white',zIndex:100}}>FrameYaad <Link to="/contact#get-in-touch">Contact anchor</Link></header><Routes><Route path="/" element={params.has('contactAdmin')?<ContactMediaSettings/>:params.has('admin')?<HomepageBannerCard offers={params.has('inactive')?[{...offer,enabled:false}]:[offer]}/>:<HomepageOfferBanner/>}/><Route path="/contact" element={<ContactUsPage/>}/></Routes><div style={{height:1500}}/></div></MemoryRouter>);

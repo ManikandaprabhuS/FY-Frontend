@@ -66,6 +66,7 @@ export const router = createBrowserRouter([
       { path: '/notifications',element:<CustomerProtectedRoute><NotificationsPage /></CustomerProtectedRoute> },
       { path: '/book-appointment', element: <BookAppointmentPage /> },
       { path: '/contact-us', element: <ContactUsPage /> },
+      { path: '/contact', element: <ContactUsPage /> },
       { path: '/studio', element: <StudioPage /> },
     ],
   },
