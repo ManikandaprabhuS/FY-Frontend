@@ -13,7 +13,6 @@ import { wallFramePhotos as defaultFallbackPhotos } from '../data/framePhotos';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
 import { heroVideoMedia, heroNeedsSmallVideo } from '../data/heroVideoMedia';
 import HeroVideoDebug from './HeroVideoDebug';
-import {FrameSpinner} from '../../../components/loaders/FrameLoader';
 import { createHeroVideoPlayback, heroIntersectsViewport, HERO_VIDEO_TIMEOUTS, type HeroVideoState } from '../utils/heroVideoPlayback';
 import { backendHeroPhotos } from '../utils/heroFrames';
 import { useFramePhotosStore } from '../store/framePhotosStore';
@@ -395,7 +394,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
         </div>
       )}
 
-      {video && <button type="button" className="fy-hero__retry" aria-label={current===1?'Play or retry hero video':'Show hero video'} title={current===1?'Play / retry video':'Show video'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();if(current!==1){goTo(1,1);return;}rootRef.current?.querySelector('video')?.dispatchEvent(new Event('fyhero:manual-play'));}}><FrameSpinner/></button>}
+      {video && <button type="button" className="fy-hero__retry" aria-label={current===1?'Play or retry hero video':'Show hero video'} title={current===1?'Play / retry video':'Show video'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();if(current!==1){goTo(1,1);return;}rootRef.current?.querySelector('video')?.dispatchEvent(new Event('fyhero:manual-play'));}}><span className="fy-hero__retry-circle" aria-hidden="true"/></button>}
 
     </section>
   );
