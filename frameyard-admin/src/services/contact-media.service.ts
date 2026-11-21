@@ -5,15 +5,23 @@ export type ContactDetails={phone:string|null;email:string|null;studioName:strin
 export type ContactAsset={url:string;fileName:string;sizeBytes:number};
 export type ContactContent={videoUrl:string|null;posterUrl:string|null;bannerImageUrl:string|null;defaultVideoUrl:string|null;contactDetails:ContactDetails};
 export type ContactSettings={video:ContactAsset|null;poster:ContactAsset|null;banner:ContactAsset|null;defaultVideoUrl:string|null;contactDetails:ContactDetails;updatedAt:{storyboard:string|null;banner:string|null;details:string|null}};
+let publicCache:{value:ContactContent;until:number}|undefined,publicPending:Promise<ContactContent>|undefined,publicGeneration=0;
+const invalidatePublic=()=>{publicGeneration++;publicCache=undefined;publicPending=undefined;};
 export const contactMediaService={
- public:async()=>(await api.get<{data:ContactContent}>("/site/contact-media",{timeout:15000})).data.data,
+ public:async():Promise<ContactContent>=>{
+  if(publicCache&&publicCache.until>Date.now())return publicCache.value;
+  if(publicPending)return publicPending;
+  const generation=publicGeneration;
+  const request=api.get<{data:ContactContent}>("/site/contact-media",{timeout:15000}).then(response=>{const value=response.data.data;if(generation===publicGeneration)publicCache={value,until:Date.now()+60000};return value;});
+  publicPending=request;try{return await request;}finally{if(publicPending===request)publicPending=undefined;}
+ },
  settings:async()=>(await api.get<{data:ContactSettings}>("/admin/contact-settings",{timeout:20000})).data.data,
  upload:async(kind:ContactMediaKind,file:File,onProgress:(n:number)=>void)=>{
   const body=new FormData();body.append("file",file);
-  return (await api.put<{data:ContactSettings}>("/admin/contact-settings/media/"+kind,body,{timeout:180000,onUploadProgress:event=>onProgress(event.total?Math.round(event.loaded/event.total*100):0)})).data.data;
+  const result=(await api.put<{data:ContactSettings}>("/admin/contact-settings/media/"+kind,body,{timeout:180000,onUploadProgress:event=>onProgress(event.total?Math.round(event.loaded/event.total*100):0)})).data.data;invalidatePublic();return result;
  },
- remove:async(kind:ContactMediaKind)=>(await api.delete<{data:ContactSettings}>("/admin/contact-settings/media/"+kind,{timeout:30000})).data.data,
- details:async(details:ContactDetails)=>(await api.patch<{data:ContactSettings}>("/admin/contact-settings/details",details,{timeout:20000})).data.data,
+ remove:async(kind:ContactMediaKind)=>{const result=(await api.delete<{data:ContactSettings}>("/admin/contact-settings/media/"+kind,{timeout:30000})).data.data;invalidatePublic();return result;},
+ details:async(details:ContactDetails)=>{const result=(await api.patch<{data:ContactSettings}>("/admin/contact-settings/details",details,{timeout:20000})).data.data;invalidatePublic();return result;},
 };
 export function contactFileWarning(kind:ContactMediaKind,file:Pick<File,"type"|"size">){
  if(file.size<=0)return "Please choose a non-empty file.";

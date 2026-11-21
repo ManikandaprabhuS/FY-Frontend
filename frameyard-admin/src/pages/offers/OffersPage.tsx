@@ -30,10 +30,10 @@ export function OfferCard({initial,reload,history,onUpdated}:{initial:AdminOffer
  };
  const toggle=async()=>{
   if(lock.current)return;lock.current=true;setBusy(true);
-  const before=offer,next=!offer.enabled;setOffer({...offer,enabled:next});
+  const before=offer,next=!offer.enabled;setOffer({...offer,enabled:next});onUpdated?.({...offer,enabled:next});
   if(next)showSuccess("Offer activated",{id:toastId});else showWarning("Offer deactivated",{id:toastId});
   try{const updated=await offersService.update(offer.code,{version:before.version,enabled:next});setOffer(updated);onUpdated?.(updated);}
-  catch(e){setOffer(before);await handleFailure(e);}finally{lock.current=false;setBusy(false);}
+  catch(e){setOffer(before);onUpdated?.(before);await handleFailure(e);}finally{lock.current=false;setBusy(false);}
  };
  const warn=()=>{if(error)showWarning(error,{id:toastId});};
  return <article className="min-w-0 rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm sm:p-6">

@@ -11,9 +11,9 @@ import {
 } from '../data/heroShowcase';
 import { wallFramePhotos as defaultFallbackPhotos } from '../data/framePhotos';
 import { siteMediaService, type HeroVideo } from '../../../services/site-media.service';
-import { heroVideoMedia } from '../data/heroVideoMedia';
+import { heroVideoMedia, heroNeedsSmallVideo } from '../data/heroVideoMedia';
 import { FrameSpinner } from '../../../components/loaders/FrameLoader';
-import { createHeroVideoPlayback, HERO_VIDEO_TIMEOUTS, type HeroVideoState } from '../utils/heroVideoPlayback';
+import { createHeroVideoPlayback, heroIntersectsViewport, HERO_VIDEO_TIMEOUTS, type HeroVideoState } from '../utils/heroVideoPlayback';
 import { backendHeroPhotos } from '../utils/heroFrames';
 import { useFramePhotosStore } from '../store/framePhotosStore';
 import PhotoToggle from './PhotoToggle';
@@ -176,7 +176,7 @@ type Motion = { current: number; previous: number | null; dir: 1 | -1; /** Times
 const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () => void; onProgress: (value: number) => void }> = ({ video, playing, onComplete, onProgress }) => {
   const ref = useRef<HTMLVideoElement>(null);
   const attempted = useRef(false);
-  const [compact] = useState(() => window.matchMedia('(max-width: 767px)').matches || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData));
+  const [compact] = useState(() => window.matchMedia('(max-width: 767px)').matches || /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || heroNeedsSmallVideo((navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string;downlink?:number}}).connection));
   const media = heroVideoMedia(video.url, compact);
   const [fallback, setFallback] = useState(false);
   const [playback, setPlayback] = useState<HeroVideoState>({ loading: false, visible: false, duration: 0, bufferedEnd: 0, progress: 0 });
@@ -274,6 +274,8 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [inView, setInView] = useState(true);
+  const [videoInView, setVideoInView] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
@@ -299,9 +301,26 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
   useEffect(() => {
     const root = rootRef.current;
     if (!root || !('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.35 });
+    let exitTimer: ReturnType<typeof setTimeout> | undefined;
+    const visible = () => heroIntersectsViewport(root.getBoundingClientRect(), window.innerWidth, window.innerHeight);
+    const observer = new IntersectionObserver(([entry]) => {
+      // Preserve the wall's visibility clock; video ignores percentage thresholds.
+      setInView(entry.isIntersecting);
+      if (visible()) { clearTimeout(exitTimer); exitTimer = undefined; setVideoInView(true); }
+      else if (exitTimer === undefined) exitTimer = setTimeout(() => {
+        exitTimer = undefined;
+        if (!visible()) setVideoInView(false);
+      }, 120);
+    }, { threshold: [0, 0.35] });
     observer.observe(root);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); clearTimeout(exitTimer); };
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
   }, []);
 
   useEffect(() => {
@@ -338,7 +357,8 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
   }, [goTo, slideCount]);
 
   const finishVideo = useCallback(() => { if (motionRef.current.current === 1) step(1); }, [step]);
-  const finishWall = useCallback(() => { if (motionRef.current.current === 0) step(1); }, [step]);
+  // Reduced motion displays a still poster, not an active video lifecycle.
+  const finishWall = useCallback(() => { if (motionRef.current.current === 0 || reducedMotion) step(1); }, [step, reducedMotion]);
 
   const slideStyle = (index: number): React.CSSProperties => {
     if (index === current) return { transform: 'translateX(0)' };
@@ -365,6 +385,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
       aria-roledescription={slideCount > 1 ? 'carousel' : undefined}
       data-slide={current}
       data-paused={paused || undefined}
+      data-video-mode={reducedMotion ? 'poster-only' : 'playback'}
       style={{ '--fy-slide-ms': `${SLIDE_MS}ms` } as React.CSSProperties}
       onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
       onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false); }}
@@ -393,7 +414,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
           <VideoSlide
             key={video.url}
             video={video}
-            playing={active && current === 1 && inView && pageVisible}
+            playing={active && current === 1 && videoInView && pageVisible && !reducedMotion}
             onComplete={finishVideo}
             onProgress={setVideoProgress}
           />
@@ -405,7 +426,7 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
           {Array.from({ length: slideCount }, (_, index) =>
             index === current ? (
               <button key={index} type="button" className="fy-hero__dot fy-hero__dot--active" aria-label={`Go to slide ${index + 1}`} aria-current="true">
-                <ProgressRing key={current} onComplete={finishWall} progress={current === 1 ? videoProgress : undefined} />
+                <ProgressRing key={current+':'+reducedMotion} onComplete={finishWall} progress={current === 1 && !reducedMotion ? videoProgress : undefined} />
               </button>
             ) : (
               <button key={index} type="button" className="fy-hero__dot" aria-label={`Go to slide ${index + 1}`} onClick={() => goTo(index, index > current ? 1 : -1)}>

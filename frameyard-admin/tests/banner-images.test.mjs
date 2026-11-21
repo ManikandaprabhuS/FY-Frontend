@@ -28,6 +28,7 @@ async function uploadHarness(imageUrl=null){
  const Component=compile(await read('pages/offers/BannerImageUpload.tsx'),{
   react:{useEffect(){},useRef:value=>refs[refIndex++]??(refs[refIndex-1]={current:value}),useState:initial=>{const i=index++;if(!(i in states))states[i]=initial;return[states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];}},
   './banner-image-validation':validators,
+  '../../features/customer/styles/banner-slider.css':{},
   '../../services/homepage-banner.service':{homepageBannerService:{uploadImage:()=>{calls.push('upload');return pending;},removeImage:async()=>{calls.push('remove');return{imageUrl:null};}}},
   '../../utils/toast':Object.fromEntries(['showLoading','showSuccess','showError','showWarning'].map(name=>[name,(...args)=>toasts.push([name,...args])])),
   '../../features/customer/components/HomepageBannerVisual':{__esModule:true,default:()=>null},
@@ -72,9 +73,9 @@ test('warns without blocking very wide, tall, and small images',()=>{
  assert.equal(validators.bannerDimensionWarning(1200,400),null);
  for(const [w,h] of [[4000,400],[400,4000],[100,100]])assert.match(validators.bannerDimensionWarning(w,h),/still upload/);
 });
-test('uploaded art is lazy/async, reserved in the existing region, with static fallback',async()=>{
+test('uploaded art loads early/async, reserved in the existing region, with static fallback',async()=>{
  const html=renderToStaticMarkup(createElement(Visual,{offer:{...offer,bannerImageUrl:'https://public.test/banner.png'}}));
- assert.match(html,/fy-offer-banner__image/);assert.match(html,/loading="lazy"/);assert.match(html,/decoding="async"/);assert.match(html,/width="1200"/);assert.match(html,/Big Order Offer banner/);
+ assert.match(html,/fy-offer-banner__image/);assert.match(html,/loading="eager"/);assert.match(html,/decoding="async"/);assert.match(html,/width="1200"/);assert.match(html,/Big Order Offer banner/);
  const fallback=renderToStaticMarkup(createElement(Visual,{offer}));assert.match(fallback,/<svg/);assert.doesNotMatch(fallback,/<img/);
  const css=await read('features/customer/styles/homepage-banner.css');assert.match(css,/object-fit:cover/);assert.match(css,/overflow:hidden/);assert.match(css,/aspect-ratio:3\/1/);
 });

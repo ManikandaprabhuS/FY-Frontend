@@ -40,6 +40,12 @@ test('hero retains its DOM/buffer while the playback controller resets each visi
  for(const attribute of ['muted','playsInline','disablePictureInPicture','disableRemotePlayback'])assert(hero.includes(attribute));
  assert(playback.includes('canplaythrough'));assert(playback.includes('pointerdown'));assert.doesNotMatch(hero,/^\s+loop\s*$/m);
  assert.match(layout,/visitedHome && <div hidden=\{!home\}><HeroSection active=\{home\}/);
- assert.match(hero,/playing=\{active && current === 1 && inView && pageVisible\}/);
+ assert.match(hero,/playing=\{active && current === 1 && videoInView && pageVisible && !reducedMotion\}/);
  assert.doesNotMatch(read('src/features/customer/pages/CustomerHomePage.tsx'),/<HeroSection/);
+});
+
+test('slow connections use the existing smaller video without changing normal desktop quality',()=>{
+ const {heroNeedsSmallVideo}=compile('src/features/customer/data/heroVideoMedia.ts');
+ assert.equal(heroNeedsSmallVideo({downlink:10,effectiveType:'4g'}),false);
+ for(const connection of [{saveData:true},{effectiveType:'3g'},{downlink:1.6,effectiveType:'4g'}])assert.equal(heroNeedsSmallVideo(connection),true);
 });
