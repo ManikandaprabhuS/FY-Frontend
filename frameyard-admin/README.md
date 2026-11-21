@@ -1,5 +1,9 @@
 # FrameYaad Admin
 
+## 2026-11-21: Netlify merged-hero build correction
+
+The merged main branch retained an obsolete VideoSlide IntersectionObserver calling the removed `start(element)` helper and listing `start` as an effect dependency. Removed that entire duplicate effect; the existing `createHeroVideoPlayback` remains the single playback owner. Added a regression assertion against the stale calls. Verified on the current main working copy: `npm run build` succeeds and all 25 focused hero tests pass. Commit/push these corrections to the deployment branch before retrying Netlify; no backend or deployment settings changed.
+
 ## 2026-11-21: Banner slider and featured-offer dropdown
 
 The Homepage banner selector now lists enabled offers only, with live percentages/minimums. Offer toggles update it optimistically and roll back on failure. A disabled saved selection remains a disabled `(inactive)` snapshot with the amber explanation; when none are enabled, the select says `No active offers. Turn one on first` and saving is disabled. The existing backend save transaction locks/checks the selected offer and returns a clear **400** for inactive/missing offers (including re-saving the same code); unknown codes, roles, rate limits, audit and cache invalidation retain their existing checks. Turning off a featured offer still hides only the offer slide.

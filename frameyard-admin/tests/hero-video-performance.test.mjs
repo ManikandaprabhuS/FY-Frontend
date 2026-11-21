@@ -36,6 +36,7 @@ test('failed settings requests can retry and are not permanently cached',async()
 test('hero retains its DOM/buffer while the playback controller resets each visible visit',()=>{
  const hero=read('src/features/customer/components/HeroSection.tsx'),layout=read('src/layouts/CustomerLayout.tsx');
  const playback=read('src/features/customer/utils/heroVideoPlayback.ts');
+ assert.doesNotMatch(hero,/\bstart\(element\)|\[playing, start\]/,'obsolete playback observer must not coexist with the controller');
  assert.match(playback,/currentTime = 0/);assert.doesNotMatch(hero,/#t=0\.001/);
  for(const attribute of ['muted','playsInline','disablePictureInPicture','disableRemotePlayback'])assert(hero.includes(attribute));
  assert(playback.includes('canplaythrough'));assert(playback.includes('pointerdown'));assert.doesNotMatch(hero,/^\s+loop\s*$/m);
