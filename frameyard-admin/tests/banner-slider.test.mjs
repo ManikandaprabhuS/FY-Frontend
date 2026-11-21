@@ -9,6 +9,11 @@ const read=p=>readFileSync(new URL('../src/'+p,import.meta.url),'utf8');
 function compile(p,overrides={}){const m={exports:{}};new Function('require','module','exports',ts.transpileModule(read(p),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(id=>overrides[id]??require(id),m,m.exports);return m.exports;}
 const first={code:'FIRST_ORDER',title:'First Order Offer',percentage:5,minOrderAmount:null,enabled:true};
 const big={code:'BIG_ORDER',title:'Big Order Offer',percentage:12,minOrderAmount:2000,enabled:false};
+test('banner retains controls and uses four-second rotation with a smooth opacity transition',()=>{
+ assert.match(read('features/customer/components/HomepageOfferBanner.tsx'),/BANNER_ROTATE_MS=4000/);
+ assert.match(read('features/customer/components/HomepageOfferBanner.tsx'),/Banner controls/);
+ assert.match(read('features/customer/styles/banner-slider.css'),/transition:opacity 500ms cubic-bezier/);
+});
 function card(offers,code='BIG_ORDER'){
  let i=0;const states=[{featuredOfferCode:code,enabled:true,updatedAt:'2026-11-21T00:00:00Z'},code,false,false,0,false];
  const Component=compile('pages/offers/HomepageBannerCard.tsx',{react:{useState:()=>[states[i++],()=>{}],useEffect(){},useRef:v=>({current:v})},'../../services/homepage-banner.service':{},'../../utils/toast':{},'./BannerImageUpload':{__esModule:true,default:()=>null}}).default;

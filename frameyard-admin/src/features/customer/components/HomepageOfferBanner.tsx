@@ -7,7 +7,7 @@ import HomepageBannerVisual from "./HomepageBannerVisual";
 import ContactFramingBanner from "./ContactFramingBanner";
 import "../styles/banner-slider.css";
 
-export const BANNER_ROTATE_MS=3000;
+export const BANNER_ROTATE_MS=4000;
 type Slide="offer"|"contact";
 export default function HomepageOfferBanner(){
  const banner=useHomepageBannerStore(s=>s.banner);

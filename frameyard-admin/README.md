@@ -1,5 +1,13 @@
 # FrameYaad Admin
 
+## 2026-11-21: Compact mobile Home banners
+
+The Home slider and matching offer-upload preview now use a shorter 3:2 mobile frame (minimum 200px for readable copy and 44px controls), replacing the tall 6:5 crop. Mobile copy is compacted to avoid control overlap and show the image with less vertical cropping. Desktop/tablet, Contact page banner, links and 4-second rotation are unchanged.
+
+## 2026-11-21: Banner rotation timing adjustment
+
+Home banner rotation is now every 4 seconds with a smooth 500ms opacity transition. The existing dots, pause/play control, two slides, links and interaction/reduced-motion pause rules are retained. This supersedes the earlier 3-second timing note; no backend changes.
+
 ## 2026-11-21: Netlify merged-hero build correction
 
 The merged main branch retained an obsolete VideoSlide IntersectionObserver calling the removed `start(element)` helper and listing `start` as an effect dependency. Removed that entire duplicate effect; the existing `createHeroVideoPlayback` remains the single playback owner. Added a regression assertion against the stale calls. Verified on the current main working copy: `npm run build` succeeds and all 25 focused hero tests pass. Commit/push these corrections to the deployment branch before retrying Netlify; no backend or deployment settings changed.
