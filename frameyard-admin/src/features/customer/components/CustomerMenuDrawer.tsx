@@ -35,7 +35,8 @@ export default function CustomerMenuDrawer({open,onClose,onOpenWishlist,wishlist
  const navigate=useNavigate(),location=useLocation();
  useEffect(()=>{
   if(!open)return;
-  const trigger=returnFocusTo.current,y=Math.max(0,window.scrollY);
+  // Where the page was when the menu opened; restored on close only if the menu did not navigate away.
+  const trigger=returnFocusTo.current,y=Math.max(0,window.scrollY),openedOn=window.location.pathname;
   const body=document.body;
   const old={overflow:body.style.overflow,position:body.style.position,top:body.style.top,width:body.style.width};
   body.style.overflow='hidden';body.style.position='fixed';body.style.top=-y+'px';body.style.width='100%';
@@ -56,7 +57,7 @@ export default function CustomerMenuDrawer({open,onClose,onOpenWishlist,wishlist
   document.addEventListener('keydown',keydown);document.addEventListener('focusin',focusin);desktop.addEventListener('change',resize);
   return()=>{
    cancelAnimationFrame(frame);document.removeEventListener('keydown',keydown);document.removeEventListener('focusin',focusin);desktop.removeEventListener('change',resize);
-   Object.assign(body.style,old);window.scrollTo(0,y);(trigger?.isConnected?trigger:document.querySelector<HTMLButtonElement>('button[aria-label="Open menu"]'))?.focus({preventScroll:true});
+   Object.assign(body.style,old);if(window.location.pathname===openedOn)window.scrollTo(0,y);(trigger?.isConnected?trigger:document.querySelector<HTMLButtonElement>('button[aria-label="Open menu"]'))?.focus({preventScroll:true});
   };
  },[open,onClose,returnFocusTo]);
  const protectedLink=(event:React.MouseEvent,destination:string)=>{

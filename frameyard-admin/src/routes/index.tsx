@@ -8,6 +8,7 @@ import AdminOnlyRoute from '../layouts/AdminOnlyRoute';
 import RouteErrorPage from '../pages/errors/RouteErrorPage';
 import RouterErrorBoundary from '../pages/errors/RouterErrorBoundary';
 import ResourceRoute, { NotFoundRoute } from '../pages/errors/ResourceRoute';
+import RouteRoot from '../components/navigation/ScrollManager';
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const AdminLayout = lazy(() => import('../layouts/AdminLayout'));
 const CustomerLayout = lazy(() => import('../layouts/CustomerLayout'));
@@ -50,7 +51,7 @@ const LazyFallback = <AuthPendingScreen />;
 const lazyElement = (element: React.ReactNode) => <Suspense fallback={LazyFallback}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
-  { errorElement: <RouterErrorBoundary />, children: [
+  { element: <RouteRoot />, errorElement: <RouterErrorBoundary />, children: [
   {
     element: <Suspense fallback={LazyFallback}><CustomerLayout /></Suspense>,
     errorElement: <RouterErrorBoundary />,

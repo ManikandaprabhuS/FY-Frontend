@@ -701,12 +701,27 @@
 
 .fy-hero__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; pointer-events: none; opacity:1; transition:opacity 200ms ease; }
 .fy-hero__poster[data-cover="false"] {opacity:0}
-.fy-hero__retry {position:absolute;right:14px;bottom:14px;z-index:5;display:grid;place-items:center;min-width:44px;min-height:44px;border:0;border-radius:50%;background:transparent;color:#111;cursor:pointer;touch-action:manipulation}
-.fy-hero__retry-circle {width:12px;height:12px;box-sizing:border-box;border:1.5px solid #8887;border-top-color:currentColor;border-radius:50%;animation:fy-hero-retry-turn 900ms linear infinite}
-.fy-hero[data-slide='1'] .fy-hero__retry {color:#fff}
-@keyframes fy-hero-retry-turn {to {transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.fy-hero__retry-circle {animation:none}}
-.fy-hero__retry:focus-visible {outline:3px solid #111;outline-offset:3px}
+/* Slide indicator, bottom right: a dot for the other slide, a ring for the current one.
+   The ring arc fills over the wall's five seconds, or with the video's real progress; while the
+   video loads, a short arc spins instead. Dark on the wall, white on the video. */
+.fy-hero__pager {position:absolute;right:8px;bottom:8px;z-index:5;display:flex;align-items:center;color:#111;touch-action:manipulation}
+.fy-hero[data-slide='1'] .fy-hero__pager {color:#fff}
+.fy-hero__pip {display:grid;place-items:center;width:30px;height:44px;border:0;background:transparent;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fy-hero__pip svg {width:15px;height:15px;overflow:visible;transform:rotate(-90deg);transition:transform 200ms var(--fy-ease-out)}
+.fy-hero__pip-track {fill:currentColor;stroke:currentColor;stroke-width:0;opacity:.55;transform:scale(.5);transform-origin:8px 8px;transition:transform 260ms var(--fy-ease-out),opacity 260ms,fill-opacity 260ms,stroke-width 260ms}
+@media(hover:hover){.fy-hero__pip:not([data-active]):hover .fy-hero__pip-track {opacity:.9}}
+.fy-hero__pip:active svg {transform:rotate(-90deg) scale(.88)}
+/* Current slide: the dot opens into a faint ring track. */
+.fy-hero__pip[data-active] .fy-hero__pip-track {fill-opacity:0;stroke-width:1.75;opacity:.32;transform:none}
+.fy-hero__pip-fill {fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-dasharray:100 100}
+.fy-hero__pip-fill--wall {stroke-dashoffset:100;animation:fy-hero-pip-fill 5000ms linear forwards}
+.fy-hero[data-paused] .fy-hero__pip-fill--wall {animation-play-state:paused}
+.fy-hero__pip-fill--video {stroke-dashoffset:calc(100 - var(--fy-hero-video-progress, 0) * 100);transition:stroke-dashoffset 280ms linear}
+.fy-hero[data-video-loading] .fy-hero__pip-fill--video {stroke-dasharray:28 72;stroke-dashoffset:0;transition:none;transform-origin:8px 8px;animation:fy-hero-pip-spin 900ms linear infinite}
+@keyframes fy-hero-pip-fill {to {stroke-dashoffset:0}}
+@keyframes fy-hero-pip-spin {to {transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.fy-hero__pip-fill--wall,.fy-hero__pip-fill--video {animation:none;stroke-dashoffset:0;transition:none}.fy-hero[data-video-loading] .fy-hero__pip-fill--video {stroke-dasharray:100 100}}
+.fy-hero__pip:focus-visible {outline:2px solid currentColor;outline-offset:-6px}
 .fy-hero-debug {position:fixed;z-index:10000;left:8px;bottom:8px;width:calc(100% - 16px);max-width:640px;max-height:70dvh;overflow:auto;background:#fffffff2;color:#111;border:1px solid #555;border-radius:8px;padding:8px;font:10px/1.35 monospace;pointer-events:auto}
 .fy-hero-debug pre {white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0}
 @media (prefers-reduced-motion: reduce) { .fy-hero__poster { transition: none; } }
