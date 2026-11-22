@@ -27,6 +27,7 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   let visibilityWait: ReturnType<typeof setTimeout> | undefined;
   let startup: ReturnType<typeof setTimeout> | undefined, stall: ReturnType<typeof setTimeout> | undefined, bufferWait: ReturnType<typeof setTimeout> | undefined, watchdog: ReturnType<typeof setTimeout> | undefined;
   let lastTime = 0;
+  let corrected = false; // one rewind of a resumed first frame per visit, never a loop
   let playRequest = 0;
   const state: HeroVideoState = { loading: options.active, visible: false, duration: 0, bufferedEnd: 0, progress: 0 };
   const live = () => options.active && !disposed && !completed;
@@ -38,7 +39,10 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
     state.bufferedEnd = buffered.length ? buffered.end(buffered.length - 1) : 0;
     state.progress = started && state.duration ? Math.min(1, Math.max(0, video.currentTime / state.duration)) : 0;
   };
-  const reset = () => { video.pause(); try { if (video.currentTime !== 0) video.currentTime = 0; } catch { /* Metadata may not exist yet; loadedmetadata retries. */ } };
+  const rewind = () => { try { if (video.currentTime !== 0) video.currentTime = 0; } catch { /* Metadata may not exist yet; loadedmetadata retries. */ } };
+  const reset = () => { video.pause(); rewind(); };
+  /** Anything past this at the first frame of a visit is a resumed position, not a fresh start. */
+  const RESUMED_AT = 0.5;
   const finish = (reason: FinishReason) => {
     if (!live()) return;
     completed = true; clear(); state.loading = false; state.visible = false; emit(); video.dispatchEvent(new CustomEvent('fyhero:finish',{detail:reason})); video.pause(); options.onComplete(reason);
@@ -76,6 +80,10 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
       if (video.readyState >= 2 && bufferWait === undefined) bufferWait = clock.setTimeout(() => { bufferWait = undefined; allowPartial = true; attempt(); }, HERO_VIDEO_TIMEOUTS.bufferPreference);
       return;
     }
+    // Each visit starts at 0:00. Rewind again right before play(), and let a seek still in
+    // flight land first: iOS applies seeks lazily, and play() during one can resume the old
+    // position. 'seeked' retries the attempt.
+    if (!started) { rewind(); if (video.seeking) return; }
     video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
     video.autoplay = true; video.setAttribute('autoplay', '');
     pending = true;
@@ -90,6 +98,8 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   const canPlayThrough = () => { through = true; ready(); };
   const playing = () => {
     if (!live()) { video.pause(); return; }
+    // Safety net for engines that ignored the rewind: never show a resumed position.
+    if (!started && !corrected && video.currentTime > RESUMED_AT) { corrected = true; rewind(); return; }
     started = true; blocked = false; clear(); state.loading = false; state.visible = true; measure(); emit(); watchProgress();
   };
   const waiting = () => {
@@ -100,6 +110,8 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   };
   const paused = () => { if (live() && started && video.paused && !video.ended) waiting(); };
   const ended = () => { if (video.ended) finish('ended'); };
+  // A start-of-visit rewind finished: begin, or count an already-running play as started.
+  const seeked = () => { if (!live() || started) return; if (video.paused) attempt(); else playing(); };
   const error = () => finish('error');
   const progress = () => {
     // Only the native ended listener completes a pass. A missing event is a bounded failure.
@@ -115,14 +127,14 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   const manual = () => {
     if (!live()) return;
     // Invalidate a hanging old promise before beginning a fresh, bounded user attempt.
-    playRequest++; pending = false; started = false; blocked = false; clear(); reset();
+    playRequest++; pending = false; started = false; corrected = false; blocked = false; clear(); reset();
     state.loading = true; state.visible = false; measure(); emit();
     if (video.error || video.networkState === 3) video.load();
     startup = clock.setTimeout(() => finish(blocked ? 'blocked' : 'start-timeout'), HERO_VIDEO_TIMEOUTS.firstStart);
     video.dispatchEvent(new CustomEvent('fyhero:manual-retry'));
     attempt(true);
   };
-  const listeners: [string, EventListener][] = [['loadedmetadata', metadata], ['canplay', ready], ['canplaythrough', canPlayThrough], ['playing', playing], ['waiting', waiting], ['stalled', waiting], ['pause', paused], ['ended', ended], ['error', error], ['progress', progress], ['timeupdate', progress], ['fyhero:manual-play', manual]];
+  const listeners: [string, EventListener][] = [['loadedmetadata', metadata], ['canplay', ready], ['canplaythrough', canPlayThrough], ['playing', playing], ['waiting', waiting], ['stalled', waiting], ['pause', paused], ['ended', ended], ['seeked', seeked], ['error', error], ['progress', progress], ['timeupdate', progress], ['fyhero:manual-play', manual]];
   video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
   video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
   video.loop = false; video.removeAttribute?.('loop');

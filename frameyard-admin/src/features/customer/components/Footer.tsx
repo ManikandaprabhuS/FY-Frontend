@@ -103,14 +103,14 @@ const Footer: React.FC = () => {
       <FooterIllustration />
 
       <div className="relative -mt-2 bg-[#090909] text-white">
-        <div className="mx-auto max-w-7xl px-4 pb-10 pt-5 sm:px-6 sm:pb-12 sm:pt-6 lg:px-8 lg:pb-16 lg:pt-8">
-          <div className="grid gap-9 sm:gap-10 md:grid-cols-3 md:gap-6 lg:gap-14">
+        <div className="mx-auto max-w-7xl px-4 pb-7 pt-4 sm:px-6 sm:pb-8 sm:pt-5 lg:px-8 lg:pb-10 lg:pt-6">
+          <div className="grid gap-6 sm:gap-7 md:grid-cols-3 md:gap-6 lg:gap-14">
             <section aria-labelledby="newsletter-heading">
               <h2 id="newsletter-heading" className="text-xl font-black sm:text-2xl">Subscribe to our Newsletter</h2>
-              <p className="mt-3 max-w-md text-sm leading-6 text-white/60">
+              <p className="mt-2 max-w-md text-sm leading-6 text-white/60">
                 Get updates on new frame collections, exclusive offers, and product launches.
               </p>
-              <form onSubmit={handleSubscribe} className="mt-5 flex flex-col gap-3 xl:flex-row">
+              <form onSubmit={handleSubscribe} className="mt-4 flex flex-col gap-3 xl:flex-row">
                 <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
                 <input
                   id="footer-newsletter-email"
@@ -140,8 +140,8 @@ const Footer: React.FC = () => {
 
             <section aria-labelledby="follow-heading">
               <h2 id="follow-heading" className="text-xl font-black sm:text-2xl">Follow Us</h2>
-              <p className="mt-3 text-sm leading-6 text-white/60">Stay close to our latest handcrafted frame stories.</p>
-              <div className="mt-6 flex gap-3">
+              <p className="mt-2 text-sm leading-6 text-white/60">Stay close to our latest handcrafted frame stories.</p>
+              <div className="mt-4 flex gap-3">
                 {socialLinks.map((link) => {
                   const Icon = link.icon;
                   return (
@@ -162,7 +162,7 @@ const Footer: React.FC = () => {
 
             <section aria-labelledby="contact-heading">
               <h2 id="contact-heading" className="text-xl font-black sm:text-2xl">Contact Us</h2>
-              <div className="mt-6 space-y-5">
+              <div className="mt-4 space-y-3">
                 {contactItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -181,10 +181,10 @@ const Footer: React.FC = () => {
             </section>
           </div>
 
-          <div className="mt-10 border-t border-white/10 pt-6 sm:mt-12">
-            <div className="flex flex-col gap-5 text-sm text-white/55 md:flex-row md:items-center md:justify-between">
+          <div className="mt-7 border-t border-white/10 pt-5 sm:mt-8">
+            <div className="flex flex-col gap-3 text-sm text-white/55 md:flex-row md:items-center md:justify-between">
               <p>© 2026 FrameYaad. All Rights Reserved.</p>
-              <nav className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6" aria-label="Footer quick links">
+              <nav className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6" aria-label="Footer quick links">
                 {quickLinks.map((link) => (
                   <a key={link} href="#" className="transition hover:text-white">
                     {link}

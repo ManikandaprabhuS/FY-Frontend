@@ -20,7 +20,7 @@ test('new MP4s are faststart and within the size targets; poster is under 50 KB'
   assert(boxes.indexOf('moov')>=0&&boxes.indexOf('moov')<boxes.indexOf('mdat'));
   const avc=b.indexOf('avcC');assert(avc>0);assert.equal(b[avc+5],77,'H264 Main profile');assert(b[avc+7]<=41,'level at most 4.1');
  }
- assert(statSync(new URL('../public/hero/poster-7bc3f139be3a.webp',import.meta.url)).size<50000);
+ assert(statSync(new URL('../public/hero/poster-start-bb66a7b681e6.webp',import.meta.url)).size<50000);
  assert.match(read('public/_headers'),/\/hero\/\*\s+Cache-Control: public, max-age=31536000, immutable/);
 });
 

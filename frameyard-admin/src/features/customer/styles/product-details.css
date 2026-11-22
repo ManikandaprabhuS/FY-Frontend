@@ -603,16 +603,16 @@
 /* Joined tiles: each overlaps its neighbour by 1px so borders are shared, never doubled.
    Tiles keep a compact width (about 92-115px) and sit left-aligned under the label,
    rather than stretching across the panel. */
-.fy-cfg__tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); padding: 1px 0 0 1px; }
+.fy-cfg__tiles { display: grid; grid-template-columns: repeat(auto-fill, 88px); padding: 1px 0 0 1px; }
 .fy-cfg__tile {
   position: relative;
   display: grid;
   justify-items: center;
   align-content: center;
   gap: 2px;
-  min-height: 56px;
+  min-height: 48px;
   margin: -1px 0 0 -1px;
-  padding: 6px;
+  padding: 4px;
   border: 1px solid rgba(17, 17, 17, 0.18);
   background: #ffffff;
   color: var(--color-ink);
@@ -648,7 +648,7 @@
 
 /* Finish: square swatches; the chosen one is framed by a thin black line. */
 .fy-cfg__swatches { display: flex; flex-wrap: wrap; gap: 6px; }
-.fy-cfg__swatch { position: relative; display: grid; width: 44px; height: 44px; padding: 3px; border: 1px solid transparent; transition: border-color 180ms ease; }
+.fy-cfg__swatch { position: relative; display: grid; width: 40px; height: 40px; padding: 3px; border: 1px solid transparent; transition: border-color 180ms ease; }
 .fy-cfg__swatch > span { border-radius: 0; border-color: rgba(17, 17, 17, 0.15); box-shadow: none; }
 @media (hover: hover) {
   .fy-cfg__swatch:not([aria-pressed='true'], :disabled):hover { border-color: rgba(17, 17, 17, 0.35); }
@@ -658,3 +658,52 @@
 /* Unavailable: faded and struck through corner to corner, so it never relies on fading alone. */
 .fy-cfg__swatch:disabled { opacity: 0.4; cursor: not-allowed; }
 .fy-cfg__swatch:disabled::after { content: ""; position: absolute; inset: 3px; background: linear-gradient(to top right, transparent calc(50% - 0.75px), var(--color-ink) calc(50% - 0.75px), var(--color-ink) calc(50% + 0.75px), transparent calc(50% + 0.75px)); }
+
+/* ======================================================================
+   Desktop buying column, compact: smaller type and an even, closer rhythm.
+   Phones and tablets keep the sizes above. Main buttons stay 48px tall.
+   ====================================================================== */
+@media (min-width: 1024px) {
+  .fy-pdp__info .fy-pdp__head { gap: 4px; }
+  .fy-pdp__info .fy-pdp__rating-link { min-height: 28px; }
+  .fy-pdp__info .fy-pdp__pill { padding: 4px 9px; font-size: 11.5px; }
+  .fy-pdp__info .fy-pdp__title { font-size: clamp(24px, 2.2vw, 30px); }
+  .fy-pdp__info .fy-pdp__now { font-size: 24px; }
+  .fy-pdp__info .fy-pdp__was { font-size: 14px; }
+  .fy-pdp__info .fy-pdp__save { padding: 3px 7px; font-size: 11.5px; }
+  .fy-pdp__info .fy-pdp__stock { font-size: 13px; }
+
+  .fy-pdp__info .fy-cfg { margin-top: 12px; }
+  .fy-pdp__info .fy-cfg__row { padding: 9px 0 11px; }
+  .fy-pdp__info .fy-cfg__head { margin-bottom: 6px; }
+  .fy-pdp__info .fy-cfg__label { font-size: 11px; }
+  .fy-pdp__info .fy-cfg__value { font-size: 13px; }
+  .fy-pdp__info .fy-cfg__tiles { grid-template-columns: repeat(auto-fill, 84px); }
+  .fy-pdp__info .fy-cfg__tile { min-height: 44px; padding: 4px; font-size: 12.5px; }
+  .fy-pdp__info .fy-cfg__detail { font-size: 11px; }
+  .fy-pdp__info .fy-cfg__preview { height: 16px; }
+  .fy-pdp__info .fy-cfg__swatch { width: 36px; height: 36px; }
+
+  .fy-pdp__info .fy-upload { padding: 10px 12px 12px; }
+  .fy-pdp__info .fy-upload__icon { width: 32px; height: 32px; }
+  .fy-pdp__info .fy-upload__title { font-size: 13.5px; }
+  .fy-pdp__info .fy-upload__hint { font-size: 12.5px; }
+  .fy-pdp__info .fy-upload--done { gap: 14px; padding: 10px; }
+  .fy-pdp__info .fy-upload__thumb { width: 64px; max-height: 80px; }
+
+  .fy-pdp__info .fy-summary { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 12px; margin-top: 14px; padding: 10px; }
+  .fy-pdp__info .fy-summary__thumb { width: 48px; height: 48px; }
+  .fy-pdp__info .fy-summary__title { font-size: 13.5px; }
+  .fy-pdp__info .fy-summary__line { font-size: 12.5px; }
+  .fy-pdp__info .fy-summary__total strong { font-size: 18px; }
+
+  .fy-pdp__info .fy-summary + .fy-pdp__buy { margin-top: 8px; }
+  .fy-pdp__info .fy-pdp__buy { gap: 8px; }
+  .fy-pdp__info .fy-qty button { width: 40px; height: 48px; }
+  .fy-pdp__info .fy-cart.fy-pdp__cart { min-height: 48px; font-size: 14.5px; }
+  .fy-pdp__info .fy-wish.fy-pdp__wish { width: 48px; height: 48px; }
+  .fy-pdp__info .fy-buynow { min-height: 48px; margin-top: 8px; font-size: 14.5px; }
+
+  .fy-pdp__info .fy-pdp__trust { margin-top: 14px; padding-top: 12px; }
+  .fy-pdp__info .fy-pdp__trust-item { gap: 4px; font-size: 12px; }
+}
