@@ -192,11 +192,16 @@ const VideoSlide: React.FC<{ video: HeroVideo; playing: boolean; onComplete: () 
     if (playing) attempted.current = true;
     if (playing && element.currentSrc !== new URL(source, window.location.href).href) element.load();
     return createHeroVideoPlayback(element, {
-      active: playing, startupMs, touchTarget: window, onComplete,
+      active: playing, startupMs, touchTarget: window, onComplete, eager: compact,
       canStart: () => heroIntersectsViewport(element.getBoundingClientRect(),window.innerWidth,window.innerHeight) && getComputedStyle(element).visibility !== 'hidden' && Math.abs(element.getBoundingClientRect().left-(element.closest('.fy-hero')?.getBoundingClientRect().left??0)) < 2,
-      onState: setPlayback,
+      onState: state => {
+        setPlayback(state);
+        // The slide indicator reads progress from CSS, so timeupdates re-render nothing else.
+        const root = element.closest<HTMLElement>('.fy-hero');
+        if (root) { root.style.setProperty('--fy-hero-video-progress', String(state.progress)); root.toggleAttribute('data-video-loading', playing && state.loading); }
+      },
     });
-  }, [playing, source, onComplete]);
+  }, [playing, source, onComplete, compact]);
 
   return (
     <>
@@ -394,7 +399,24 @@ const HeroSection: React.FC<HeroSectionProps> = (props) => {
         </div>
       )}
 
-      {video && <button type="button" className="fy-hero__retry" aria-label={current===1?'Play or retry hero video':'Show hero video'} title={current===1?'Play / retry video':'Show video'} onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();if(current!==1){goTo(1,1);return;}rootRef.current?.querySelector('video')?.dispatchEvent(new Event('fyhero:manual-play'));}}><span className="fy-hero__retry-circle" aria-hidden="true"/></button>}
+      {/* Slide indicator: a dot for the other slide, a thin ring for the current one whose arc
+          fills with the wall's clock or the video's real playback (and spins while the video
+          loads). Tapping the video's ring retries playback. */}
+      {video && <div className="fy-hero__pager" role="group" aria-label="Hero slides" onPointerDown={event=>event.stopPropagation()}>
+        {[0,1].map(index=>{
+          const on=index===current;
+          return <button key={index} type="button" className={'fy-hero__pip'+(index===1?' fy-hero__retry':'')} data-active={on||undefined}
+            aria-current={on||undefined}
+            aria-label={index===0?'Show frame wall':on?'Play or retry hero video':'Show hero video'}
+            onClick={event=>{event.stopPropagation();if(!on){goTo(index,index>current?1:-1);return;}if(index===1)rootRef.current?.querySelector('video')?.dispatchEvent(new Event('fyhero:manual-play'));}}>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle className="fy-hero__pip-track" cx="8" cy="8" r="6"/>
+              {/* Keyed per visit so the wall's arc restarts each time it comes back. */}
+              {on&&<circle key={index===0?'wall-'+motion.wallVisits:'video'} className={'fy-hero__pip-fill fy-hero__pip-fill--'+(index===0?'wall':'video')} cx="8" cy="8" r="6" pathLength="100"/>}
+            </svg>
+          </button>;
+        })}
+      </div>}
 
     </section>
   );

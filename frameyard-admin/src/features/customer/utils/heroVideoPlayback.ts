@@ -12,6 +12,13 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
   onComplete: (reason: FinishReason) => void;
   touchTarget?: EventTarget;
   canStart?: () => boolean;
+  /**
+   * Phones: call play() as soon as the slide is on screen instead of waiting for canplay.
+   * iOS Safari often buffers nothing until play() is called, so waiting for canplay can
+   * run out the startup deadline and skip the video. Muted inline play() is allowed there
+   * and starts the download itself; desktop keeps the buffered start.
+   */
+  eager?: boolean;
   clock?: Clock;
 }) {
   // WebKit requires Window as the native timer receiver; do not store bare methods.
@@ -63,9 +70,9 @@ export function createHeroVideoPlayback(video: HTMLVideoElement, options: {
     }
     // Automatic playback waits for canplay. A real user gesture can initiate
     // loading/play synchronously: iOS may otherwise wait for that gesture forever.
-    if (!gesture && video.readyState < 3) return;
+    if (!gesture && !options.eager && video.readyState < 3) return;
     // Short clips prefer canplaythrough; the same startup deadline bounds this wait.
-    if (!gesture && state.duration > 0 && state.duration <= 15 && !through && !allowPartial && video.readyState < 4 && state.bufferedEnd < state.duration - 0.05) {
+    if (!gesture && !options.eager && state.duration > 0 && state.duration <= 15 && !through && !allowPartial && video.readyState < 4 && state.bufferedEnd < state.duration - 0.05) {
       if (video.readyState >= 2 && bufferWait === undefined) bufferWait = clock.setTimeout(() => { bufferWait = undefined; allowPartial = true; attempt(); }, HERO_VIDEO_TIMEOUTS.bufferPreference);
       return;
     }
