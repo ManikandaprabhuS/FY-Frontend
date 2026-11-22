@@ -31,7 +31,7 @@ test('table requests combine date, status, search and pagination on the backend'
 });
 test('summary icons replace dots and all date choices remain available', async () => {
   const page = await readFile(new URL('../src/pages/orders/OrdersPage.tsx', import.meta.url), 'utf8');
-  for (const icon of ['Clock', 'Package', 'CheckCircle2', 'XCircle']) assert.ok(page.includes('<' + icon + ' className="h-4 w-4 text-secondary"'));
+  for (const icon of ['Box', 'Clock', 'Layers', 'Package', 'XCircle']) assert.ok(page.includes('<' + icon + ' className="h-4 w-4 text-secondary"'));
   assert.doesNotMatch(page, /h-1\.5 w-1\.5 rounded-full/);
   for (const label of ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'All Time', 'Today']) assert.ok(page.includes(label));
   assert.match(page, /}, 350\)/);

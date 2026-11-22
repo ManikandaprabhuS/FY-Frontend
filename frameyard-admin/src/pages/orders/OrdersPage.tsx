@@ -7,7 +7,7 @@ import { useLocation } from 'react-router-dom';
 import useOrders from '../../hooks/useOrders';
 import DataTable from '../../components/tables/DataTable';
 import Modal from '../../components/ui/Modal';
-import { Search, Calendar, ArrowRight, Eye, Mail, Phone, ShoppingCart, Download, Clock, Package, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Calendar, Eye, Mail, Phone, ShoppingCart, Download, Clock, Package, Box, Layers, MapPin, XCircle, UserRound, Wallet, Info } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
 import StatusBadge, { OrderStatusFilter } from '../../components/ui/StatusBadge';
 import OrderItemOptions from '../../components/orders/OrderItemOptions';
@@ -17,6 +17,12 @@ import brandLogo from '../../assets/fy-logo-icon.jpeg';
 import {useOrderFlow} from '../../store/orderFlowStore';
 import {useOrderStore} from '../../store/orderStore';
 import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
+import './orders.css';
+
+const customerTone=(id:string)=>Array.from(id).reduce((hash,char)=>(hash+char.charCodeAt(0))%5,0);
+function OrderCustomer({name,email,address,customerId}:{name:string;email:string;address:string;customerId:string}){
+ return <div className="fy-orders__customer"><span className="fy-orders__avatar" data-tone={customerTone(customerId||email)} aria-hidden="true">{name.trim().charAt(0).toUpperCase()||'?'}</span><div className="fy-orders__customer-copy"><strong title={name}>{name}</strong><span className="fy-orders__email" title={email}>{email}</span><span className="fy-orders__address" title={address}><MapPin size={12} aria-hidden="true"/><span>{address}</span></span></div></div>;
+}
 
 const getSearchTermFromQueryString = (search: string) => {
   const params = new URLSearchParams(search);
@@ -186,29 +192,31 @@ export const OrdersPage: React.FC = () => {
     : 'There are no orders to display yet.';
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 border-b border-outline-variant/60 pb-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+    <div className="fy-orders space-y-6 animate-fade-in">
+      <div className="fy-orders__header flex flex-col gap-4 border-b border-outline-variant/60 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="fy-orders__heading">
+          <span className="fy-orders__heading-icon"><ShoppingCart aria-hidden="true"/></span><div>
           <h2 className="text-3xl font-bold text-on-surface">Orders Management</h2>{flowError&&<button type="button" onClick={()=>void retryFlow()} className="min-h-11 text-xs font-bold underline">Retry loading status options</button>}
           <p className="mt-1 text-sm text-secondary">View, track, and manage all customer orders.</p>
+          </div>
         </div>
 
         <button
           onClick={exportOrdersReport}
           disabled={exporting || refreshing || debouncedSearchTerm !== searchTerm.trim()}
           aria-busy={exporting}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface"
+          className="fy-orders__export inline-flex items-center justify-center gap-1.5 rounded-xl border border-outline-variant px-4 py-2 text-sm font-semibold transition-colors hover:bg-surface"
         >
           <Download className="h-4 w-4" />
-          <span>Export</span>
+          <span>Export Orders</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+      <div className="fy-orders__stats grid grid-cols-2 gap-4 md:grid-cols-5">
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Total Orders</span>
-            <ShoppingCart className="h-4 w-4 text-secondary" />
+            <Box className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.totalCount.toLocaleString('en-US')}</div>
           <div className="mt-1 text-[10px] text-tertiary">Total orders</div>
@@ -226,7 +234,7 @@ export const OrdersPage: React.FC = () => {
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Processing</span>
-            <Package className="h-4 w-4 text-secondary" aria-hidden="true" />
+            <Layers className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.processingCount}</div>
           <div className="mt-1 text-[10px] text-secondary">In fulfillment</div>
@@ -235,7 +243,7 @@ export const OrdersPage: React.FC = () => {
         <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase text-secondary">Delivered</span>
-            <CheckCircle2 className="h-4 w-4 text-secondary" aria-hidden="true" />
+            <Package className="h-4 w-4 text-secondary" aria-hidden="true" />
           </div>
           <div className="text-xl font-bold text-on-surface">{summary.deliveredCount}</div>
           <div className="mt-1 text-[10px] text-secondary">Completed</div>
@@ -251,24 +259,25 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-outline-variant bg-surface-bright p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="flex w-full items-center rounded-lg border border-outline-variant bg-surface px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 sm:w-72">
+      <div className="fy-orders__list rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+        <div className="fy-orders__toolbar flex flex-col gap-4 border-b border-outline-variant bg-surface-bright p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="fy-orders__filters flex flex-col gap-3 sm:flex-row">
+            <div className="fy-orders__search flex w-full items-center rounded-lg border border-outline-variant bg-surface px-3 py-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 sm:w-72">
               <Search className="mr-2 h-4 w-4 text-outline-variant" />
               <input
                 type="text"
+                aria-label="Search orders by order ID, customer, phone or email"
                 value={searchTerm}
                 onChange={(event) => {
                   setSearchTerm(event.target.value);
                   setCurrentPage(1);
                 }}
                 className="w-full border-none bg-transparent p-0 text-xs text-on-surface placeholder:text-outline-variant/80 outline-none focus:ring-0"
-                placeholder="Order ID, customer, phone..."
+                placeholder="Search by order ID, customer, phone or email..."
               />
             </div>
 
-            <div className="w-full sm:w-44">
+            <div className="fy-orders__status-filter w-full sm:w-44"><span aria-hidden="true">Status:</span>
               <OrderStatusFilter value={statusFilter} onChange={value => { setStatusFilter(value as 'all' | OrderStatus); setCurrentPage(1); }} className="w-full cursor-pointer rounded-lg border border-outline-variant px-3 py-2 text-center text-xs outline-none focus:border-primary" />
             </div>
 
@@ -276,6 +285,7 @@ export const OrdersPage: React.FC = () => {
               <div className="relative">
                 <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-outline-variant" />
                 <select
+                  aria-label="Filter orders by date range"
                   value={dateFilter}
                   onChange={(event) => {
                     setDateFilter(event.target.value);
@@ -292,6 +302,7 @@ export const OrdersPage: React.FC = () => {
                 </select>
               </div>
             </div>
+            <label className="fy-orders__refund-filter text-xs font-bold">Refund:<select aria-label="Filter orders by refund status" value={refundFilter} onChange={e=>{setRefundFilter(e.target.value);setCurrentPage(1);}} className="ml-2 min-h-11 rounded border bg-white px-3"><option value="all">All Refunds</option><option value="NONE">Not started</option><option value="INITIATED">Initiated</option><option value="COMPLETED">Completed</option></select></label>
           </div>
           {refreshing && (
             <div className="text-xs font-medium text-primary lg:ml-auto">
@@ -300,7 +311,7 @@ export const OrdersPage: React.FC = () => {
           )}
         </div>
 
-        <label className="text-xs font-bold">Refund status<select value={refundFilter} onChange={e=>{setRefundFilter(e.target.value);setCurrentPage(1);}} className="ml-2 min-h-11 rounded border bg-white px-3"><option value="all">All refunds</option><option value="NONE">Not started</option><option value="INITIATED">Initiated</option><option value="COMPLETED">Completed</option></select></label>
+      <div className="fy-orders__table">
       <DataTable
           headers={headers}
           items={visibleOrders}
@@ -316,9 +327,7 @@ export const OrdersPage: React.FC = () => {
                 {order.orderNumber}
               </td>
               <td className="px-6 py-4">
-                <div className="font-semibold text-on-surface">{getCustomerName(order)}</div>
-                <div className="mt-0.5 text-[11px] text-secondary">{getCustomerEmail(order)}</div>
-                <div className="mt-0.5 text-[10px] text-secondary">{getCustomerAddress(order)}</div>
+                <OrderCustomer name={getCustomerName(order)} email={getCustomerEmail(order)} address={getCustomerAddress(order)} customerId={order.userId}/>
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{getCustomerPhone(order)}</td>
               <td className="px-6 py-4 text-right font-medium">{getItemsCount(order)}</td>
@@ -326,12 +335,13 @@ export const OrdersPage: React.FC = () => {
               <td className="px-6 py-4">
                 <StatusBadge status={order.orderStatus} disabled={!flow||statusBusy.includes(order.id)} options={[order.orderStatus,...(flow?.transitions[order.orderStatus]??[])]} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </td>
-              <td className="px-6 py-4"><RefundStatusSummary order={order}/></td>
-              <td className="px-6 py-4 text-on-surface-variant">{new Date(order.createdAt).toLocaleDateString()}</td>
+              <td className="px-6 py-4">{order.refundStatus?<RefundStatusSummary order={order}/>:<span>—</span>}</td>
+              <td className="px-6 py-4 text-on-surface-variant">{new Date(order.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
               <td className="px-6 py-4 text-right">
                 <button
                   onClick={() => openOrderDetails(order)}
-                  className="rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-container hover:text-primary"
+                  className="fy-orders__view rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-container hover:text-primary"
+                  aria-label={`View order ${order.orderNumber}`}
                   title="View Details"
                 >
                   <Eye className="h-4 w-4" />
@@ -340,7 +350,7 @@ export const OrdersPage: React.FC = () => {
             </tr>
           )}
           renderCard={(order) => (
-            <div key={order.orderNumber} className="group relative space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
+            <div key={order.orderNumber} className="fy-orders__mobile-card group relative space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <button
@@ -349,37 +359,43 @@ export const OrdersPage: React.FC = () => {
                   >
                     {order.orderNumber}
                   </button>
-                  <div className="mt-1 text-sm font-semibold text-on-surface">{getCustomerName(order)}</div>
                 </div>
                 <StatusBadge status={order.orderStatus} disabled={!flow||statusBusy.includes(order.id)} options={[order.orderStatus,...(flow?.transitions[order.orderStatus]??[])]} label={`Order status for ${order.orderNumber}`} onStatusChange={status => handleStatusChange(order.id, status as OrderStatus)} />
               </div>
 
+              <OrderCustomer name={getCustomerName(order)} email={getCustomerEmail(order)} address={getCustomerAddress(order)} customerId={order.userId}/>
+              <p className="fy-orders__mobile-phone"><Phone size={13} aria-hidden="true"/><span>{getCustomerPhone(order)||'—'}</span></p>
+
               <div className="grid grid-cols-2 gap-2 pt-1 text-xs text-on-surface-variant">
                 <div>
                   <span className="block text-[10px] font-semibold uppercase text-on-surface-variant/60">Date</span>
-                  <span className="font-medium text-on-surface">{new Date(order.createdAt).toLocaleDateString()}</span>
+                  <span className="font-medium text-on-surface">{new Date(order.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
                 </div>
                 <div>
                   <span className="block text-[10px] font-semibold uppercase text-on-surface-variant/60">Total Amount</span>
-                  <span className="font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</span>{order.orderStatus==="CANCELLED"&&<p className="text-[10px] font-bold text-red-700">Excluded from revenue</p>}<RefundStatusSummary order={order}/>
+                  <span className="font-bold text-on-surface">₹{Number(order.totalAmount).toFixed(2)}</span>{order.orderStatus==="CANCELLED"&&<p className="text-[10px] font-bold text-red-700">Excluded from revenue</p>}
                 </div>
               </div>
+
+              <div className="fy-orders__mobile-refund"><span>Refund</span>{order.refundStatus?<RefundStatusSummary order={order}/>:<span>—</span>}</div>
 
               <div className="flex items-center justify-between border-t border-outline-variant/40 pt-2">
                 <span className="text-xs text-on-surface-variant">{getItemsCount(order)} items purchased</span>
                 <button
                   onClick={() => openOrderDetails(order)}
-                  className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  aria-label={`View order ${order.orderNumber}`}
+                  className="fy-orders__view flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                 >
                   <span>Details</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <Eye className="h-3.5 w-3.5" aria-hidden="true"/>
                 </button>
               </div>
             </div>
           )}
         />
+        </div>
 
-        <div className="flex flex-col gap-3 border-t border-outline-variant px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="fy-orders__footer flex flex-col gap-3 border-t border-outline-variant px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 text-xs text-on-surface-variant">
             <span>
               Showing {startItem}-{endItem} of {totalItems} orders
@@ -399,7 +415,7 @@ export const OrdersPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+          <div className="fy-orders__pagination flex items-center gap-1.5 self-start sm:self-auto">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={pagination.page === 1}
@@ -414,6 +430,8 @@ export const OrdersPage: React.FC = () => {
                 return (
                   <button
                     key={pageNum}
+                    aria-label={`Go to orders page ${pageNum}`}
+                    aria-current={pagination.page===pageNum?'page':undefined}
                     onClick={() => setCurrentPage(pageNum)}
                     className={`h-8 w-8 rounded-lg text-xs font-semibold transition-all ${
                       pagination.page === pageNum
@@ -448,12 +466,18 @@ export const OrdersPage: React.FC = () => {
         isOpen={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
         title={`Order Details: ${selectedOrder?.orderNumber}`}
+        size="xl"
+        className="fy-order-details-modal"
+        accessibleFocus
       >
         {selectedOrder && (
-          <div className="space-y-6">
-            <StatusBadge status={(orders.find(order => order.id === selectedOrder.id) ?? selectedOrder).orderStatus} />
-            <div className="rounded-xl border border-outline-variant bg-surface p-4">
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Customer Information</h4>
+          <div className="fy-order-details">
+            <div className="fy-order-details__status"><StatusBadge status={(orders.find(order => order.id === selectedOrder.id) ?? selectedOrder).orderStatus} />
+            {selectedOrder.orderStatus==='CANCELLED'&&<span>Excluded from revenue</span>}
+            <span className="fy-order-details__ordered"><Calendar size={17} aria-hidden="true"/>Ordered on {new Date(selectedOrder.createdAt).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true})}</span></div>
+            <div className="fy-order-details__top">
+            <section className="fy-order-details__card fy-order-details__customer">
+              <h4><UserRound size={22} aria-hidden="true"/>Customer Information</h4>
               <div className="space-y-4">
                 <div className="min-w-0">
                   <span className="block text-xs text-on-surface-variant/70">Name</span>
@@ -480,13 +504,18 @@ export const OrdersPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+            </section>
+            <section className="fy-order-details__card fy-order-details__summary"><h4><Wallet size={22} aria-hidden="true"/>Order Summary</h4>
+              <OrderOfferDetails order={selectedOrder}/>
+              <div className="fy-order-details__total"><span>Total Price</span><strong>₹{Number(selectedOrder.totalAmount).toFixed(2)}</strong></div>
+            </section>
             </div>
-
-            <div>
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-on-surface-variant">Items Purchased</h4>
+            <section className="fy-order-details__card fy-order-details__items">
+              <h4><Box size={22} aria-hidden="true"/>Items Purchased ({selectedOrder.orderItems.length})</h4>
               <div className="divide-y divide-outline-variant/40 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">
                 {selectedOrder.orderItems.map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-4">
+                    {item.imageUrl&&<img className="fy-order-details__item-image" src={item.imageUrl} alt={item.productName}/>}
                     <div>
                       <p className="text-sm font-semibold text-on-surface">{item.productName}</p>
                       <OrderItemOptions item={item} />
@@ -498,24 +527,12 @@ export const OrdersPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </div>
-
+            </section>
+            <div className="fy-order-details__bottom">
             <RefundControls order={selectedOrder} onChanged={updated=>{setSelectedOrder(updated);void fetchOrders(useOrderStore.getState().lastQuery,{silent:true});}}/>
-            {selectedOrder.orderStatus==="CANCELLED"&&<p className="text-xs font-bold text-red-700">Excluded from revenue{selectedOrder.cancelledAt?" · Cancelled "+new Date(selectedOrder.cancelledAt).toLocaleString("en-IN"):""}{selectedOrder.cancellationReason?" · "+selectedOrder.cancellationReason:""}</p>}
-            <div className="flex items-center justify-between border-t border-outline-variant pt-4">
-              <div>
-                <span className="block text-xs text-on-surface-variant">Order Date</span>
-                <span className="mt-0.5 block text-sm font-medium text-on-surface">
-                  {new Date(selectedOrder.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}
-                </span>
-              </div>
-              <div className="text-right">
-                <OrderPhotoDownload order={selectedOrder} admin /><OrderOfferDetails order={selectedOrder} /><span className="block text-xs text-on-surface-variant">Total Price</span>
-                <span className="mt-0.5 block text-lg font-bold text-primary">
-                  ₹{Number(selectedOrder.totalAmount).toFixed(2)}
-                </span>
-              </div>
+            <OrderPhotoDownload order={selectedOrder} admin />
             </div>
+            {selectedOrder.orderStatus==="CANCELLED"&&<p className="fy-order-details__cancel"><Info size={20} aria-hidden="true"/><span>Excluded from revenue{selectedOrder.cancelledAt?" · Cancelled "+new Date(selectedOrder.cancelledAt).toLocaleString("en-IN"):""}{selectedOrder.cancelledBy?' · Cancelled by '+(selectedOrder.cancelledBy==='admin'?'store':'customer'):''}{selectedOrder.cancellationReason?" · "+selectedOrder.cancellationReason:""}</span></p>}
           </div>
         )}
       </Modal>

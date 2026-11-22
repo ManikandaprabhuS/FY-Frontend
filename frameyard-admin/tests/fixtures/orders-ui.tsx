@@ -1,0 +1,10 @@
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter,Route,Routes} from 'react-router-dom';
+import OrdersPage from '../../src/pages/orders/OrdersPage';
+import AdminLayout from '../../src/layouts/AdminLayout';
+import {useAuthStore} from '../../src/store/authStore';
+import {Toaster} from 'react-hot-toast';
+import '../../src/index.css';
+const query=new URLSearchParams(location.search).get('query')||'';
+useAuthStore.setState({user:{id:'00000000-0000-4000-8000-000000000001',name:'Test Admin',email:'admin@example.invalid',role:'ADMIN'} as never,token:'fixture-only',isAuthenticated:true,status:'authenticated',loading:false});
+createRoot(document.getElementById('root')!).render(<MemoryRouter initialEntries={['/admin/orders'+query]}><Routes><Route path="/admin" element={<AdminLayout/>}><Route path="orders" element={<OrdersPage/>}/></Route></Routes><Toaster/></MemoryRouter>);

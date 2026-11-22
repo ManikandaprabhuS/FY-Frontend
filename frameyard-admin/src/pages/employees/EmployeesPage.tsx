@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import FormAction, { FormStatus } from '../../components/ui/FormAction';
-import { Search, Plus, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, UserCheck, UserX, Users, Mail, Phone, CalendarDays, UserRound, KeyRound, Zap, LoaderCircle } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import useAuth from '../../hooks/useAuth';
@@ -8,6 +8,7 @@ import { employeeService } from '../../services/employee.service';
 import { Employee } from '../../types/employee.types';
 import { showError, showSuccess, showWarning, showApiError } from '../../utils/toast';
 import { validatePerson } from '../../utils/form-validation';
+import './employees.css';
 
 type FormState = {
   name: string;
@@ -24,6 +25,15 @@ const emptyForm: FormState = {
 };
 
 const generatePassword = () => `FYemp@${Math.random().toString(36).slice(2, 8)}1`;
+
+function EmployeeField({create,label,optional=false,icon,children,issue}:{create:boolean;label:string;optional?:boolean;icon:React.ReactNode;children:React.ReactNode;issue?:string|null}){
+ const errorId=React.useId();
+ if(!create)return <>{children}</>;
+ const keyword=label==='Employee Name'?'name':label==='Email Address'?'email':label==='Phone Number'?'phone':'password';
+ const message=issue?.toLowerCase().includes(keyword)?issue:null;
+ const input=React.isValidElement(children)?React.cloneElement(children as React.ReactElement<React.InputHTMLAttributes<HTMLInputElement>>,{'aria-invalid':Boolean(message),'aria-describedby':message?errorId:undefined}):children;
+ return <label className="fy-employee-create__field"><span>{label} {optional?<small>(Optional)</small>:<span className="fy-employee-create__required">*</span>}</span><span className="fy-employee-create__input">{icon}{input}</span>{message&&<span id={errorId} className="fy-employee-create__error">{message}</span>}</label>;
+}
 
 const EmployeesPage: React.FC = () => {
   const { user } = useAuth();
@@ -173,12 +183,12 @@ const EmployeesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 border-b border-outline-variant/60 pb-5 md:flex-row md:items-end md:justify-between">
-        <div>
+    <div className="fy-employees space-y-6 animate-fade-in">
+      <div className="fy-employees__header flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="fy-employees__heading"><span className="fy-employees__hero-icon"><Users size={26} aria-hidden="true"/></span><div>
           <h2 className="text-3xl font-bold text-on-surface">Employee Management</h2>
           <p className="mt-1 text-sm text-secondary">Create, update, activate, and manage dashboard employees.</p>
-        </div>
+        </div></div>
         {isAdmin && (
           <button onClick={openCreateModal} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-primary/95">
             <Plus className="h-4 w-4" />
@@ -187,13 +197,13 @@ const EmployeesPage: React.FC = () => {
         )}
       </div>
 
-      <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+      <div className="fy-employees__filters rounded-xl border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[1fr_180px]">
           <div className="flex items-center rounded-lg border border-outline-variant bg-surface px-3 py-2">
             <Search className="mr-2 h-4 w-4 text-outline-variant" />
-            <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Search name, email, phone, or ID..." />
+            <input aria-label="Search employees" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Search name, email, phone, or ID..." />
           </div>
-          <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setCurrentPage(1); }} className="rounded-lg border border-outline-variant bg-surface px-3 py-2 text-center text-sm outline-none [text-align-last:center]">
+          <select aria-label="Filter employees by status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setCurrentPage(1); }} className="rounded-lg border border-outline-variant bg-surface px-3 py-2 text-center text-sm outline-none [text-align-last:center]">
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
@@ -203,12 +213,13 @@ const EmployeesPage: React.FC = () => {
 
       {error && <div className="rounded-xl border border-error/30 bg-error-container p-3 text-sm font-medium text-on-error-container">{error}</div>}
 
-      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+      <div className="fy-employees__list overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left">
             <thead className="border-b border-outline-variant bg-surface text-xs font-semibold uppercase tracking-wider text-secondary">
               <tr>
                 <th className="px-6 py-4">Employee</th>
+                <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Phone</th>
                 <th className="px-6 py-4">Created</th>
                 <th className="px-6 py-4">Status</th>
@@ -218,25 +229,24 @@ const EmployeesPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-outline-variant/35 text-sm">
               {loading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-secondary">Loading employees...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-secondary"><span className="sr-only">Loading employees...</span><div className="fy-employees__skeleton" aria-label="Loading employees" aria-busy="true">{Array.from({length:5},(_,index)=><div key={index}/>)}</div></td></tr>
               ) : employees.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-secondary">No employees found.</td></tr>
+                <tr><td colSpan={7} className="px-6 py-8 text-center text-secondary"><div className="fy-employees__empty"><Users size={40} aria-hidden="true"/><strong>No employees found</strong><p>Try adjusting your search or status filter.</p></div></td></tr>
               ) : employees.map((employee) => (
                 <tr key={employee.id} className="hover:bg-surface/40">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-on-surface">{employee.name}</div>
-                    <div className="mt-0.5 text-xs text-secondary">{employee.email}</div>
-                    <div className="mt-0.5 text-[10px] text-secondary">{employee.employeeId}</div>
+                    <div className="fy-employees__identity"><span className="fy-employees__avatar" aria-hidden="true">{employee.name.trim().charAt(0).toUpperCase()||'?'}</span><div><div className="font-semibold text-on-surface" title={employee.name}>{employee.name}</div><div className="mt-0.5 text-[10px] text-secondary" title={employee.employeeId||undefined}>{employee.employeeId}</div></div></div>
                   </td>
-                  <td className="px-6 py-4">{employee.phoneNumber || 'Not provided'}</td>
-                  <td className="px-6 py-4 text-secondary">{new Date(employee.createdAt).toLocaleDateString('en-IN')}</td>
-                  <td className="px-6 py-4"><Badge type={employee.isActive ? 'success' : 'neutral'}>{employee.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                  <td className="px-6 py-4 text-secondary">{new Date(employee.updatedAt).toLocaleDateString('en-IN')}</td>
+                  <td className="px-6 py-4"><span className="fy-employees__icon-value" title={employee.email}><Mail size={13} aria-hidden="true"/><span>{employee.email}</span></span></td>
+                  <td className="px-6 py-4"><span className="fy-employees__icon-value"><Phone size={13} aria-hidden="true"/><span>{employee.phoneNumber || 'Not provided'}</span></span></td>
+                  <td className="px-6 py-4 text-secondary"><span className="fy-employees__icon-value"><CalendarDays size={13} aria-hidden="true"/>{new Date(employee.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span></td>
+                  <td className="px-6 py-4"><Badge className={employee.isActive?'fy-employees__active':'fy-employees__inactive'} type={employee.isActive ? 'success' : 'neutral'}>{employee.isActive ? 'Active' : 'Inactive'}</Badge></td>
+                  <td className="px-6 py-4 text-secondary"><span className="fy-employees__icon-value"><CalendarDays size={13} aria-hidden="true"/>{new Date(employee.updatedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span></td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-1.5">
-                      <button onClick={() => openEditModal(employee)} className="rounded-lg p-2 hover:bg-surface" title="Edit"><Edit2 className="h-4 w-4" /></button>
-                      <button onClick={() => handleStatusToggle(employee)} className="rounded-lg p-2 hover:bg-surface" title={employee.isActive ? 'Deactivate' : 'Activate'}>{employee.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}</button>
-                      <button onClick={() => handleDelete(employee)} className="rounded-lg p-2 text-error hover:bg-error/10" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                      <button aria-label={'Edit employee '+employee.name} title="Edit employee" onClick={() => openEditModal(employee)} className="rounded-lg p-2 hover:bg-surface"><Edit2 className="h-4 w-4" /></button>
+                      <button aria-label={(employee.isActive?'Deactivate':'Activate')+' employee '+employee.name} onClick={() => handleStatusToggle(employee)} className="rounded-lg p-2 hover:bg-surface" title={employee.isActive ? 'Deactivate' : 'Activate'}>{employee.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}</button>
+                      <button aria-label={'Delete employee '+employee.name} title="Delete employee" onClick={() => handleDelete(employee)} className="rounded-lg p-2 text-error hover:bg-error/10"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -249,39 +259,45 @@ const EmployeesPage: React.FC = () => {
             <div key={employee.id} className="rounded-xl border border-outline-variant bg-surface p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-semibold text-on-surface">{employee.name}</div>
+                  <div className="fy-employees__mobile-name font-semibold text-on-surface" title={employee.name}><span className="fy-employees__avatar" aria-hidden="true">{employee.name.trim().charAt(0).toUpperCase()||'?'}</span><span>{employee.name}</span></div>
                   <div className="mt-0.5 text-xs text-secondary">{employee.email}</div>
                   <div className="mt-0.5 text-[10px] text-secondary">{employee.employeeId}</div>
                 </div>
-                <Badge type={employee.isActive ? 'success' : 'neutral'}>{employee.isActive ? 'Active' : 'Inactive'}</Badge>
+                <Badge className={employee.isActive?'fy-employees__active':'fy-employees__inactive'} type={employee.isActive ? 'success' : 'neutral'}>{employee.isActive ? 'Active' : 'Inactive'}</Badge>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div><span className="block text-secondary">Phone</span><span className="font-semibold">{employee.phoneNumber || 'Not provided'}</span></div>
                 <div><span className="block text-secondary">Created</span><span className="font-semibold">{new Date(employee.createdAt).toLocaleDateString('en-IN')}</span></div>
               </div>
               <div className="mt-3 flex justify-end gap-1.5 border-t border-outline-variant pt-3">
-                <button onClick={() => openEditModal(employee)} className="rounded-lg p-2 hover:bg-surface-container"><Edit2 className="h-4 w-4" /></button>
-                <button onClick={() => handleStatusToggle(employee)} className="rounded-lg p-2 hover:bg-surface-container">{employee.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}</button>
-                <button onClick={() => handleDelete(employee)} className="rounded-lg p-2 text-error hover:bg-error/10"><Trash2 className="h-4 w-4" /></button>
+                <button aria-label={'Edit employee '+employee.name} title="Edit employee" onClick={() => openEditModal(employee)} className="rounded-lg p-2 hover:bg-surface-container"><Edit2 className="h-4 w-4" /></button>
+                <button aria-label={(employee.isActive?'Deactivate':'Activate')+' employee '+employee.name} onClick={() => handleStatusToggle(employee)} className="rounded-lg p-2 hover:bg-surface-container">{employee.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}</button>
+                <button aria-label={'Delete employee '+employee.name} title="Delete employee" onClick={() => handleDelete(employee)} className="rounded-lg p-2 text-error hover:bg-error/10"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-3">
+      <div className="fy-employees__footer flex items-center justify-center gap-3">
         <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="rounded-lg border border-outline-variant px-4 py-2 text-sm disabled:opacity-40">Previous</button>
         <span className="text-sm font-medium">Page {currentPage} of {totalPages}</span>
         <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="rounded-lg border border-outline-variant px-4 py-2 text-sm disabled:opacity-40">Next</button>
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingEmployee ? 'Update Employee' : 'Create Employee'} footer={<><button onClick={() => setModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold">Cancel</button><FormAction onClick={handleSubmit} busy={saving} issue={validateForm()} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary">{saving ? 'Saving...' : editingEmployee ? 'Update Employee' : 'Create Employee'}</FormAction></>}>
-        <div className="grid gap-4">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingEmployee ? 'Update Employee' : 'Create Employee'} className={editingEmployee?'fy-employee-create fy-employee-update':'fy-employee-create'} accessibleFocus headerIcon={<span className="fy-employee-create__icon">{editingEmployee?<Edit2 size={20} aria-hidden="true"/>:<Users size={20} aria-hidden="true"/>}</span>} footer={<><button onClick={() => setModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-semibold">Cancel</button><FormAction onClick={handleSubmit} busy={saving} issue={validateForm()} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary">{saving ? <><LoaderCircle size={15} className="animate-spin" aria-hidden="true"/>Please wait...</> : editingEmployee ? 'Update Employee' : 'Create Employee'}</FormAction></>}>
+        <div className="grid gap-4" onKeyDown={event=>{if(event.key==='Enter'&&event.target instanceof HTMLInputElement){event.preventDefault();event.currentTarget.closest('[role="dialog"]')?.querySelector<HTMLButtonElement>('button[aria-busy]')?.click();}}}>
           <FormStatus busy={saving} />
+          <EmployeeField issue={validateForm()} create label="Employee Name" icon={<UserRound size={16} aria-hidden="true"/>}>
           <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="rounded-xl border border-outline-variant p-3 text-sm outline-none" placeholder="Employee Name" />
+          </EmployeeField>
+          <EmployeeField issue={validateForm()} create label="Email Address" icon={<Mail size={16} aria-hidden="true"/>}>
           <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} disabled={!!editingEmployee} className="rounded-xl border border-outline-variant p-3 text-sm outline-none disabled:bg-surface-container" placeholder="Email Address" />
+          </EmployeeField>
+          <EmployeeField issue={validateForm()} create label="Phone Number" optional icon={<Phone size={16} aria-hidden="true"/>}>
           <input value={form.phoneNumber} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} className="rounded-xl border border-outline-variant p-3 text-sm outline-none" placeholder="Phone Number (optional)" />
-          {!editingEmployee && <div className="flex gap-2"><input value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="min-w-0 flex-1 rounded-xl border border-outline-variant p-3 text-sm outline-none" placeholder="Temporary Password" /><button onClick={() => setForm({ ...form, password: generatePassword() })} className="rounded-xl border border-outline-variant px-3 text-xs font-semibold">Generate</button></div>}
+          </EmployeeField>
+          {!editingEmployee && <div className="fy-employee-create__credential flex gap-2"><EmployeeField issue={validateForm()} create label="Temporary Password" icon={<KeyRound size={16} aria-hidden="true"/>}><input value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="min-w-0 flex-1 rounded-xl border border-outline-variant p-3 text-sm outline-none" placeholder="Temporary Password" /></EmployeeField><button onClick={() => setForm({ ...form, password: generatePassword() })} className="rounded-xl border border-outline-variant px-3 text-xs font-semibold"><Zap size={15} aria-hidden="true"/>Generate</button></div>}
         </div>
       </Modal>
 

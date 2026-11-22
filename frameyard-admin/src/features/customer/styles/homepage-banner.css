@@ -19,5 +19,6 @@
 /* Uploaded artwork uses the existing art area; all banner/text geometry stays unchanged. */
 .fy-offer-banner__image {position:absolute;inset:0 0 0 auto;width:48%;height:100%;overflow:hidden;border-radius:inherit;z-index:0;}
 .fy-offer-banner__image img {display:block;width:100%;height:100%;object-fit:cover;object-position:center;aspect-ratio:3/1;}
-.fy-offer-banner__image::after {content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#f7f7f6 0%,rgba(247,247,246,.92) 17%,rgba(247,247,246,.35) 40%,transparent 65%);}
+.fy-offer-banner--image::after {background:none;}
+.fy-offer-banner__image::after {content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#f7f7f6 0%,rgba(247,247,246,.45) 10%,transparent 28%);}
 @media(min-width:640px){.fy-offer-banner__image{width:57%;}}

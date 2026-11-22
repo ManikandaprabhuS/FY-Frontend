@@ -9,11 +9,16 @@ const read=p=>readFileSync(new URL('../src/'+p,import.meta.url),'utf8');
 function compile(p,overrides={}){const m={exports:{}};new Function('require','module','exports',ts.transpileModule(read(p),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(id=>overrides[id]??require(id),m,m.exports);return m.exports;}
 const first={code:'FIRST_ORDER',title:'First Order Offer',percentage:5,minOrderAmount:null,enabled:true};
 const big={code:'BIG_ORDER',title:'Big Order Offer',percentage:12,minOrderAmount:2000,enabled:false};
-test('banner hides controls, keeps keyboard/swipe and uses three-second smooth rotation',()=>{
- assert.match(read('features/customer/components/HomepageOfferBanner.tsx'),/BANNER_ROTATE_MS=3000/);
+test('banner hides controls, keeps keyboard/swipe and uses slightly faster smooth rotation',()=>{
+ assert.match(read('features/customer/components/HomepageOfferBanner.tsx'),/BANNER_ROTATE_MS=2500/);
  assert.doesNotMatch(read('features/customer/components/HomepageOfferBanner.tsx'),/Banner controls|setUserPaused|Show banner/);
  assert.match(read('features/customer/components/HomepageOfferBanner.tsx'),/ArrowRight/);
- assert.match(read('features/customer/styles/banner-slider.css'),/transition:opacity 500ms cubic-bezier/);
+ assert.match(read('features/customer/styles/banner-slider.css'),/transition:opacity 400ms cubic-bezier/);
+});
+test('compact banner/skeleton/preview share height and uploaded images avoid double white overlays',()=>{
+ const css=read('features/customer/styles/banner-slider.css'),image=read('features/customer/styles/homepage-banner.css');
+ assert.match(css,/height:var\(--fy-banner-height\)/);assert.match(css,/clamp\(200px,18vw,240px\)/);
+ assert.match(image,/\.fy-offer-banner--image::after \{background:none;/);assert.match(image,/transparent 28%/);
 });
 function card(offers,code='BIG_ORDER'){
  let i=0;const states=[{featuredOfferCode:code,enabled:true,updatedAt:'2026-11-21T00:00:00Z'},code,false,false,0,false];

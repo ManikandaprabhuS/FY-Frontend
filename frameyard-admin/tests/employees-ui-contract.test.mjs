@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import ts from 'typescript';
+const source=readFileSync(new URL('../src/pages/employees/EmployeesPage.tsx',import.meta.url),'utf8').replace(/\r/g,'');
+const hash=s=>createHash('sha256').update(s).digest('hex');
+test('Employee data hooks, permissions, validation and mutation logic are unchanged',()=>{assert.equal(hash(source.slice(source.indexOf('const EmployeesPage:'),source.indexOf('  return ('))),'dbfefd2e9b405be9db34723b70b9175da291ebe7c53f1898118e9362605e06f1')});
+test('all nineteen existing Employee event handlers are unchanged',()=>{const ast=ts.createSourceFile('e.tsx',source,99,true,ts.ScriptKind.TSX),events=[];function walk(n){if(ts.isJsxAttribute(n)&&/^on[A-Z]/.test(n.name.getText(ast))&&n.name.getText(ast)!=='onKeyDown')events.push(n.name.getText(ast)+'='+n.initializer.getText(ast).replace(/\s+/g,' '));ts.forEachChild(n,walk)}walk(ast);assert.equal(events.length,19);assert.equal(hash(events.sort().join('\n')),'18f0d6b785533afc0c1e78f2f2a816f2865b684353d1cbd4a6b6901873844d12')});
+test('Create and Update share presentation while retaining fields, validation, credentials and read-only email',()=>{for(const value of ['issue={validateForm()}','busy={saving}','<FormStatus busy={saving}','placeholder="Employee Name"','placeholder="Email Address"','placeholder="Phone Number (optional)"','placeholder="Temporary Password"','password: generatePassword()','accessibleFocus headerIcon','fy-employee-create fy-employee-update','disabled={!!editingEmployee}'])assert(source.includes(value));assert.match(source,/querySelector<HTMLButtonElement>\('button\[aria-busy\]'/)});
