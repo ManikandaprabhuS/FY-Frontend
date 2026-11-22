@@ -20,35 +20,91 @@
 @media (hover: hover) { .fy-wl__more:hover:not(:disabled) { background: var(--color-ink); color: #fff; } }
 
 
-.fy-wl-empty { display: grid; justify-items: center; gap: 8px; padding: 48px 16px; text-align: center; }
-.fy-wl-empty__mark { display: grid; place-items: center; width: 64px; height: 76px; margin-bottom: 8px; border: 3px solid var(--color-ink); outline: 1px solid var(--color-rule); outline-offset: 5px; color: var(--color-mute); }
-.fy-wl-empty__mark svg { width: 22px; height: 22px; }
-.fy-wl-empty h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
-.fy-wl-empty p { font-size: 14px; color: var(--color-mute); }
-.fy-wl-empty__cta { display: inline-flex; align-items: center; min-height: 48px; margin-top: 12px; padding: 0 26px; background: var(--color-ink); color: #fff; font-size: 14px; font-weight: 600; transition: background-color 200ms, transform 140ms; }
-.fy-wl-empty__cta:active { transform: scale(0.98); }
-@media (hover: hover) { .fy-wl-empty__cta:hover { background: #333; } }
+/* ---------- Empty: the cart's empty-state voice, sized for the drawer ---------- */
 
-/* ---------- The wishlist view (navbar heart): a full-screen gallery over the store ---------- */
+.fy-wl-empty { display: grid; justify-items: center; padding: 8px 4px 24px; text-align: center; }
+.fy-wl-empty__art { display: block; width: min(100%, 300px); height: auto; animation: fy-wl-art 820ms var(--fy-ease-out, ease-out) both; }
+.fy-wl-empty__copy { display: grid; justify-items: center; max-width: 340px; margin-top: 4px; }
+.fy-wl-empty__copy > * { animation: fy-wl-rise 620ms var(--fy-ease-out, ease-out) both; }
+.fy-wl-empty__copy > :nth-child(1) { animation-delay: 160ms; }
+.fy-wl-empty__copy > :nth-child(2) { animation-delay: 230ms; }
+.fy-wl-empty__copy > :nth-child(3) { animation-delay: 300ms; }
+.fy-wl-empty__copy > :nth-child(4) { animation-delay: 380ms; }
+.fy-wl-empty__status { font-size: 13px; font-weight: 500; color: var(--color-mute); }
+.fy-wl-empty__title { margin-top: 8px; font-size: clamp(26px, 7vw, 32px); font-weight: 600; letter-spacing: -0.04em; line-height: 1.06; text-wrap: balance; }
+.fy-wl-empty__lede { max-width: 32ch; margin-top: 12px; font-size: 15px; line-height: 1.6; color: #555; text-wrap: pretty; }
+/* Same CTA as the empty cart: solid ink; on hover a white fill wipes in from the left. */
+.fy-wl-empty__cta {
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center;
+  width: 100%; max-width: 300px; min-height: 52px; margin-top: 26px; padding: 0 32px; overflow: hidden;
+  border: 1px solid var(--color-ink); background: var(--color-ink); color: #fff;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.005em;
+  transition: color 320ms var(--fy-ease-out, ease-out), transform 150ms; -webkit-tap-highlight-color: transparent;
+}
+.fy-wl-empty__cta::before { content: ''; position: absolute; inset: 0; z-index: -1; background: #fff; transform: scaleX(0); transform-origin: left; transition: transform 420ms var(--fy-ease-out, ease-out); }
+@media (hover: hover) {
+  .fy-wl-empty__cta:hover { color: var(--color-ink); }
+  .fy-wl-empty__cta:hover::before { transform: scaleX(1); }
+}
+.fy-wl-empty__cta:active { transform: scale(0.97); }
+.fy-wl-empty__cta:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 3px; }
 
-.fy-wishview { position: fixed; inset: 0; z-index: 250; display: flex; flex-direction: column; background: #fff; animation: fy-wl-in 420ms var(--fy-ease-out, ease-out) both; }
-.fy-wishview__head { flex: none; border-bottom: 1px solid var(--color-rule); padding-top: env(safe-area-inset-top, 0px); }
-.fy-wishview__head > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1280px; min-height: 64px; margin: 0 auto; padding: 0 16px; }
-@media (min-width: 640px) { .fy-wishview__head > div { padding: 0 24px; } }
-@media (min-width: 1024px) { .fy-wishview__head > div { padding: 0 32px; min-height: 76px; } }
-.fy-wishview__title { font-size: clamp(22px, 3vw, 30px); font-weight: 600; letter-spacing: -0.03em; }
-.fy-wishview__close { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -8px; transition: transform 160ms; }
-.fy-wishview__close:active { transform: scale(0.9); }
-.fy-wishview__close svg { width: 22px; height: 22px; }
-.fy-wishview__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-.fy-wishview__body > div { max-width: 1280px; margin: 0 auto; padding: 20px 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
-@media (min-width: 640px) { .fy-wishview__body > div { padding-inline: 24px; } }
-@media (min-width: 1024px) { .fy-wishview__body > div { padding: 32px 32px 56px; } }
+/* ---------- The wishlist drawer (navbar heart, menu): a panel from the right ---------- */
+
+/* The store's own white ground (.fy-store) must not paint over the page behind the drawer. */
+.fy-wishdrawer.fy-store { position: fixed; inset: 0; z-index: 250; background: transparent; }
+/* No tint: the page stays visible, softly blurred. The blur fades with opacity on open/close. */
+.fy-wishdrawer__backdrop {
+  position: absolute; inset: 0; width: 100%; border: 0; padding: 0; cursor: default;
+  background: transparent;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity 340ms var(--fy-ease-out, ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.fy-wishdrawer[data-open] .fy-wishdrawer__backdrop { opacity: 1; }
+.fy-wishdrawer__panel {
+  position: absolute; inset: 0 0 0 auto; display: flex; flex-direction: column;
+  /* Phones keep a strip of the dimmed store visible, so a tap there closes it too. */
+  width: min(460px, calc(100% - 28px));
+  background: #fff; box-shadow: -24px 0 60px rgb(0 0 0 / 0.14);
+  transform: translate3d(100%, 0, 0); visibility: hidden;
+  transition: transform 340ms cubic-bezier(0.4, 0, 1, 1), visibility 0s linear 340ms;
+}
+.fy-wishdrawer[data-open] .fy-wishdrawer__panel {
+  transform: none; visibility: visible;
+  transition: transform 460ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s;
+}
+@media (min-width: 1280px) { .fy-wishdrawer__panel { width: 500px; } }
+
+.fy-wishdrawer__head {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 64px; padding: env(safe-area-inset-top, 0px) 12px 0 20px; border-bottom: 1px solid var(--color-rule);
+}
+@media (min-width: 640px) { .fy-wishdrawer__head { min-height: 72px; padding-left: 28px; padding-right: 18px; } }
+.fy-wishdrawer__title { font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+.fy-wishdrawer__close { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; transition: background-color 180ms, transform 160ms; }
+.fy-wishdrawer__close svg { width: 22px; height: 22px; }
+@media (hover: hover) { .fy-wishdrawer__close:hover { background: #f2f2f2; } }
+.fy-wishdrawer__close:active { transform: scale(0.9); }
+.fy-wishdrawer__close:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+
+.fy-wishdrawer__body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 18px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 640px) { .fy-wishdrawer__body { padding: 22px 28px 40px; } }
+/* A drawer-width grid: always two cards across, closer than the full-page gallery. */
+.fy-wishdrawer .fy-wl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 14px; }
+@media (min-width: 640px) { .fy-wishdrawer .fy-wl-grid { gap: 36px 18px; } }
+.fy-wishdrawer .fy-wl__bar { margin-bottom: 18px; }
+.fy-wishdrawer .fy-wl-empty { min-height: 100%; align-content: center; }
 
 @keyframes fy-wl-rise { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
-@keyframes fy-wl-in { from { opacity: 0; transform: translate3d(0, 16px, 0); } }
+@keyframes fy-wl-art { from { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.97); } }
 @keyframes fy-wl-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .fy-wl-grid__cell, .fy-wishview { animation: none !important; }
+  .fy-wl-grid__cell, .fy-wl-empty__art, .fy-wl-empty__copy > * { animation: none !important; }
+  .fy-wishdrawer__panel, .fy-wishdrawer__backdrop, .fy-wl-empty__cta::before { transition-duration: 1ms !important; }
 }

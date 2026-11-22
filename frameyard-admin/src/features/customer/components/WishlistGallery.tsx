@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { useCustomerCommerceStore } from '../../../store/customerCommerceStore';
@@ -10,6 +9,7 @@ import { totalVariantStock } from '../../../utils/stock';
 import { getCatalogPricing } from '../utils/catalog-product';
 import { useCustomerCommerce } from '../hooks/useCustomerCommerce';
 import ProductCatalogCard from './ProductCatalogCard';
+import WishlistEmptyArt from './WishlistEmptyArt';
 import ShopSortMenu from './ShopSortMenu';
 import { FrameSpinner, ProductCardSkeleton } from '../../../components/loaders/FrameLoader';
 import '../styles/all-frames.css';
@@ -91,10 +91,13 @@ export default function WishlistGallery({ onBrowse }: { onBrowse?: () => void })
   if (items.length === 0) {
     return (
       <div className="fy-wl-empty">
-        <span className="fy-wl-empty__mark" aria-hidden="true"><Heart strokeWidth={1.5} /></span>
-        <h3>Your wishlist is empty</h3>
-        <p>Tap the heart on any frame to save it here.</p>
-        <Link to="/products" onClick={onBrowse} className="fy-wl-empty__cta">Explore frames</Link>
+        <WishlistEmptyArt className="fy-wl-empty__art" />
+        <div className="fy-wl-empty__copy">
+          <p className="fy-wl-empty__status">Your wishlist is empty</p>
+          <h3 className="fy-wl-empty__title">Keep the frames you love.</h3>
+          <p className="fy-wl-empty__lede">Tap the heart on any frame and it waits here, ready when you are.</p>
+          <Link to="/products" onClick={onBrowse} className="fy-wl-empty__cta">Explore Frames</Link>
+        </div>
       </div>
     );
   }

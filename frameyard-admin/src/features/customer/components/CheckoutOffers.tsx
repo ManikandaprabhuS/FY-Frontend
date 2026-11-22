@@ -147,7 +147,7 @@ export default function CheckoutOffers(){
          <span className="fy-co-option__muted">{a.contactNumber}</span>
         </span>
        </label>)}
-       <button type="button" className="fy-co-option fy-co-option--add" disabled={busy} onClick={()=>setAdding(true)}><Plus aria-hidden="true"/>Add a new address</button>
+       <button type="button" className="fy-co-option fy-co-option--add" disabled={busy} onClick={()=>setAdding(true)}><Plus aria-hidden="true"/>Update address</button>
       </div>}
       {showForm&&<div className="fy-co-reveal"><CheckoutAddressForm onCancel={savedAddresses.length?()=>setAdding(false):undefined} onSaved={saved=>{setQuote(previous=>previous?{...previous,addresses:[saved,...previous.addresses.filter(a=>a.id!==saved.id)]}:previous);setAddress(saved.id);setAdding(false);}}/></div>}
       <p className="fy-co-method"><Truck aria-hidden="true"/><span>Standard delivery{chosen?` to ${chosen.city}`:" across India"}</span><strong>Free</strong></p>

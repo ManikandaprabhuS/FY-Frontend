@@ -37,7 +37,7 @@
  .fy-contact-banner{aspect-ratio:8/3}.fy-contact-banner__copy{left:36px;bottom:30px}.fy-contact-banner__copy :is(h2,h3){font-size:34px}.fy-contact-banner__copy p{font-size:18px}
 }
 @media(min-width:1024px){
- .fy-contact{padding:20px 40px 48px}.fy-contact-hero{min-height:500px;aspect-ratio:2.55}
+ .fy-contact{padding:20px 40px 48px}.fy-contact-hero{min-height:500px;aspect-ratio:2.55;border-radius:20px 20px 0 0}
  .fy-contact-hero__media{position:absolute;inset:0;aspect-ratio:auto}.fy-contact-hero__media:after{content:"";position:absolute;z-index:1;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.72) 38%,rgba(0,0,0,.18) 76%,transparent 100%);pointer-events:none}
  .fy-contact-hero__curve{height:70px;z-index:3}.fy-contact-hero__play{bottom:24px;width:64px;height:64px;z-index:4}.fy-contact-hero__mute{z-index:5}
  .fy-contact-hero__copy{padding:56px 54px 100px;text-align:left;color:#fff;max-width:505px;pointer-events:none}.fy-contact-hero__copy h1{font-size:clamp(40px,4vw,58px);margin:14px 0 20px;max-width:12ch}.fy-contact-hero__copy>p:not(.fy-contact-label){font-size:14px;margin:0}.fy-contact-hero__cta{display:inline-flex;background:white;color:#111;margin:22px 0 0;min-width:170px;pointer-events:auto}
