@@ -15,10 +15,10 @@ test('banner hides controls, keeps keyboard/swipe and uses slightly faster smoot
  assert.match(read('features/customer/components/HomepageOfferBanner.tsx'),/ArrowRight/);
  assert.match(read('features/customer/styles/banner-slider.css'),/transition:opacity 400ms cubic-bezier/);
 });
-test('compact banner/skeleton/preview share height and uploaded images avoid double white overlays',()=>{
+test('compact banner/skeleton/preview share height and uploaded images fill the banner without white overlays',()=>{
  const css=read('features/customer/styles/banner-slider.css'),image=read('features/customer/styles/homepage-banner.css');
  assert.match(css,/height:var\(--fy-banner-height\)/);assert.match(css,/clamp\(200px,18vw,240px\)/);
- assert.match(image,/\.fy-offer-banner--image::after \{background:none;/);assert.match(image,/transparent 28%/);
+ assert.match(image,/\.fy-offer-banner--image::after \{background:none;content:none;/);assert.match(image,/\.fy-offer-banner__image \{position:absolute;inset:0;width:100%;height:100%/);assert.match(image,/\.fy-offer-banner__image::after \{content:none;/);assert.doesNotMatch(image,/transparent 28%|\.fy-offer-banner__image\{width:57%/);assert.match(image,/text-shadow:0 1px 8px rgba\(255,255,255,\.6\)/);
 });
 function card(offers,code='BIG_ORDER'){
  let i=0;const states=[{featuredOfferCode:code,enabled:true,updatedAt:'2026-11-21T00:00:00Z'},code,false,false,0,false];

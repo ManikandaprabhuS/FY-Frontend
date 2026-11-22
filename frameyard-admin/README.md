@@ -1,5 +1,16 @@
 # FrameYaad Admin
 
+## 2026-11-22: Removed white fade from home offer banner (UI only)
+
+Test result: production build passed; all 16 focused slider/upload tests passed. The wider banner/cache run was 26 passed / 3 failed in older tests (missing mocks for existing Contact media dependencies, an outdated featured-selector expectation and an outdated assertion that metal collection plants do not exist). These unrelated tests/features were not changed to hide failures.
+
+Diagnosis: computed styles showed uploaded images covered only 57% of the banner at desktop/tablet and 48% on mobile, exposing the plain light background behind the text.
+Diagnosis: the image wrapper also applied a white-to-transparent ::after gradient; uploaded-image opacity/masks were not the cause.
+
+The shared offer banner now renders uploaded images edge-to-edge (100% width/height, cover, centered), with no uploaded-image gradient/pseudo-overlay or background wash. Only a subtle white text-shadow was added to the dark label/heading/subtitle; the black Shop Now button, copy geometry, rounded corners, heights, image URLs/loading priority, offer data, rotation timing and links are unchanged. This applies wherever HomepageBannerVisual renders, including the existing admin preview; no admin upload/settings code or backend changed. Contact slide styling and default decorative artwork are untouched.
+
+Verification: before/after Chromium screenshots at 1440/1024/768/375 with two existing local images passed. Computed image/banner widths match after the change (1360/944/704/335px), both image overlays are none, buttons fit, and image URLs/API requests/banner heights match before/after. Both slide navigation and Shop Now were exercised. Tests used fixture state, not saved banner settings or database writes; the currently deployed admin-uploaded image was not independently fetched/verified. Dark uploaded images can still reduce dark-text contrast; automatic contrast logic is intentionally deferred.
+
 ## 2026-11-22: Update Employee popup redesigned (UI only)
 
 Update now uses the same 480px rounded white modal, lavender header, icon-labelled fields, indigo focus/footer buttons and responsive stacked footer as Create, with a pencil header icon. Name, disabled/read-only Email and optional Phone retain their existing values, rules and messages. The existing FormAction validation/focus/save-lock path handles button and Enter submission; saving shows Please wait with a spinner and the existing FormStatus notice. Both modals use the existing opt-in focus trap, Escape, backdrop close and return focus. All 19 original event handlers, data/permission/validation/mutation logic and PATCH payload remain unchanged; no backend changes, dependencies or account writes.
