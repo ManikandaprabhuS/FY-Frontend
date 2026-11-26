@@ -10,6 +10,7 @@ import RouterErrorBoundary from '../pages/errors/RouterErrorBoundary';
 import ResourceRoute, { NotFoundRoute } from '../pages/errors/ResourceRoute';
 import RouteRoot from '../components/navigation/ScrollManager';
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const EmailConfirmationPage=lazy(()=>import('../pages/auth/EmailConfirmationPage'));
 const AdminLayout = lazy(() => import('../layouts/AdminLayout'));
 const CustomerLayout = lazy(() => import('../layouts/CustomerLayout'));
 const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'));
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
     ],
   },
   {path: '/fyadminlogin',element: lazyElement(<LoginPage />),},
+  {path:'/auth/callback',element:lazyElement(<EmailConfirmationPage/>),},
   {path: '/forgot-password',element: lazyElement(<ForgotPasswordPage key="customer-recovery" portal="customer" />),},
   {path: '/fyadminlogin/forgot-password',element: lazyElement(<ForgotPasswordPage key="admin-recovery" portal="admin" />),},
   {path: '/login',element: <Navigate to="/fyadminlogin" replace />,},

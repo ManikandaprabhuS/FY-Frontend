@@ -42,6 +42,10 @@ const normalizeUser = (user: BackendUser): User => ({
 });
 
 export const authService = {
+  confirmCustomerSession: async (tokens:{access_token:string;refresh_token:string}) => {
+    const response=await api.post<ApiEnvelope<AuthData>>('/auth/customer/confirmation',tokens,{timeout:20000});
+    return {...response.data.data,user:normalizeUser(response.data.data.user)};
+  },
   requestPasswordReset: async (portal: RecoveryPortal, email: string): Promise<void> => {
     await api.post(`/auth/${portal}/forgot-password`, { email });
   },
