@@ -31,8 +31,8 @@ test('pagination merges 62 records without duplicates and filtered counts share 
 test('late requests cannot leak history across customers or same-user logout/login',async()=>{
  const s=setup(),old=deferred();s.list(()=>old.promise);const request=s.store.getState().load();s.store.getState().setOwner(null);s.store.getState().setOwner('owner');s.list(async()=>({...s.page(),notifications:[],summary:{totalCount:0,unreadCount:0,readCount:0}}));await s.store.getState().load();old.resolve(s.page());await request;assert.equal(s.store.getState().summary.totalCount,0);assert.equal(s.customerNoticeItems(s.store.getState().pages,1).length,0);s.store.getState().setOwner('other');assert.equal(s.store.getState().summary.totalCount,0);
 });
-test('one polling loop serves both subscribers and pauses in hidden tabs',async()=>{
- const s=setup();await s.store.getState().load();const stopA=s.subscribeCustomerNotificationPolling(),stopB=s.subscribeCustomerNotificationPolling();assert.equal(s.timers(),1);s.document.hidden=true;s.tick();assert.equal(s.calls.list,1);stopA();assert.equal(s.cleared(),0);stopB();assert.equal(s.cleared(),1);
+test('event refresh reconciles loaded pages and skips hidden tabs without a polling loop',async()=>{
+ const s=setup();await s.store.getState().load();s.document.hidden=true;s.refreshCustomerNotifications();assert.equal(s.calls.list,1);s.document.hidden=false;s.refreshCustomerNotifications();await Promise.resolve();assert.equal(s.calls.list,2);assert.equal(s.timers(),0);
 });
 test('an old read failure cannot restore history after logout and same-customer login',async()=>{
  const s=setup();await s.store.getState().load();const old=deferred();s.read(()=>old.promise);const pending=s.store.getState().mark('n0');s.store.getState().setOwner(null);s.store.getState().setOwner('owner');s.list(async()=>({...s.page(),notifications:[],summary:{totalCount:0,unreadCount:0,readCount:0}}));await s.store.getState().load();old.reject(Error('old session'));await pending;assert.equal(s.store.getState().summary.totalCount,0);assert.equal(s.customerNoticeItems(s.store.getState().pages,1).length,0);

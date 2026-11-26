@@ -4,6 +4,7 @@ import NotificationOrderText from '../../components/ui/NotificationOrderText';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { notificationService } from '../../services/notification.service';
+import { NOTIFICATIONS_CHANGED } from '../../services/notification-realtime';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationStore } from '../../store/notificationStore';
 import type { Notification } from '../../types';
@@ -21,6 +22,11 @@ const AdminNotificationsPage: React.FC = () => {
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [summary, setSummary] = useState({ totalCount: 0, unreadCount: 0, readCount: 0 });
   const [filter, setFilter] = useState<'all' | 'read' | 'unread'>('all');
+  useEffect(() => {
+    const changed = () => setRevision(value => value + 1);
+    window.addEventListener(NOTIFICATIONS_CHANGED, changed);
+    return () => window.removeEventListener(NOTIFICATIONS_CHANGED, changed);
+  }, []);
 
   const storedNotifications = useNotificationStore(state => state.notifications);
   const unreadCount = useNotificationStore(state => state.unreadCount);

@@ -34,12 +34,18 @@ export const useCustomerNotificationStore=create<State>((set,get)=>({
  },
 }));
 
-let subscribers=0,timer:ReturnType<typeof setInterval>|undefined;
-const refresh=()=>{if(typeof document==='undefined'||document.hidden)return;const store=useCustomerNotificationStore.getState();if(!store.owner||store.busy)return;const before=store.summary,owner=store.owner,version=store.version;void store.load(1,'all',true).then(()=>{const next=useCustomerNotificationStore.getState();if(next.owner!==owner||next.version!==version||next.busy)return;if(next.summary.totalCount===before.totalCount&&next.summary.unreadCount===before.unreadCount)return;for(const k of Object.keys(next.pages)){if(k==='all:1')continue;const [filter,page]=k.split(':');void next.load(Number(page),filter as CustomerNoticeFilter,true);}});};
-export function subscribeCustomerNotificationPolling(){
- if(++subscribers===1){timer=setInterval(refresh,45000);document.addEventListener('visibilitychange',refresh);}
- return()=>{if(--subscribers===0){clearInterval(timer);timer=undefined;document.removeEventListener('visibilitychange',refresh);}};
-}
+let eventRefreshRunning=false,eventRefreshPending=false;
+export const refreshCustomerNotifications=()=>{
+ if(typeof document==='undefined'||document.hidden||!useCustomerNotificationStore.getState().owner)return;
+ eventRefreshPending=true;if(eventRefreshRunning)return;eventRefreshRunning=true;
+ const owner=useCustomerNotificationStore.getState().owner;
+ void (async()=>{try{while(eventRefreshPending&&!document.hidden&&useCustomerNotificationStore.getState().owner===owner){
+  const store=useCustomerNotificationStore.getState();
+  if(store.busy){await new Promise(resolve=>setTimeout(resolve,200));continue;}
+  eventRefreshPending=false;
+  await Promise.all([...new Set(['all:1',...Object.keys(store.pages)])].map(k=>{const [filter,page]=k.split(':');return store.load(Number(page),filter as CustomerNoticeFilter,true);}));
+ }}finally{eventRefreshRunning=false;if(eventRefreshPending&&!document.hidden&&useCustomerNotificationStore.getState().owner)refreshCustomerNotifications();}})();
+};
 export function customerNoticeItems(pages:State['pages'],page:number,filter:CustomerNoticeFilter='all',append=false):CustomerNotice[]{
  const rows=append?Array.from({length:page},(_,i)=>pages[key(i+1,filter)]?.notifications??[]).flat():pages[key(page,filter)]?.notifications??[];
  return [...new Map(rows.map(item=>[item.id,item])).values()].filter(item=>filter==='all'||item.isRead===(filter==='read')).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id));

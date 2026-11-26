@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { useNotificationStore } from '../store/notificationStore';
+import { useNotificationStore, refreshAdminNotifications } from '../store/notificationStore';
+import { subscribeNotificationEvents } from '../services/notification-realtime';
 
 export const useNotifications = (autoFetch = false) => {
+  const owner = useAuthStore(state => state.user && state.user.role !== 'CUSTOMER' ? `${state.user.role}:${state.user.id}` : null);
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const loading = useNotificationStore((state) => state.loading);
@@ -14,22 +16,24 @@ export const useNotifications = (autoFetch = false) => {
 
   useEffect(() => {
     if (!autoFetch) return;
+    useNotificationStore.getState().setOwner(owner);
+    const stopAuth = useAuthStore.subscribe(state => useNotificationStore.getState().setOwner(state.user && state.user.role !== 'CUSTOMER' ? `${state.user.role}:${state.user.id}` : null));
+    if (!owner) return stopAuth;
 
     if (useNotificationStore.getState().notifications.length === 0) {
       void fetchNotifications(false);
     }
 
     const refresh = () => {
-      if (document.visibilityState === 'visible') void fetchNotifications(true);
+      if (document.visibilityState === 'visible') refreshAdminNotifications();
     };
-    const interval = window.setInterval(refresh, 30000);
-    document.addEventListener('visibilitychange', refresh);
+    const user = useAuthStore.getState().user!;
+    const unsubscribe = subscribeNotificationEvents(user.id, user.role, refresh);
 
     return () => {
-      window.clearInterval(interval);
-      document.removeEventListener('visibilitychange', refresh);
+      unsubscribe(); stopAuth();
     };
-  }, [autoFetch, fetchNotifications]);
+  }, [autoFetch, fetchNotifications, owner]);
 
   return {
     notifications,

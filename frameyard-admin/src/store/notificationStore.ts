@@ -26,6 +26,8 @@ const playNotificationSound = () => {
 };
 
 interface NotificationState {
+  owner: string | null;
+  setOwner: (owner: string | null) => void;
   notifications: Notification[];
   unreadCount: number;
   ingestPage: (notifications: Notification[], unreadCount: number) => void;
@@ -39,7 +41,28 @@ interface NotificationState {
 
 let notificationFetchPromise: Promise<void> | null = null;
 let readVersion = 0;
+let ownerGeneration = 0;
 const pendingReads = new Set<string>();
+let eventRefreshRunning = false, eventRefreshPending = false;
+export const refreshAdminNotifications = () => {
+  if (document.hidden || !useNotificationStore.getState().owner) return;
+  eventRefreshPending = true;
+  if (eventRefreshRunning) return;
+  eventRefreshRunning = true;
+  const generation = ownerGeneration;
+  void (async () => {
+    try {
+      while (eventRefreshPending && !document.hidden && generation === ownerGeneration) {
+        if (pendingReads.size) { await new Promise(resolve => setTimeout(resolve, 200)); continue; }
+        eventRefreshPending = false;
+        await useNotificationStore.getState().fetchNotifications(true);
+      }
+    } finally {
+      eventRefreshRunning = false;
+      if (eventRefreshPending && !document.hidden && useNotificationStore.getState().owner) refreshAdminNotifications();
+    }
+  })();
+};
 const mergeNotifications = (current: Notification[], incoming: Notification[], preserveRead = false) => {
   const merged = new Map(current.map(item => [item.id, item]));
   for (const item of incoming) {
@@ -50,6 +73,12 @@ const mergeNotifications = (current: Notification[], incoming: Notification[], p
 };
 
 export const useNotificationStore = create<NotificationState>((set) => ({
+  owner: null,
+  setOwner: owner => {
+    if (useNotificationStore.getState().owner === owner) return;
+    ownerGeneration++; readVersion++; pendingReads.clear(); notificationFetchPromise = null;
+    set({ owner, notifications: [], unreadCount: 0, loading: false, error: null });
+  },
   notifications: [],
   unreadCount: 0,
   ingestPage: (notifications, unreadCount) => set(state => ({
@@ -60,6 +89,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   error: null,
 
   fetchNotifications: async (isBackground = false) => {
+    const generation = ownerGeneration;
     if (notificationFetchPromise) return notificationFetchPromise;
     if (!isBackground) {
       set({ loading: true, error: null });
@@ -68,6 +98,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       try {
         const version = readVersion;
         const snapshot = await notificationService.listPage(1, undefined, 100);
+        if (generation !== ownerGeneration) return;
         if (version !== readVersion || pendingReads.size) { set({ loading: false }); return; }
         const data = snapshot.notifications;
         set({ unreadCount: snapshot.summary.unreadCount });
@@ -86,9 +117,9 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         if (changed) set({ notifications: merged, loading: false, error: null });
         else if (!isBackground) set({ loading: false, error: null });
       } catch (err: any) {
-        if (!isBackground) set({ error: err.response?.data?.message || 'Failed to fetch notifications', loading: false });
+        if (!isBackground && generation === ownerGeneration) set({ error: err.response?.data?.message || 'Failed to fetch notifications', loading: false });
       } finally {
-        notificationFetchPromise = null;
+        if (generation === ownerGeneration) notificationFetchPromise = null;
       }
     })();
 
@@ -96,6 +127,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   },
 
   markAllAsRead: async (reader) => {
+    const generation = ownerGeneration;
     if (pendingReads.size) return;
     const state = useNotificationStore.getState();
     const ids = new Set(state.notifications.filter(n => !n.read).map(n => n.id));
@@ -107,14 +139,17 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     showSuccess('Marked as read', { id: toastId });
     try {
       const unreadCount = await notificationService.markAllRead();
+      if (generation !== ownerGeneration) return;
       set({ unreadCount });
     } catch {
+      if (generation !== ownerGeneration) return;
       set(current => ({ notifications: current.notifications.map(n => ids.has(n.id) ? state.notifications.find(original => original.id === n.id) ?? n : n), unreadCount: previousCount }));
       showError('Failed to mark notifications as read', { id: toastId, retry: () => { void useNotificationStore.getState().markAllAsRead(reader); } });
-    } finally { pendingReads.delete('*'); readVersion++; }
+    } finally { if (generation === ownerGeneration) { pendingReads.delete('*'); readVersion++; } }
   },
 
   toggleNotificationRead: async (id: string, reader) => {
+    const generation = ownerGeneration;
     if (pendingReads.has(id) || pendingReads.has('*')) return;
     const target = useNotificationStore.getState().notifications.find(n => n.id === id);
     if (!target || target.read) return;
@@ -124,13 +159,16 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     showSuccess('Marked as read', { id: toastId });
     try {
       const result = await notificationService.toggleRead(id);
+      if (generation !== ownerGeneration) return;
       set(state => ({ notifications: state.notifications.map(n => n.id === id ? result.notification : n), ...(pendingReads.size === 1 ? { unreadCount: Math.min(state.unreadCount, result.unreadCount) } : {}) }));
     } catch {
+      if (generation !== ownerGeneration) return;
       set(state => ({ notifications: state.notifications.map(n => n.id === id ? target : n), unreadCount: state.unreadCount + 1 }));
       showError('Failed to update notification read status', { id: toastId, retry: () => { void useNotificationStore.getState().toggleNotificationRead(id, reader); } });
-    } finally { pendingReads.delete(id); readVersion++; }
+    } finally { if (generation === ownerGeneration) { pendingReads.delete(id); readVersion++; } }
   },
   removeNotification: async (id: string) => {
+    const generation = ownerGeneration;
     const originalNotifications = useNotificationStore.getState().notifications;
 
     // Optimistically filter out the removed notification
@@ -142,6 +180,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     try {
       await notificationService.deleteNotification(id);
     } catch (err: any) {
+      if (generation !== ownerGeneration) return;
       // Revert on error
       set({ notifications: originalNotifications });
       showError(err.response?.data?.message || 'Failed to delete notification', { id: toastId });
