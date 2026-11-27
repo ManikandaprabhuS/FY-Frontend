@@ -45,6 +45,7 @@ test('writes a shared mobile/admin/checkout photo-limit verification fixture',as
  const hooks={...React,useEffect(){},useImperativeHandle(){},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value}),useState:initial=>[initial,()=>{}]};
  const Input=compile(await read('components/ui/VariantPhotoLimitInput.tsx'),{'../../utils/photo-limits':limits,'../../utils/toast':{}}).default;
  const Upload=compile(await read('features/customer/components/CheckoutPhotoUpload.tsx'),{
+  '../../../components/loaders/FrameLoader':{FrameSpinner:()=>null},
   react:hooks,'../../../store/customerCommerceStore':{useCustomerCommerceStore:select=>select({cartItems:[]})},'../../../services/local-photos':{},'../../../utils/photo-limits':limits,'../../../store/authStore':{useAuthStore:selector=>selector({user:{id:'test',role:'CUSTOMER'}})},'../../../services/order-photos.service':photos,'../../../utils/toast':{},
  }).default;
  const body=renderToStaticMarkup(createElement('div',null,createElement(Input,{value:'2.5',onChange(){}}),createElement(Upload,{onChange(){},onBusy(){},maxAllowedMB:2,limitingItem:{name:'Classic Frame',variant:'5x5'}})));

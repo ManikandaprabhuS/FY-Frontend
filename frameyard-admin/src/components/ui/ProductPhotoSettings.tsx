@@ -1,0 +1,11 @@
+import {useId} from 'react';
+import {DEFAULT_PHOTO_MAX_MB,MIN_PHOTO_MAX_MB,MAX_PHOTO_MAX_MB} from '../../utils/photo-limits';
+type Props={allow:boolean;setAllow:(value:boolean)=>void;max:string;setMax:(value:string)=>void;art:boolean;setArt:(value:boolean)=>void;disabled?:boolean};
+export default function ProductPhotoSettings({allow,setAllow,max,setMax,art,setArt,disabled}:Props){
+ const id=useId();
+ return <section className="my-5 space-y-5 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 text-sm">
+  <div><label htmlFor={id+'-allow'} className="flex min-h-11 items-center gap-3 font-bold"><input id={id+'-allow'} type="checkbox" role="switch" checked={allow} disabled={disabled} onChange={event=>{setAllow(event.target.checked);if(event.target.checked&&!max)setMax(String(DEFAULT_PHOTO_MAX_MB));}} className="h-5 w-5 accent-primary focus-visible:outline focus-visible:outline-2"/>Allow customer photo upload</label><p className="mt-1 text-xs text-on-surface-variant">Turn off for ready-made image + frame sets. Customers can buy directly without uploading a photo.</p></div>
+  {allow&&<label htmlFor={id+'-max'} className="block font-bold">Max photo upload size (MB) <span className="text-red-700">*</span><input id={id+'-max'} type="number" min={MIN_PHOTO_MAX_MB} max={MAX_PHOTO_MAX_MB} step="0.1" value={max} disabled={disabled} onChange={event=>setMax(event.target.value)} required className="mt-2 block min-h-11 w-full rounded-lg border border-outline-variant bg-white px-3 font-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"/><span className="mt-1 block text-xs font-normal text-on-surface-variant">Existing variant-specific limits take precedence; this is the default for variants without a limit.</span></label>}
+  <div><label htmlFor={id+'-art'} className="flex min-h-11 items-center gap-3 font-bold"><input id={id+'-art'} type="checkbox" role="switch" checked={art} disabled={disabled} onChange={event=>setArt(event.target.checked)} className="h-5 w-5 accent-primary focus-visible:outline focus-visible:outline-2"/>Show in FrameYaad Arts</label><p className="mt-1 text-xs text-on-surface-variant">Shows this product only in the FrameYaad Arts section, not in the regular frame collections.</p></div>
+ </section>;
+}

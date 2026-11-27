@@ -19,6 +19,7 @@ type BackendOrderItem = {
 };
 
 type BackendOrder = import('../types').OrderRefundFields & {
+  customerPhotoAllowed?:boolean;
   photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
   photoDeleted?:boolean;photoDeletedAt?:string|null;photoDeletedBy?:string|null;
   id: string;
@@ -110,6 +111,7 @@ const historyFrom=(value:unknown):NonNullable<Order["statusHistory"]>=>Array.isA
  return[{status:e.status,changedAt:e.changedAt,changedBy:{id:by.id,role:by.role},...(typeof e.note==="string"?{note:e.note}:{}),...(typeof e.previousStatus==="string"?{previousStatus:e.previousStatus}:{})}];
 }):[];
 export const normalizeOrder = (order: BackendOrder): Order => ({
+  customerPhotoAllowed:order.customerPhotoAllowed!==false,
   photoId:order.photoId,photoFileName:order.photoFileName,photoSizeBytes:order.photoSizeBytes,photoDeleted:order.photoDeleted,photoDeletedAt:order.photoDeletedAt,photoDeletedBy:order.photoDeletedBy,
   statusHistory:historyFrom(order.statusHistory),
   cancelledBy:order.cancelledBy,cancelledAt:order.cancelledAt,cancellationReason:order.cancellationReason,refundStatus:order.refundStatus,refundInitiatedAt:order.refundInitiatedAt,refundCompletedAt:order.refundCompletedAt,refundUpdatedBy:order.refundUpdatedBy,refundHistory:order.refundHistory,

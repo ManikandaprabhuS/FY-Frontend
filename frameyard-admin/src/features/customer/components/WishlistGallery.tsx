@@ -31,6 +31,7 @@ const SORTS: { value: WishSort; label: string }[] = [
 
 /** The wishlist API returns the product with its variants and images; shape it as a shop product. */
 const toProduct = (item: CustomerWishlistItem): Product => ({
+  allowCustomerPhoto:item.product.allowCustomerPhoto!==false,maxPhotoMb:item.product.maxPhotoMb==null?null:Number(item.product.maxPhotoMb),isFrameyaadArt:item.product.isFrameyaadArt===true,
   id: item.product.id,
   productIdentifier: item.product.productIdentifier ?? item.productIdentifier,
   productName: item.product.productName,
@@ -54,6 +55,7 @@ const toProduct = (item: CustomerWishlistItem): Product => ({
     price: Number(variant.price),
     offerPrice: variant.offerPrice == null ? null : Number(variant.offerPrice),
     stockQuantity: Number(variant.stockQuantity ?? 0),
+    maxPhotoSizeMB:variant.maxPhotoSizeMB,
     createdAt: '',
   })),
   images: (item.product.images ?? []).map((image, index) => ({ id: image.id, productId: item.product.id, imageUrl: image.imageUrl, isPrimary: image.isPrimary, displayOrder: index })),

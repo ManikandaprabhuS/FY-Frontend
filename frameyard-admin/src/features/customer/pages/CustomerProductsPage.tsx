@@ -20,6 +20,8 @@ import { getCatalogPricing, type CatalogPricing } from '../utils/catalog-product
 import { useProductStore } from '../../../store/productStore';
 import type { Product } from '../../../types';
 import { useCustomerCommerce } from '../hooks/useCustomerCommerce';
+import FrameyaadArtsComingSoon from '../components/FrameyaadArtsComingSoon';
+import {usePageMetadata} from '../../../hooks/usePageMetadata';
 
 const PRODUCTS_PER_PAGE = 12;
 
@@ -49,7 +51,9 @@ const SHOP_TABS: { id: FrameCollectionId | null; label: string }[] = [
   { id: 'premium', label: 'Premium Frames' },
 ];
 
-const CustomerProductsPage: React.FC = () => {
+const CustomerProductsPage: React.FC<{artsOnly?:boolean}> = ({artsOnly=false}) => {
+  usePageMetadata(artsOnly?'FrameYaad Arts | FrameYaad':undefined,'Discover art and frame sets from FrameYaad.','/frameyaad-arts');
+  const [catalogReady,setCatalogReady]=useState(false);
   const products = useProductStore((state) => state.products);
   const loading = useProductStore((state) => state.loading);
   const error = useProductStore((state) => state.error);
@@ -59,7 +63,8 @@ const CustomerProductsPage: React.FC = () => {
   // `?collection=wooden` (from the homepage collections) pre-selects that collection's
   // materials once the material list is known; any change the shopper makes then wins.
   const [searchParams, setSearchParams] = useSearchParams();
-  const requestedCollection = searchParams.get('collection');
+  const requestedCollection = artsOnly?null:searchParams.get('collection');
+  const customerSearch=searchParams.get('search')?.trim()||undefined;
   // An unknown `collection` value falls back to All Frames.
   const collectionId = frameCollections.some((item) => item.id === requestedCollection) ? requestedCollection : null;
   const activeTab = SHOP_TABS.find((tab) => tab.id === collectionId) ?? SHOP_TABS[0];
@@ -115,15 +120,17 @@ const CustomerProductsPage: React.FC = () => {
   const collectionEmpty = collectionId !== null && Boolean(facets) && collectionMaterials.length === 0;
 
   const catalogQuery = useMemo(() => ({ page, limit: PRODUCTS_PER_PAGE, publicCatalog: true,
+    catalog:artsOnly?'arts' as const:customerSearch?'all' as const:'frames' as const,search:customerSearch,
     materials, frameSizes: sizes, availability: availability.length === 1 ? availability[0] : 'all' as const,
     maxPrice: maximumPrice ?? undefined, saleOnly, sort,
-  }), [page, materials, sizes, availability, maximumPrice, saleOnly, sort]);
+  }), [page, materials, sizes, availability, maximumPrice, saleOnly, sort,artsOnly,customerSearch]);
   useEffect(() => {
-    const timer = window.setTimeout(() => { void fetchProducts(catalogQuery); }, 150);
-    return () => window.clearTimeout(timer);
+    let active=true;
+    const timer = window.setTimeout(() => { setCatalogReady(false);void fetchProducts(catalogQuery).then(()=>{if(active)setCatalogReady(true);}); }, 150);
+    return () => {active=false;window.clearTimeout(timer);};
   }, [fetchProducts, catalogQuery]);
 
-  const activeProducts = useMemo(() => products.filter((product) => product.isActive), [products]);
+  const activeProducts = useMemo(() => products.filter((product) => product.isActive&&(artsOnly?product.isFrameyaadArt===true:customerSearch||!product.isFrameyaadArt)), [products,artsOnly,customerSearch]);
   const catalogEntries = useMemo<CatalogEntry[]>(
     () => activeProducts.map((product) => ({
       product,
@@ -232,7 +239,7 @@ const CustomerProductsPage: React.FC = () => {
 
   const drawnSizes = useMemo(() => drawSizes(sizeOptions), [sizeOptions]);
   const frameCount = `${pagination.total} ${pagination.total === 1 ? 'frame' : 'frames'}`;
-  const countText = loading || collectionPending ? 'Loading frames' : collectionEmpty ? '0 frames' : frameCount;
+  const countText = loading || (artsOnly && !catalogReady) || collectionPending ? 'Loading frames' : collectionEmpty ? '0 frames' : frameCount;
 
   const changeSort = (value: SortOption) => withGridTransition(() => {
     setSort(value);
@@ -343,6 +350,7 @@ const CustomerProductsPage: React.FC = () => {
   );
 
   const toolbarControls = <ShopSortMenu value={sort} options={SORT_OPTIONS} onChange={changeSort} />;
+  if(artsOnly&&catalogReady&&!loading&&!error&&facets&&facets.inStock+facets.outOfStock===0)return <FrameyaadArtsComingSoon/>;
 
   return (
     <section className="min-h-screen bg-white">
@@ -350,7 +358,7 @@ const CustomerProductsPage: React.FC = () => {
       <header ref={heroRef} className="fy-shop-hero">
         <img src={shopHero} alt="" className="fy-shop-hero__img" decoding="async" fetchPriority="high" />
         <div className="fy-shop-hero__inner">
-          <h1 className="fy-shop-hero__title">{activeTab.label}</h1>
+          <h1 className="fy-shop-hero__title">{artsOnly?'FrameYaad Arts':activeTab.label}</h1>
           <div className="fy-shop-hero__count" aria-live="polite">
             {countText === 'Loading frames'
               ? <FrameLoader />
@@ -363,7 +371,7 @@ const CustomerProductsPage: React.FC = () => {
       <div className="fy-toolbar">
         <div className="fy-toolbar__row">
           <div className="fy-shop-tabs" role="tablist" aria-label="Frame collections">
-            {SHOP_TABS.map((tab) => (
+            {(artsOnly?[{id:null,label:'FrameYaad Arts'}]:SHOP_TABS).map((tab) => (
               <button
                 key={tab.label}
                 type="button"
@@ -423,7 +431,7 @@ const CustomerProductsPage: React.FC = () => {
             />
           ) : error && !loading ? (
             <EmptyState title="Frames couldn't load" text="Check your connection and try again." action="Try again" onAction={() => fetchProducts(catalogQuery)} />
-          ) : loading || collectionPending ? (
+          ) : loading || (artsOnly && !catalogReady) || collectionPending ? (
             <div className="fy-shop-grid" aria-hidden="true">
               {Array.from({ length: 8 }, (_, index) => <ProductSkeleton key={index} />)}
             </div>

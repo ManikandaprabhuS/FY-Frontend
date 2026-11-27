@@ -34,6 +34,7 @@ const cartStorageKey = (ownerId: string | null) =>
   `${LEGACY_CART_STORAGE_KEY}:${ownerId ? `customer:${ownerId}` : GUEST_CART_OWNER}`;
 
 export type CustomerCartItem = {
+  allowCustomerPhoto?:boolean;maxPhotoMb?:number|null;isFrameyaadArt?:boolean;
   maxPhotoSizeMB?:number|null;
   key: string;
   productId: string;

@@ -185,6 +185,7 @@ const Footer: React.FC = () => {
             <div className="flex flex-col gap-3 text-sm text-white/55 md:flex-row md:items-center md:justify-between">
               <p>© 2026 FrameYaad. All Rights Reserved.</p>
               <nav className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6" aria-label="Footer quick links">
+                <a href="/frameyaad-arts" className="transition hover:text-white">FrameYaad Arts</a>
                 {quickLinks.map((link) => (
                   <a key={link} href="#" className="transition hover:text-white">
                     {link}

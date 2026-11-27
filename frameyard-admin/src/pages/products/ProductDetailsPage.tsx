@@ -2,6 +2,8 @@ import './product-form.css';
 import { getStockStatus } from '../../utils/stock';
 import {getPhotoMaxBytes,PHOTO_MB_BYTES} from '../../utils/photo-limits';
 import VariantPhotoLimitInput from '../../components/ui/VariantPhotoLimitInput';
+import ProductPhotoSettings from '../../components/ui/ProductPhotoSettings';
+import {DEFAULT_PHOTO_MAX_MB,photoLimitValidation} from '../../utils/photo-limits';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import useProducts from '../../hooks/useProducts';
@@ -74,6 +76,7 @@ export const ProductDetailsPage: React.FC = () => {
   const [colors, setColors] = useState<string[]>([]);
   const [colorImages, setColorImages] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<ProductStatus>('active');
+  const [allowCustomerPhoto,setAllowCustomerPhoto]=useState(true),[maxPhotoMb,setMaxPhotoMb]=useState(String(DEFAULT_PHOTO_MAX_MB)),[isFrameyaadArt,setIsFrameyaadArt]=useState(false);
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [images, setImages] = useState<ProductImageDraft[]>([]);
   const [wizardStep, setWizardStep] = useState(1);
@@ -121,7 +124,7 @@ const [isSaving, setIsSaving] = useState(false);
     setBrand('');
     setMaterial('Solid Oak');
     setColors([]);
-    setStatus('active');
+    setStatus('active');setAllowCustomerPhoto(true);setMaxPhotoMb(String(DEFAULT_PHOTO_MAX_MB));setIsFrameyaadArt(false);
     setVariants([]);
     setImages([]);
     setColorImages({});
@@ -137,6 +140,7 @@ const [isSaving, setIsSaving] = useState(false);
       setMaterial(currentProduct.material);
       setColors(currentProduct.availableColors || []);
       setStatus(currentProduct.isActive ? 'active' : 'draft');
+      setAllowCustomerPhoto(currentProduct.allowCustomerPhoto!==false);setMaxPhotoMb(String(currentProduct.maxPhotoMb??DEFAULT_PHOTO_MAX_MB));setIsFrameyaadArt(currentProduct.isFrameyaadArt===true);
       setVariants(currentProduct.variants);
       setImages(mapCurrentProductImages((currentProduct.images || []).filter(image => !image.color)));
       setColorImages(Object.fromEntries((currentProduct.images || []).filter(image => image.color).map(image => [image.color!, image.imageUrl])));
@@ -255,6 +259,8 @@ const [isSaving, setIsSaving] = useState(false);
   const handleSave = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (isUploadingImages || isAddingColor || saveLock.current) return;
+    const photoIssue=allowCustomerPhoto?(!maxPhotoMb.trim()?'Max photo upload size is required.':photoLimitValidation(Number(maxPhotoMb))):null;
+    if(photoIssue){showWarning(photoIssue);return;}
     const requiredError = !name.trim() ? 'Product name is required.'
       : !description.trim() ? 'Description is required.' : !brand.trim() ? 'Brand name is required.' : !material.trim() ? 'Material is required.'
       : colors.length === 0 ? 'Select at least one frame color.'
@@ -268,6 +274,7 @@ const [isSaving, setIsSaving] = useState(false);
     setIsSaving(true);
 
     const payload = {
+      allowCustomerPhoto,maxPhotoMb:allowCustomerPhoto?Number(maxPhotoMb):null,isFrameyaadArt,
       name,
       description,
       brandName: brand,
@@ -419,9 +426,10 @@ const [isSaving, setIsSaving] = useState(false);
 
 
 
-  const basicIssue = !name.trim() || !description.trim() || !brand.trim()
+  const photoPolicyIssue=allowCustomerPhoto?(!maxPhotoMb.trim()?'Max photo upload size is required.':photoLimitValidation(Number(maxPhotoMb))):null;
+  const basicIssue = photoPolicyIssue || (!name.trim() || !description.trim() || !brand.trim()
     ? 'Please complete Product Name, Description, and Brand Name before continuing.'
-    : validateProductBasics({ name, description, brandName: brand, material: 'Valid material', availableColors: ['Black'] });
+    : validateProductBasics({ name, description, brandName: brand, material: 'Valid material', availableColors: ['Black'] }));
   const materialIssue = !material.trim() || !colors.length ? 'Please select a material and at least one available colour before continuing.'
     : validateProductBasics({ name: 'Valid name', description: '', brandName: 'Valid brand', material, availableColors: colors });
   const variantIssue = !variants.length ? 'Please add at least one product variant before continuing.' : variants.map(validateVariant).find(Boolean);
@@ -440,7 +448,7 @@ const [isSaving, setIsSaving] = useState(false);
     setBrand('');
     setMaterial('Solid Oak');
     setColors([]);
-    setStatus('active');
+    setStatus('active');setAllowCustomerPhoto(true);setMaxPhotoMb(String(DEFAULT_PHOTO_MAX_MB));setIsFrameyaadArt(false);
     setVariants([]);
     setImages([]);
     setImageError(null);
@@ -528,6 +536,7 @@ const [isSaving, setIsSaving] = useState(false);
             </div>
           </div>}
 
+          {wizardStep===1&&<div className="mx-auto max-w-3xl"><ProductPhotoSettings allow={allowCustomerPhoto} setAllow={setAllowCustomerPhoto} max={maxPhotoMb} setMax={setMaxPhotoMb} art={isFrameyaadArt} setArt={setIsFrameyaadArt} disabled={isSaving||isUploadingImages}/></div>}
           {wizardStep === 2 && <div className="mx-auto max-w-3xl">
             <h3 className="text-base font-bold text-on-surface"><Layers size={20} aria-hidden="true"/>Materials &amp; Colours</h3><p className="mt-1 text-xs text-on-surface-variant">Choose the frame material and available finish colours.</p>
             <div className="mt-7 grid gap-6 md:grid-cols-2"><label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Material<select value={material} onChange={(event) => setMaterial(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant bg-white p-3 text-sm font-normal normal-case tracking-normal outline-none focus:border-primary"><option>Solid Oak</option><option>Black Walnut</option><option>Anodized Aluminum</option><option>Maple Wood</option><option>Pine Wood</option></select></label><div><p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Available Colours</p><div className="mt-3"><ProductColorPicker selected={colors} onChange={setColors} busy={isSaving || isUploadingImages || isAddingColor} onBusyChange={setIsAddingColor} /></div><p className="mt-3 text-xs text-on-surface-variant">Select one or more colours.</p></div></div>
@@ -541,12 +550,12 @@ const [isSaving, setIsSaving] = useState(false);
 
           {wizardStep === 4 && <div className="fy-product-form__images"><div className="flex items-start justify-between gap-4"><div><h3 className="text-base font-bold text-on-surface"><ImageIcon size={20} aria-hidden="true"/>Upload Product Images</h3><p className="mt-1 text-xs text-on-surface-variant">Upload up to {MAX_IMAGES} images or videos. The first is the product cover.</p></div><button type="button" data-image-entry onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || images.length >= MAX_IMAGES} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:opacity-60"><Upload className="h-3.5 w-3.5" /> {isUploadingImages ? 'Uploading...' : 'Upload Images'}</button></div><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,.jpg,.jpeg,.png,.webp,.mp4" multiple className="hidden" onChange={handleImageSelection} /><div className="fy-product-form__image-grid mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">{images.map((image, index) => <div key={image.id} className="relative aspect-square overflow-hidden rounded-lg border border-outline-variant bg-surface-container">{isVideoUrl(image.imageUrl) ? <video src={image.imageUrl} className="h-full w-full object-cover" controls /> : <img src={image.imageUrl} alt={`Product image ${index + 1}`} className="h-full w-full object-cover" />}{image.isUploading && <div role="status" className="absolute inset-0 flex items-center justify-center bg-white/80"><span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-label="Uploading image" /></div>}<span data-cover={index === 0} className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold text-white">{index === 0 ? 'Cover' : `Image ${index + 1}`}</span><button type="button" onClick={() => handleRemoveImage(image.id)} aria-label="Remove product image" disabled={isUploadingImages || isSaving} className="absolute right-1 top-1 rounded bg-white p-1 text-error shadow"><Trash2 className="h-3.5 w-3.5" /></button></div>)}<button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploadingImages || isSaving} className="flex aspect-square flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant text-xs text-on-surface-variant hover:bg-surface"><Plus className="mb-1 h-5 w-5" />Add Image</button></div></div>}
 
-          {wizardStep === 5 && <div className="fy-product-form__review"><h3><Eye size={20} aria-hidden="true"/>Review Product</h3><p>Verify all details before creating the product.</p><section><h4><FileText size={16} aria-hidden="true"/>Basic Information</h4><strong>{name}</strong><p>{description}</p><p>Brand: {brand}</p><Badge type={status === 'active' ? 'success' : 'neutral'}>{status === 'active' ? 'Active' : 'Draft'}</Badge></section><section><h4><Layers size={16} aria-hidden="true"/>Materials &amp; Colours</h4><p>{material}</p><div className="fy-product-form__review-colors">{colors.map(color => {const option=resolveColorOption(color,colorCatalogue.colors,colorCatalogue.legacyColors);return <span key={color} title={option.name}><i style={{backgroundColor:option.hex}} aria-hidden="true"/>{option.name}</span>;})}</div></section><section><h4><Package size={16} aria-hidden="true"/>Variants ({variants.length})</h4><div className="overflow-x-auto"><table><thead><tr><th>Size</th><th>Mount Type</th><th>Glass Type</th><th>Price</th><th>Stock</th></tr></thead><tbody>{variants.map(variant=><tr key={variant.id}><td>{variant.frameSize}</td><td>{variant.mountType.replace(/^OPTION_(\d+)$/i,'Option $1')}</td><td>{variant.glassType.replace(/^OPTION_(\d+)$/i,'Option $1')}</td><td>₹{variant.price.toFixed(2)}</td><td>{variant.stockQuantity}</td></tr>)}</tbody></table></div></section><section><h4><ImageIcon size={16} aria-hidden="true"/>Images ({images.length})</h4><div className="fy-product-form__review-images">{images.map((image,index)=>isVideoUrl(image.imageUrl)?<video key={image.id} src={image.imageUrl} controls/>:<img key={image.id} src={image.imageUrl} alt={'Product image '+(index+1)}/>)}</div></section></div>}
+          {wizardStep === 5 && <div className="fy-product-form__review"><h3><Eye size={20} aria-hidden="true"/>Review Product</h3><p>Verify all details before creating the product.</p><section><h4><FileText size={16} aria-hidden="true"/>Basic Information</h4><strong>{name}</strong><p>{description}</p><p>Brand: {brand}</p><p>{isFrameyaadArt ? 'FrameYaad Arts' : 'Regular frame'} · {allowCustomerPhoto ? 'Photo upload allowed (' + maxPhotoMb + ' MB default; variant overrides apply)' : 'Customer photo upload not allowed'}</p><Badge type={status === 'active' ? 'success' : 'neutral'}>{status === 'active' ? 'Active' : 'Draft'}</Badge></section><section><h4><Layers size={16} aria-hidden="true"/>Materials &amp; Colours</h4><p>{material}</p><div className="fy-product-form__review-colors">{colors.map(color => {const option=resolveColorOption(color,colorCatalogue.colors,colorCatalogue.legacyColors);return <span key={color} title={option.name}><i style={{backgroundColor:option.hex}} aria-hidden="true"/>{option.name}</span>;})}</div></section><section><h4><Package size={16} aria-hidden="true"/>Variants ({variants.length})</h4><div className="overflow-x-auto"><table><thead><tr><th>Size</th><th>Mount Type</th><th>Glass Type</th><th>Price</th><th>Stock</th></tr></thead><tbody>{variants.map(variant=><tr key={variant.id}><td>{variant.frameSize}</td><td>{variant.mountType.replace(/^OPTION_(\d+)$/i,'Option $1')}</td><td>{variant.glassType.replace(/^OPTION_(\d+)$/i,'Option $1')}</td><td>₹{variant.price.toFixed(2)}</td><td>{variant.stockQuantity}</td></tr>)}</tbody></table></div></section><section><h4><ImageIcon size={16} aria-hidden="true"/>Images ({images.length})</h4><div className="fy-product-form__review-images">{images.map((image,index)=>isVideoUrl(image.imageUrl)?<video key={image.id} src={image.imageUrl} controls/>:<img key={image.id} src={image.imageUrl} alt={'Product image '+(index+1)}/>)}</div></section></div>}
         </section>
 
 
         {[1,2,5].includes(wizardStep) && <aside className="fy-product-form__side">
-          <section className="fy-product-form__preview"><h3><Eye size={17} aria-hidden="true"/>Product Preview</h3><div className="fy-product-form__preview-image">{(() => { const preview = wizardStep === 2 ? colors.map(getColorImage).find(Boolean) : images[0]?.imageUrl; return preview && !isVideoUrl(preview) ? <img src={preview} alt="Current product preview"/> : <ImageIcon size={48} aria-label="No product image selected"/>; })()}</div><strong>{name.trim() || 'Demo Product Name'}</strong><p>{brand}</p>{wizardStep === 5 && variants.length > 0 && <p className="fy-product-form__preview-price">₹{Math.min(...variants.map(variant => variant.price)).toFixed(2)} – ₹{Math.max(...variants.map(variant => variant.price)).toFixed(2)}</p>}<Badge type={status === 'active' ? 'success' : 'neutral'}>{status === 'active' ? 'Active' : 'Draft'}</Badge></section>
+          <section className="fy-product-form__preview"><h3><Eye size={17} aria-hidden="true"/>Product Preview</h3><div className="fy-product-form__preview-image">{(() => { const preview = wizardStep === 2 ? colors.map(getColorImage).find(Boolean) : images[0]?.imageUrl; return preview && !isVideoUrl(preview) ? <img src={preview} alt="Current product preview"/> : <ImageIcon size={48} aria-label="No product image selected"/>; })()}</div><strong>{name.trim() || 'Demo Product Name'}</strong><p>{brand}</p>{wizardStep === 5 && variants.length > 0 && <p className="fy-product-form__preview-price">₹{Math.min(...variants.map(variant => variant.price)).toFixed(2)} – ₹{Math.max(...variants.map(variant => variant.price)).toFixed(2)}</p>}<Badge type={status === 'active' ? 'success' : 'neutral'}>{status === 'active' ? 'Active' : 'Draft'}</Badge><p className="mt-2 text-xs">{isFrameyaadArt ? 'FrameYaad Arts' : 'Regular frame'} · {allowCustomerPhoto ? 'Photo upload: ' + maxPhotoMb + ' MB default' : 'No customer photo upload'}</p></section>
           <section className="fy-product-form__tips"><h3><Lightbulb size={17} aria-hidden="true"/>{wizardStep === 5 ? 'Final Checks' : wizardStep === 2 ? 'Tips' : 'Tips for Basic Info'}</h3>{wizardStep === 5 ? <ul>{[{label:'Product details are correct.',ok:!basicIssue},{label:'Material and colours are selected.',ok:!materialIssue},...(colors.some(color => getColorImage(color))?[{label:'Colour images are added.',ok:true}]:[]),{label:'All variants have price and stock.',ok:!variantIssue},{label:'Product images are uploaded.',ok:!imageIssue}].map(check=><li key={check.label} data-ok={check.ok}><CheckCircle2 size={14} aria-hidden="true"/>{check.label}</li>)}</ul> : <ul>{(wizardStep === 2 ? ['Add images for key colours to show real appearance.','Use 1:1 images (e.g., 800 x 800 or higher).'] : ['Use a clear and descriptive product name.','Write a detailed description (materials, use, style).','Keep your brand name consistent.','Choose the correct publishing status.']).map(tip=><li key={tip}><CheckCircle2 size={14} aria-hidden="true"/>{tip}</li>)}</ul>}</section>
         </aside>}
         </div>
@@ -556,7 +565,7 @@ const [isSaving, setIsSaving] = useState(false);
         
         <footer className="fy-product-form__footer flex items-center justify-between"><button type="button" onClick={() => { setWizardError(null); setWizardStep((step) => Math.max(1, step - 1)); }} disabled={wizardStep === 1} className="rounded-lg border border-outline-variant px-5 py-2 text-xs font-semibold disabled:opacity-40 hover:bg-surface">Back</button>{wizardStep < wizardSteps.length ? <FormAction onClick={goNext} focusSelector={wizardStep === 3 ? '[data-variant-entry]' : wizardStep === 4 ? '[data-image-entry]' : undefined} issue={stepIssue} busy={isSaving || isUploadingImages || isAddingColor} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">Next: {wizardSteps[wizardStep]} <ArrowRight size={15} aria-hidden="true"/></FormAction> : <FormAction onClick={() => { void handleSave(); }} issue={productIssue} busy={isSaving || isUploadingImages || isAddingColor} className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-on-primary">{isSaving ? 'Creating...' : 'Create Product ✓'}</FormAction>}</footer>
 
-        <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><FormAction onClick={handleSaveVariant} issue={variantFormIssue} busy={isUploadingImages || isSavingVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</FormAction></>}><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><FormStatus busy={isSavingVariant} /></div><VariantPhotoLimitInput value={varPhotoSize} onChange={setVarPhotoSize}/><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
+        <Modal isOpen={variantModalOpen} onClose={() => setVariantModalOpen(false)} title={editingVariant ? 'Edit Variant' : 'Add Variant'} footer={<><button type="button" onClick={() => setVariantModalOpen(false)} className="rounded-lg border border-outline-variant px-4 py-2 text-xs font-semibold">Cancel</button><FormAction onClick={handleSaveVariant} issue={variantFormIssue} busy={isUploadingImages || isSavingVariant} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary">Save Variant</FormAction></>}><div className="grid grid-cols-2 gap-4"><div className="col-span-2"><FormStatus busy={isSavingVariant} /></div><VariantPhotoLimitInput defaultMB={photoLimitValidation(Number(maxPhotoMb)) ? DEFAULT_PHOTO_MAX_MB : Number(maxPhotoMb)} uploadsAllowed={allowCustomerPhoto} value={varPhotoSize} onChange={setVarPhotoSize}/><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Frame Size *<input value={varSize} onChange={(event) => setVarSize(event.target.value)} placeholder={'e.g. 8" x 10"'} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Mount Type<select value={varMountType} onChange={(event) => setVarMountType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Glass Type<select value={varGlassType} onChange={(event) => setVarGlassType(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm font-normal normal-case"><option value="NONE">None</option><option value="OPTION_1">Option 1</option><option value="OPTION_2">Option 2</option></select></label><label className="text-xs font-bold uppercase text-on-surface-variant">Price *<input type="number" value={varPrice} onChange={(event) => setVarPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="text-xs font-bold uppercase text-on-surface-variant">Offer Price<input type="number" value={varOfferPrice} onChange={(event) => setVarOfferPrice(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label><label className="col-span-2 text-xs font-bold uppercase text-on-surface-variant">Stock Inventory *<input type="number" value={varStock} onChange={(event) => setVarStock(event.target.value)} className="mt-2 w-full rounded-lg border border-outline-variant p-2.5 text-sm" /></label></div></Modal>
       </div>
     );
   }
@@ -602,6 +611,7 @@ const [isSaving, setIsSaving] = useState(false);
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-12"><ProductPhotoSettings allow={allowCustomerPhoto} setAllow={setAllowCustomerPhoto} max={maxPhotoMb} setMax={setMaxPhotoMb} art={isFrameyaadArt} setArt={setIsFrameyaadArt} disabled={isSaving||isUploadingImages}/></div>
         <div className="lg:col-span-8 space-y-6">
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant/50">
@@ -980,7 +990,7 @@ const [isSaving, setIsSaving] = useState(false);
               required
             />
           </div>
-          <VariantPhotoLimitInput value={varPhotoSize} onChange={setVarPhotoSize}/>
+          <VariantPhotoLimitInput defaultMB={photoLimitValidation(Number(maxPhotoMb)) ? DEFAULT_PHOTO_MAX_MB : Number(maxPhotoMb)} uploadsAllowed={allowCustomerPhoto} value={varPhotoSize} onChange={setVarPhotoSize}/>
         </div>
       </Modal>
     </div>

@@ -94,8 +94,8 @@ const CustomerProductDetailsPage: React.FC = () => {
   // "You might also like": other frames from the public catalogue (read-only, this page only).
   useEffect(() => {
     let active = true;
-    productService.getProducts({ page: 1, limit: 8, publicCatalog: true })
-      .then(({ products: list }) => { if (active) setRelated(list.filter((item) => item.isActive && item.id !== slug).slice(0, 4)); })
+    productService.getProducts({ page: 1, limit: 8, publicCatalog: true, catalog:'frames' })
+      .then(({ products: list }) => { if (active) setRelated(list.filter((item) => !item.isFrameyaadArt && item.isActive && item.id !== slug).slice(0, 4)); })
       .catch(() => undefined);
     return () => { active = false; };
   }, [slug]);
@@ -143,8 +143,9 @@ const CustomerProductDetailsPage: React.FC = () => {
 
   const frameRatio = ratioFromFrameSize(selectedVariant?.frameSize);
   const cropKey = selectedVariant?.frameSize || 'default';
-  const croppedImage = photoOwner === slug ? selectVariantPhoto(croppedImages, cropKey, photoSource) : '';
-  const photoMaxBytes=getPhotoMaxBytes(selectedVariant?[selectedVariant]:[]);
+  const uploadsAllowed=currentProduct?.allowCustomerPhoto!==false;
+  const croppedImage = uploadsAllowed&&photoOwner === slug ? selectVariantPhoto(croppedImages, cropKey, photoSource) : '';
+  const photoMaxBytes=getPhotoMaxBytes(selectedVariant?[{...selectedVariant,maxPhotoMb:currentProduct?.maxPhotoMb,allowCustomerPhoto:uploadsAllowed}]:[]);
   const photoMaxMB=Number((photoMaxBytes/PHOTO_MB_BYTES).toFixed(1));
   const encodedPhoto=(photoSource||croppedImage).split(",")[1]??"";
   const selectedPhotoBytes=sourceBytes||Math.floor(encodedPhoto.length*3/4)-(encodedPhoto.match(/=+$/)?.[0].length??0);
@@ -167,7 +168,7 @@ const CustomerProductDetailsPage: React.FC = () => {
   );
   const jumpTo = (index: number) => setJump((previous) => ({ index, token: (previous?.token ?? 0) + 1 }));
   // A chosen option leads the product photos (slide 2), so show it, as the old page swapped the main image.
-  const showOptionPhoto = () => jumpTo(1);
+  const showOptionPhoto = () => jumpTo(uploadsAllowed?1:0);
 
   const chooseVariantValue = (field: keyof Pick<ProductVariant, 'frameSize' | 'mountType' | 'glassType'>, value: string) => {
     const candidates = activeVariants.filter((variant) => variant[field] === value);
@@ -192,7 +193,7 @@ const CustomerProductDetailsPage: React.FC = () => {
 
   const handleFile = (file?: File) => {
     if (!file) return;
-    const issue = validateOrderPhoto(file, selectedVariant?[selectedVariant]:[]);
+    const issue = validateOrderPhoto(file, [{maxPhotoSizeMB:photoMaxMB}]);
     if (issue) { showWarning(issue); return; }
     localPhoto.current={id:'product:'+slug,file,name:file.name,source:'',crops:{},productId:slug,createdAt:Date.now()};
     setSourceBytes(file.size);
@@ -267,12 +268,13 @@ const CustomerProductDetailsPage: React.FC = () => {
       label: `Photo ${position + 1} of ${productImages.length}`,
       content: (
         <div className="fy-pdp__photo">
-          <ProductFramePreview productImage={image} photo={croppedImage || undefined} aspectRatio={frameRatio.width / frameRatio.height} name={currentProduct.name} />
+          {uploadsAllowed?<ProductFramePreview productImage={image} photo={croppedImage || undefined} aspectRatio={frameRatio.width / frameRatio.height} name={currentProduct.name}/>:<img src={image} alt={currentProduct.name} className="h-full w-full object-contain"/>}
         </div>
       ),
       thumb: <img src={image} alt="" loading="lazy" decoding="async" />,
     })),
-  ];
+  ].filter(slide=>uploadsAllowed||slide.key!=='studio');
+  if(!slides.length)slides.push({key:'empty',label:'No product image',content:<div className="fy-pdp__photo flex flex-col items-center justify-center gap-3"><ImagePlus size={48} aria-hidden="true"/><span>No product image</span></div>,thumb:<ImagePlus size={24} aria-label="No product image"/>});
 
   // Size previews share one scale, so the largest size draws largest.
   const largestSize = Math.max(1, ...frameSizes.map((size) => { const ratio = ratioFromFrameSize(size); return Math.max(ratio.width, ratio.height); }));
@@ -412,7 +414,7 @@ const CustomerProductDetailsPage: React.FC = () => {
                     </div>
                   </ConfigRow>
                 )}
-                <ConfigRow title="Your photo" value={croppedImage ? (needsRecrop ? 'Needs a crop' : 'Added') : 'Optional'}>
+                {uploadsAllowed&&<ConfigRow title="Your photo" value={croppedImage ? (needsRecrop ? 'Needs a crop' : 'Added') : 'Optional'}>
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { handleFile(event.target.files?.[0]); event.currentTarget.value = ''; }} />
                   {croppedImage ? (
                     <div className="fy-upload fy-upload--done">
@@ -442,12 +444,12 @@ const CustomerProductDetailsPage: React.FC = () => {
                       <span className="fy-upload__hint">JPG, PNG or WebP. Max file size: {photoMaxMB} MB. You'll crop it to {frameRatio.label}.</span>
                     </button>
                   )}
-                </ConfigRow>
+                </ConfigRow>}
               </ul>
 
               {/* Your frame: the whole order in one line, with its total. */}
               <div className="fy-summary">
-                <span className="fy-summary__thumb"><FrameStudioThumb photo={croppedImage || undefined} colorHex={colorOption.hex || '#1a1a1a'} /></span>
+                <span className="fy-summary__thumb">{uploadsAllowed ? <FrameStudioThumb photo={croppedImage || undefined} colorHex={colorOption.hex || '#1a1a1a'} /> : productImages[0] ? <img src={productImages[0]} alt={currentProduct.name} className="h-full w-full object-cover"/> : <ImagePlus aria-label="No product image"/>}</span>
                 <div className="fy-summary__body">
                   <p className="fy-summary__title">Your frame</p>
                   <p className="fy-summary__line">{[selectedVariant?.frameSize && `${selectedVariant.frameSize} in`, colorOption.name, hasOption(selectedVariant?.mountType) && `Mount ${optionLabel(selectedVariant?.mountType)}`, hasOption(selectedVariant?.glassType) && `Glass ${optionLabel(selectedVariant?.glassType)}`, croppedImage && 'your photo'].filter(Boolean).join(' · ')}</p>
@@ -498,7 +500,7 @@ const CustomerProductDetailsPage: React.FC = () => {
         <div className="fy-pdp__buy fy-pdp__buy--sticky">{buyControls}</div>
       </div>
 
-      {cropSource && (
+      {uploadsAllowed&&cropSource && (
         <ImageCropModal
           key={`${slug}:${cropKey}:${cropSource}`}
           imageSource={cropSource}

@@ -14,7 +14,7 @@ const isUsableUrl = (value: unknown): value is string =>
  */
 export const backendHeroPhotos = (products: Product[], brokenUrls: ReadonlySet<string> = new Set()): HeroPhoto[] =>
   products
-    .filter((product) => product.isActive)
+    .filter((product) => product.isActive&&!product.isFrameyaadArt)
     .flatMap((product) =>
       (product.images ?? [])
         .filter((image) => image.isHeroImage && isUsableUrl(image.imageUrl) && !brokenUrls.has(image.imageUrl.trim()))

@@ -42,6 +42,7 @@ export default function CheckoutOffers(){
   const timer=setTimeout(()=>{void checkoutService.offers(selections,revision>0).then(data=>{
    if(!active)return;
    const current=codeRef.current;
+   if(quoteRef.current?.photoLimit?.policyVersion&&data.photoLimit?.policyVersion!==quoteRef.current.photoLimit.policyVersion)showWarning('Photo upload settings changed. Please review your photo options.',{id:'checkout-photo-policy'});
    if(current&&(!data.offers.some(o=>o.code===current)||data.offers.find(o=>o.code===current)?.version!==quoteRef.current?.offers.find(o=>o.code===current)?.version)){
     setCode(undefined);
     showWarning(data.offers.some(o=>o.code===current)?"This offer was updated. Please review your total.":current==="BIG_ORDER"?data.bigOrderRemovalMessage:data.unavailableOffers?.find(offer=>offer.code===current)?.unavailableReason??"This offer is no longer available",{id:"checkout-offer"});
@@ -51,24 +52,27 @@ export default function CheckoutOffers(){
   return()=>{active=false;clearTimeout(timer);};
  },[signature,selections,revision]);
  const loading=!error&&quoteSignature!==signature;
+ const uploadsAllowed=quoteSignature===signature&&quote?.photoLimit?quote.photoLimit.allowCustomerPhoto!==false:items.some(item=>item.allowCustomerPhoto!==false);
  const maxPhotoMB=quoteSignature===signature&&quote?.photoLimit?quote.photoLimit.maxAllowedMB:Number((getPhotoMaxBytes(items)/PHOTO_MB_BYTES).toFixed(1));
- const photoInvalid=Boolean(photo&&photo.sizeBytes>getPhotoMaxBytes([{maxPhotoSizeMB:maxPhotoMB}]));
+ const photoInvalid=uploadsAllowed&&Boolean(photo&&photo.sizeBytes>getPhotoMaxBytes([{maxPhotoSizeMB:maxPhotoMB}]));
  const place=async()=>{
   const auth=useAuthStore.getState();
   if(!auth.isAuthenticated||auth.user?.role!=='CUSTOMER'){
    showWarning('Please log in to place your order',{id:'checkout-login'});
    navigate('/profile',{state:{returnTo:'/checkout'}});return;
   }
-  if(saveLock.current||busy||photoBusy||photoInvalid||loading||!address||!quote||!cod)return; saveLock.current=true;
+  if(saveLock.current||busy||(uploadsAllowed&&photoBusy)||photoInvalid||loading||!address||!quote||!cod)return; saveLock.current=true;
   setBusy(true);showLoading("Please wait, your order is being placed...","checkout-save");
   try{
    const latest=await checkoutService.offers(selections,true);
    setQuote(latest);setQuoteSignature(signature);
-   if(photo&&latest.photoLimit){const max=getPhotoMaxBytes([{maxPhotoSizeMB:latest.photoLimit.maxAllowedMB}]);if(photo.sizeBytes>max){showWarning(photoSizeError(photo.sizeBytes,max)+" Please clear or replace your photo.",{id:"checkout-save"});return;}}
+   if(quote.photoLimit?.policyVersion&&latest.photoLimit?.policyVersion!==quote.photoLimit.policyVersion){showWarning('Photo upload settings changed. Please review your photo options.',{id:'checkout-save'});return;}
+   const latestAllowsPhoto=latest.photoLimit?.allowCustomerPhoto!==false;
+   if(latestAllowsPhoto&&photo&&latest.photoLimit){const max=getPhotoMaxBytes([{maxPhotoSizeMB:latest.photoLimit.maxAllowedMB}]);if(photo.sizeBytes>max){showWarning(photoSizeError(photo.sizeBytes,max)+" Please clear or replace your photo.",{id:"checkout-save"});return;}}
    if(code&&(!latest.offers.some(o=>o.code===code)||latest.offers.find(o=>o.code===code)?.version!==selected?.version)){
     setCode(undefined);showWarning(latest.offers.some(o=>o.code===code)?"This offer was updated. Please review your total.":"This offer is no longer available",{id:"checkout-save"});return;
    }
-   const uploaded=await photoControl.current?.prepare(latest.photoLimit?.maxAllowedMB??maxPhotoMB);
+   const uploaded=latestAllowsPhoto?await photoControl.current?.prepare(latest.photoLimit?.maxAllowedMB??maxPhotoMB):null;
    const order=await checkoutService.place(selections,address,code,selected?.version,undefined,uploaded?.imageId);setPlaced(order);
    await removeCartPhotos(items.map(i=>i.key));await removeLocalPhoto('checkout');
    useCustomerCommerceStore.getState().clearCart();showSuccess("Order placed successfully",{id:"checkout-save"});
@@ -77,6 +81,7 @@ export default function CheckoutOffers(){
    if((e as {photoValidation?:boolean}).photoValidation){showWarning((e as Error).message,{id:'checkout-save'});return;}
    if((e as {photoUploadFailed?:boolean}).photoUploadFailed){showError('Your photo could not be uploaded. Please try again.',{id:'checkout-save',retry:()=>{void place();}});return;}
    const detail=(e as {response?:{data?:{error?:{code?:string;message?:string}}}}).response?.data?.error;
+   if(detail?.code==='PHOTO_NOT_ALLOWED'||detail?.code==='PHOTO_LIMIT_CHANGED'){showWarning(detail.message??'Photo upload settings changed. Please review checkout.',{id:'checkout-save'});setRevision(v=>v+1);return;}
    if(detail?.code==="OFFER_UNAVAILABLE"){
     setCode(undefined);showWarning(detail.message??"This offer is no longer available. Please review your total.",{id:"checkout-save"});
     try{const refreshed=await checkoutService.offers(selections,true);setQuote(refreshed);setQuoteSignature(signature);}catch{setRevision(v=>v+1);}
@@ -95,8 +100,8 @@ export default function CheckoutOffers(){
  const total=selected?.total??subtotal;
  const frameCount=items.reduce((sum,i)=>sum+i.quantity,0);
  const showForm=!loading&&!error&&(!savedAddresses.length||adding);
- const missing=loading?"Checking prices and offers…":error?"Checkout could not be loaded. Retry above.":!address?"Choose a delivery address to continue.":!cod?"Select a payment method to continue.":photoBusy?"Checking your photo…":photoInvalid?"Your photo is too large. Replace or clear it.":"";
- const canPlace=!(busy||photoBusy||photoInvalid||loading||error||!address||!cod);
+ const missing=loading?"Checking prices and offers…":error?"Checkout could not be loaded. Retry above.":!address?"Choose a delivery address to continue.":!cod?"Select a payment method to continue.":uploadsAllowed&&photoBusy?"Checking your photo…":photoInvalid?"Your photo is too large. Replace or clear it.":"";
+ const canPlace=!(busy||(uploadsAllowed&&photoBusy)||photoInvalid||loading||error||!address||!cod);
  const placeButton=(variant:"panel"|"bar")=><PlaceOrderButton variant={variant} busy={busy} disabled={!canPlace} failed={failed} onPlace={()=>void place()}/>;
  const offersShown=!loading&&!error&&visibleOffers.length>0;
  const frames=frameCount+" "+(frameCount===1?"frame":"frames");
@@ -170,9 +175,9 @@ export default function CheckoutOffers(){
     <section className="fy-co-group" aria-labelledby="co-extras-title">
      <div className="fy-co-group__label"><h2 id="co-extras-title">Extras</h2><p>Optional</p></div>
      <div className="fy-co-group__body fy-co-group__body--flush">
-      <Disclosure id="co-photo" icon={<ImagePlus aria-hidden="true"/>} title="Photo for your frame" status={photoStatus} tone={photoInvalid?"error":photo?"set":undefined} open={photoShown} onToggle={()=>setPhotoOpen(v=>!v)}>
+      {uploadsAllowed&&<Disclosure id="co-photo" icon={<ImagePlus aria-hidden="true"/>} title="Photo for your frame" status={photoStatus} tone={photoInvalid?"error":photo?"set":undefined} open={photoShown} onToggle={()=>setPhotoOpen(v=>!v)}>
        <CheckoutPhotoUpload disabled={busy} ref={photoControl} onChange={setPhoto} onBusy={setPhotoBusy} items={selections} maxAllowedMB={maxPhotoMB} limitingItem={quote?.photoLimit?.limitingItem}/>
-      </Disclosure>
+      </Disclosure>}
       {offersShown&&<Disclosure id="co-offers" icon={<Tag aria-hidden="true"/>} title="Offers" status={offerStatus} tone={selected?"set":undefined} open={offersOpen} onToggle={()=>setOffersOpen(v=>!v)}>
        <ul className="fy-co-offers">{visibleOffers.map(offer=>{
         const on=code===offer.code;

@@ -8,6 +8,7 @@ export const STUDIO_PATH = '/studio';
 export const primaryNavLinks = [
   { name: 'Home', path: '/' },
   { name: 'Shop all', path: '/products' },
+  { name: 'FrameYaad Arts', path: '/frameyaad-arts' },
   { name: 'Book appointment', path: '/book-appointment' },
   { name: 'Contact us', path: '/contact-us' },
 ];

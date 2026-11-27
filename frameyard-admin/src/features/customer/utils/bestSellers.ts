@@ -8,7 +8,7 @@ export const primaryImage = (product: Product) =>
 
 /** Active products with a photo and at least one active variant: the ones a shopper can buy. */
 export const shoppableProducts = (products: Product[]) =>
-  products.filter((product) => product.isActive && primaryImage(product) && product.variants?.some((variant) => variant.isActive !== false));
+  products.filter((product) => !product.isFrameyaadArt && product.isActive && primaryImage(product) && product.variants?.some((variant) => variant.isActive !== false));
 
 /**
  * Best sellers from customer reviews (the public data available today): most reviews,

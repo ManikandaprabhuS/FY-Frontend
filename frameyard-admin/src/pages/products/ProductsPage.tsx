@@ -28,6 +28,7 @@ export const ProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'draft'>('all');
+  const [artFilter, setArtFilter] = useState('all');
 
   // Delete Dialog State
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -43,8 +44,8 @@ export const ProductsPage: React.FC = () => {
   }, [searchTerm]);
 
   useEffect(() => {
-    fetchProducts({ page: currentPage, limit: itemsPerPage, search: debouncedSearchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
-  }, [fetchProducts, currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
+    fetchProducts({ isFrameyaadArt: artFilter === 'all' ? undefined : artFilter === 'arts', page: currentPage, limit: itemsPerPage, search: debouncedSearchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
+  }, [fetchProducts, currentPage, itemsPerPage, debouncedSearchTerm, statusFilter, artFilter]);
 
   const productStockStatus = (product: Product) => getStockStatus(totalVariantStock(product.variants));
   // Pagination Logic
@@ -80,7 +81,7 @@ export const ProductsPage: React.FC = () => {
   try {
     await productService.deleteProduct(deleteId);
     showSuccess('Product deleted successfully');
-      await fetchProducts({ page: currentPage, limit: itemsPerPage, search: searchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
+      await fetchProducts({ isFrameyaadArt: artFilter === 'all' ? undefined : artFilter === 'arts', page: currentPage, limit: itemsPerPage, search: searchTerm || undefined, isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' });
   } catch (error) {
     const backendMessage = (error as {
       response?: { data?: { error?: { message?: string } } };
@@ -96,6 +97,7 @@ export const ProductsPage: React.FC = () => {
 };
 
   const handleExport = () => downloadAdminCsv('products', {
+    isFrameyaadArt: artFilter === 'all' ? undefined : artFilter === 'arts',
     search: debouncedSearchTerm || undefined,
     isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
   });
@@ -106,7 +108,7 @@ export const ProductsPage: React.FC = () => {
   };
 
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value as any);
+    setStatusFilter(e.target.value as 'all' | 'active' | 'draft');
     setCurrentPage(1);
   };
 
@@ -204,6 +206,9 @@ export const ProductsPage: React.FC = () => {
               <option value="draft">Draft Only</option>
             </select>
           </div>
+          <select aria-label="FrameYaad Arts filter" value={artFilter} onChange={event => {setArtFilter(event.target.value);setCurrentPage(1);}} className="w-full sm:w-48 min-h-11 rounded-lg border border-outline-variant px-3 text-sm focus-visible:outline-2 focus-visible:outline-primary">
+            <option value="all">All products</option><option value="arts">FrameYaad Arts</option><option value="frames">Regular frames</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
@@ -213,7 +218,7 @@ export const ProductsPage: React.FC = () => {
           </button>
           {(searchTerm || statusFilter !== 'all') && (
             <button
-              onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}
+              onClick={() => { setSearchTerm(''); setStatusFilter('all'); setArtFilter('all'); }}
               className="px-4 py-2 text-sm font-semibold text-secondary hover:text-on-surface transition-colors"
             >
               Clear Filters
@@ -233,7 +238,7 @@ export const ProductsPage: React.FC = () => {
         onEmptyAction={() => navigate('/admin/products/new')}
 
         // Desktop Row Renderer
-        renderRow={(product, index) => {
+        renderRow={(product) => {
           const stockInfo = productStockStatus(product);
           return (
             <tr key={product.id} className="hover:bg-surface/40 transition-colors group">
@@ -244,6 +249,7 @@ export const ProductsPage: React.FC = () => {
               </td>
               <td className="px-6 py-4">
                 <button type="button" onClick={event => openDetails(event, product)} title={product.name} className="fy-products-list__name text-left font-semibold text-on-surface group-hover:text-primary transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">{product.name}</button>
+                <div className="flex flex-wrap gap-1 text-xs">{product.isFrameyaadArt && <Badge type="info">Art</Badge>}{product.allowCustomerPhoto === false && <Badge type="neutral">No upload</Badge>}</div>
                 <div className="text-[11px] text-on-surface-variant font-medium mt-0.5">Brand: {product.brandName}</div>
               </td>
               <td className="px-6 py-4 text-on-surface-variant">{product.material}</td>
@@ -317,6 +323,7 @@ export const ProductsPage: React.FC = () => {
               <div className="flex-1 flex flex-col min-w-0">
                 <div className="flex justify-between items-start gap-2">
                   <button type="button" onClick={event => openDetails(event, product)} title={product.name} className="text-left font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2">{product.name}</button>
+                <div className="flex flex-wrap gap-1 text-xs">{product.isFrameyaadArt && <Badge type="info">Art</Badge>}{product.allowCustomerPhoto === false && <Badge type="neutral">No upload</Badge>}</div>
                   <Badge type={stockInfo.type} className="fy-products-list__stock min-w-[100px] justify-center font-bold">  {stockInfo.label}</Badge>
                 </div>
                 <p className="fy-products-list__brand">Brand: {product.brandName}</p><p className="text-xs text-on-surface-variant mt-0.5">{product.material} • {product.variants?.length || 0} {product.variants?.length === 1 ? 'Variant' : 'Variants'}</p>

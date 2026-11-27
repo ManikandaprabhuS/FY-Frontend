@@ -6,6 +6,7 @@ export type CustomerWishlistItem = {
   productIdentifier: string;
   createdAt?: string;
   product: {
+    allowCustomerPhoto?:boolean;maxPhotoMb?:number|string|null;isFrameyaadArt?:boolean;
     id: string;
     productIdentifier: string;
     productName: string;
@@ -15,6 +16,7 @@ export type CustomerWishlistItem = {
       isActive?: boolean;
     } | null;
     variants?: Array<{
+      maxPhotoSizeMB?:number|null;
       id: string;
       productId?: string;
       color?: string | null;

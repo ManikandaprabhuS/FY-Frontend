@@ -89,6 +89,7 @@ export const useCustomerCommerce = () => {
       quantity,
       stockQuantity,
       maxPhotoSizeMB:variant.maxPhotoSizeMB,
+      allowCustomerPhoto:product.allowCustomerPhoto!==false,maxPhotoMb:product.maxPhotoMb,isFrameyaadArt:product.isFrameyaadArt,
     });
     if (added) showSuccess(`${product.name} added to cart`);
     return Boolean(added);

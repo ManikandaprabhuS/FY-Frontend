@@ -15,6 +15,7 @@ export type ProductImagePayload = {
 };
 
 export type ProductPayload = {
+  allowCustomerPhoto?:boolean;maxPhotoMb?:number|null;isFrameyaadArt?:boolean;
   productIdentifier?: string | null;
   productName?: string | null;
   materialId?: string | null;
@@ -48,6 +49,8 @@ export type VariantPayload = {
 };
 
 export type ProductListParams = {
+  catalog?:'frames'|'arts'|'all';
+  isFrameyaadArt?:boolean;
   materials?: string[];
   frameSizes?: string[];
   availability?: 'all' | 'in-stock' | 'out-of-stock';
@@ -143,6 +146,9 @@ const normalizeProduct = (product: ProductApi): Product => {
 
   return {
   ...(product as unknown as Product),
+  allowCustomerPhoto:product.allowCustomerPhoto!==false,
+  maxPhotoMb:product.maxPhotoMb==null?null:Number(product.maxPhotoMb),
+  isFrameyaadArt:product.isFrameyaadArt===true,
   name: product.name ?? product.productName ?? '',
   description: product.description ?? materialDetails?.description ?? undefined,
   brandName: product.brandName ?? materialDetails?.brandName ?? '',

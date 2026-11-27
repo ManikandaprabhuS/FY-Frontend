@@ -59,6 +59,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <CustomerHomePage /> },
       { path: '/products', element: <CustomerProductsPage /> },
+      { path: '/frameyaad-arts', element: <CustomerProductsPage key="frameyaad-arts" artsOnly /> },
       { path: '/product/:slug', element: <ResourceRoute parameter="slug" apiRoot="/products/public"><CustomerProductDetailsPage /></ResourceRoute> },
       { path: '/cart', element: <CartPage /> },
       { path: '/checkout', element: <CustomerProtectedRoute><CheckoutPage /></CustomerProtectedRoute> },

@@ -18,6 +18,7 @@ type Props={
 const primary=[
  {name:'Home',path:'/',icon:House},
  {name:'Shop all frames',path:'/products',icon:Layers},
+ {name:'FrameYaad Arts',path:'/frameyaad-arts',icon:Image},
  {name:'Customize a frame',path:STUDIO_PATH,icon:Image},
 ];
 const services=[

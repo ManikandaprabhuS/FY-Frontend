@@ -64,6 +64,9 @@ export interface ProductImage {
   displayOrder: number;
 }
 export interface Product {
+  allowCustomerPhoto?:boolean;
+  maxPhotoMb?:number|null;
+  isFrameyaadArt?:boolean;
   id: string;
   materialId?: string | null;
   variantId?: string | null;
@@ -121,6 +124,7 @@ export interface OrderRefundFields {
  refundHistory?:Array<{status:string;changedAt:string;changedBy:{id:string;role:string}}>;
 }
 export interface Order extends OrderRefundFields {
+  customerPhotoAllowed?:boolean;
   photoId?: string|null; photoFileName?: string|null; photoSizeBytes?: number|null;
   photoDeleted?:boolean;photoDeletedAt?:string|null;photoDeletedBy?:string|null;
   statusHistory?: OrderStatusHistoryEntry[];

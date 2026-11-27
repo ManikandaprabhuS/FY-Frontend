@@ -86,6 +86,7 @@ const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
       </div>
 
       <div className="fy-card__body">
+        {(product.isFrameyaadArt||product.allowCustomerPhoto===false)&&<p className="mb-2 flex flex-wrap gap-2 text-[10px] font-bold">{product.isFrameyaadArt&&<span className="rounded-full bg-primary/10 px-2 py-1 text-primary">Art</span>}{product.allowCustomerPhoto===false&&<span className="rounded-full bg-black/5 px-2 py-1">Ready to hang</span>}</p>}
         {product.material && <p className="fy-card__material">{product.material}</p>}
         <h2 className="fy-card__name" title={product.name}>
           <Link to={productPath} onClick={(event) => event.stopPropagation()} className="outline-none focus-visible:underline">
